@@ -123,6 +123,16 @@ class ProfilesViewModel(
                         .copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
                 } else profile.copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
 
+                subscriptionInfo?.filename?.let { fileName ->
+                    val nameWithoutExt = if (fileName.contains(".")) {
+                        fileName.substringBeforeLast(".")
+                    } else {
+                        fileName
+                    }
+
+                    updated = updated.copy(name = nameWithoutExt)
+                }
+
                 subscriptionInfo?.let { info ->
                     updated = updated.copy(
                         provider = info.title ?: updated.provider,

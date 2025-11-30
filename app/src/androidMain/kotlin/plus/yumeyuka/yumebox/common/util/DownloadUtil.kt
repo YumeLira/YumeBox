@@ -31,7 +31,9 @@ import okhttp3.Request
 import okio.buffer
 import okio.sink
 import plus.yumeyuka.yumebox.App
+import plus.yumeyuka.yumebox.BuildConfig
 import java.io.File
+import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 
 data class DownloadProgress(
@@ -47,6 +49,7 @@ data class SubscriptionInfo(
     val total: Long = 0L,
     val expire: Long? = null,
     val title: String? = null,
+    val filename: String? = null,
     val interval: Int = 24
 )
 
@@ -54,7 +57,28 @@ object DownloadUtil {
     private const val USER_AGENT = "Clash.Meta"
     private const val UPDATE_INTERVAL_MS = 500L
 
-    private fun parseSubscriptionInfo(headers: Headers): SubscriptionInfo {
+    private fun parseFilenameFromContentDisposition(headers: Headers): String? {
+        val contentDisposition = headers["Content-Disposition"] ?: return null
+
+        return try {
+            if (contentDisposition.contains("filename*=")) {
+                val regex = """filename\*=([^']*)'([^']*)'([^;]+)""".toRegex(RegexOption.IGNORE_CASE)
+                regex.find(contentDisposition)?.let { match ->
+                    val (_, charset, _, encodedFilename) = match.groupValues
+                    URLDecoder.decode(encodedFilename, charset.ifEmpty { "UTF-8" })
+                }
+            } else {
+                val regex = """filename=([^;]+)""".toRegex(RegexOption.IGNORE_CASE)
+                regex.find(contentDisposition)?.let { match ->
+                    match.groupValues[1].trim('"', '\'')
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parseSubscriptionInfo(headers: Headers, remoteUrl: String? = null): SubscriptionInfo {
         fun parseTrafficToBytes(trafficStr: String): Long {
             val regex = """(\d+\.?\d*)\s*([KMGT]?B)""".toRegex(RegexOption.IGNORE_CASE)
             val match = regex.find(trafficStr) ?: return 0L
@@ -122,6 +146,8 @@ object DownloadUtil {
 
             title = headers["Profile-Title"] ?: headers["Subscription-Title"],
 
+            filename = parseFilenameFromContentDisposition(headers),
+
             interval = headers["Profile-Update-Interval"]?.toIntOrNull() ?:
                       headers["Subscription-Update-Interval"]?.toIntOrNull() ?: 24
         )
@@ -167,7 +193,7 @@ object DownloadUtil {
             }
 
 
-            subscriptionInfo = parseSubscriptionInfo(response.headers)
+            subscriptionInfo = parseSubscriptionInfo(response.headers, url)
 
             val body = response.body
             val contentLength = body.contentLength()
