@@ -258,6 +258,7 @@
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
 -optimizationpasses 5
 -dontpreverify
+-repackageclasses ''
 
 # Preserve metadata attributes
 -keepattributes Signature

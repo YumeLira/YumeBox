@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 rootProject.name = "YumeBox"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
@@ -8,17 +10,10 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
-        gradlePluginPortal()
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
         maven("https://jitpack.io")
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        gradlePluginPortal()
     }
 }
 
@@ -26,13 +21,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
+        google()
         mavenCentral()
         maven("https://jitpack.io")
         maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
@@ -44,7 +33,7 @@ dependencyResolutionManagement {
 }
 
 plugins {
-    id("com.highcapable.gropify") version "1.0.0"
+    id("com.highcapable.gropify") version "1.0.1"
 }
 
 gropify {
@@ -76,6 +65,4 @@ gropify {
     }
 }
 
-include(":core")
-include(":extension")
-include(":app")
+include(":core", ":extension", ":app")

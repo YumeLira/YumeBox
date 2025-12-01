@@ -1,37 +1,25 @@
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.provider.ListProperty
-import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ValueSource
-import org.gradle.api.provider.ValueSourceParameters
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
-import org.gradle.process.ExecOperations
+@file:Suppress("UnstableApiUsage")
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Properties
-import javax.inject.Inject
-
-import core.ConfigProvider
+import java.util.*
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    kotlin("android")
+    kotlin("plugin.serialization")
     id("yumebox.base.android")
     id("yumebox.golang.config")
     id("yumebox.golang.tasks")
-    alias(libs.plugins.kotlinSerialization)
 }
 
 dependencies {
-    implementation(libs.bundles.kotlinx)
-    implementation(libs.androidx.annotation.jvm)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("androidx.annotation:annotation-jvm:1.9.1")
 }
 
 val sixteenKbPageLinkerFlags = listOf("-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384")
@@ -106,7 +94,7 @@ val kernelFile = rootProject.file("kernel.properties")
 if (kernelFile.exists()) {
     kernelFile.inputStream().use { kernelProps.load(it) }
 }
-val mihomoSuffix = kernelProps.getProperty("external.mihomo.suffix", "")
+val mihomoSuffix = kernelProps.getProperty("external.mihomo.suffix", "")!!
 val includeTimestamp = kernelProps.getProperty("external.mihomo.includeTimestamp", "false").toBoolean()
 val buildTimestampProvider: Provider<String> = providers.provider {
     if (includeTimestamp) SimpleDateFormat("yyMMdd").format(Date()) else ""
@@ -162,6 +150,7 @@ android {
     namespace = gropify.project.namespace.core
 
     defaultConfig {
+        consumerProguardFiles("consumer-rules.pro")
         externalNativeBuild {
             cmake {
                 arguments(
@@ -187,7 +176,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/cpp/CMakeLists.txt")
-            version = libs.versions.cmake.get()
+            version = "3.22.1"
         }
     }
 }
