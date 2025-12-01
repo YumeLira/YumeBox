@@ -5,6 +5,8 @@ on:
     branches:
       - Yume
       - Alpha
+    paths-ignore:
+      - "docs/**"
   workflow_dispatch:
     inputs:
       pr_number:
