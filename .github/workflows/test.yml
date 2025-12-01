@@ -1,6 +1,10 @@
 name: Test Build
 
 on:
+  pull_request:
+    branches:
+      - Yume
+      - Alpha
   workflow_dispatch:
     inputs:
       pr_number:
@@ -20,7 +24,7 @@ jobs:
   build:
     name: Build and Test APK
     runs-on: ubuntu-latest
-    environment: pr-test  # This creates a manual approval requirement
+    environment: test-build
     env:
       KEYSTORE_PATH: release.keystore
       JAVA_VERSION: '24'
@@ -35,7 +39,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-          ref: ${{ format('refs/pull/{0}/head', inputs.pr_number) }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.sha }}
 
       - name: Extract version
         id: version
