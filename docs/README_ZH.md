@@ -1,6 +1,6 @@
 <div align="center">
 
-**简体中文** | [简体中文](README_ZH.md) | [English](../README.md)
+**简体中文** | [English](README.md)
 
 <img src="Logo.png" style="width: 96px;" alt="logo">
 

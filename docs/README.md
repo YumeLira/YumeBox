@@ -1,8 +1,8 @@
 <div align="center">
 
-**English** | [English](../README.md) | [简体中文](./docs/README_ZH.md)
+**English** | [简体中文](README_ZH.md)
 
-<img src="./docs/Logo.png" style="width: 96px;" alt="logo">
+<img src="Logo.png" style="width: 96px;" alt="logo">
 
 ## YumeBox
 
