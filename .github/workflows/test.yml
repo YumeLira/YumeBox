@@ -7,6 +7,10 @@ on:
       - Alpha
     paths-ignore:
       - "docs/**"
+      - "*.md"
+      - "*.mkd"
+      - "LICENSE*"
+      - ".*"
   workflow_dispatch:
     inputs:
       pr_number:
