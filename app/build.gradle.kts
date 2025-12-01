@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 import com.android.build.gradle.tasks.MergeSourceSetFolders
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -35,13 +37,13 @@ abstract class DownloadGeoFilesTask : DefaultTask() {
 
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidApplication)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.aboutlibraries)
+    id("com.android.application")
+    kotlin("multiplatform")
+    kotlin("plugin.serialization")
+    kotlin("plugin.compose")
+    id("org.jetbrains.compose")
+    id("com.google.devtools.ksp")
+    id("com.mikepenz.aboutlibraries.plugin")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("dev.oom-wg.purejoy.mlang")
@@ -58,8 +60,8 @@ MLang {
 
 val targetAbi = project.findProperty("android.injected.build.abi") as String?
 val mmkvVersion = when (targetAbi) {
-    "arm64-v8a", "x86_64" -> libs.versions.mmkv64.get()
-    else -> libs.versions.mmkv.get()
+    "arm64-v8a", "x86_64" -> "2.2.4"
+    else -> "1.3.14"
 }
 val mmkvDependency = "com.tencent:mmkv:$mmkvVersion"
 
@@ -79,37 +81,38 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-            implementation(libs.bundles.miuix)
-            implementation(libs.haze.materials)
+            implementation("androidx.activity:activity-compose:1.11.0")
+            implementation("top.yukonga.miuix.kmp:miuix:0.7.1")
+            implementation("dev.chrisbanes.haze:haze-materials:1.6.10")
             implementation(mmkvDependency)
-            implementation(libs.koin.android)
-            implementation(libs.koin.androidx.compose)
-            implementation(libs.compose.destinations.core)
-            implementation(libs.okhttp)
-            implementation(libs.timber)
-            implementation(libs.javet)
-            implementation(libs.pangutext.android)
-            implementation(libs.commons.compress)
-            implementation(project.dependencies.platform(libs.firebase.bom))
-            implementation(libs.firebase.crashlytics.ndk)
-            implementation(libs.firebase.analytics)
-            implementation(libs.mlkit.barcode.scanning)
-            implementation(libs.camera2)
-            implementation(libs.camera2Lifecycle)
-            implementation(libs.camera2View)
-            implementation(libs.cameraCore)
-            implementation(libs.cameraVideo)
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.android)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network.okhttp)
-            implementation(libs.coil.svg)
-            implementation(libs.aboutlibraries.core)
-            implementation(libs.aboutlibraries.compose)
-            implementation(libs.aboutlibraries.compose.m3)
+            implementation("io.insert-koin:koin-core:4.1.1")
+            implementation("io.insert-koin:koin-android:4.1.1")
+            implementation("io.insert-koin:koin-androidx-compose:4.1.1")
+            implementation("io.github.raamcosta.compose-destinations:core:2.3.0")
+            implementation("com.squareup.okhttp3:okhttp:5.3.0")
+            implementation("com.jakewharton.timber:timber:5.0.1")
+            implementation("com.caoccao.javet:javet-node-android:5.0.2")
+            implementation("com.highcapable.pangutext:pangutext-android:1.0.4")
+            implementation("org.apache.commons:commons-compress:1.26.1")
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:34.6.0"))
+            implementation("com.google.firebase:firebase-crashlytics-ndk")
+            implementation("com.google.firebase:firebase-analytics")
+            implementation("com.google.mlkit:barcode-scanning:17.3.0")
+            implementation("androidx.camera:camera-camera2:1.4.2")
+            implementation("androidx.camera:camera-lifecycle:1.4.2")
+            implementation("androidx.camera:camera-view:1.4.2")
+            implementation("androidx.camera:camera-core:1.4.2")
+            implementation("androidx.camera:camera-video:1.4.2")
+            implementation("io.ktor:ktor-client-core:2.3.8")
+            implementation("io.ktor:ktor-client-android:2.3.8")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.8")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.8")
+            implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+            implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+            implementation("io.coil-kt.coil3:coil-svg:3.0.4")
+            implementation("com.mikepenz:aboutlibraries-core:13.1.0")
+            implementation("com.mikepenz:aboutlibraries-compose:13.1.0")
+            implementation("com.mikepenz:aboutlibraries-compose-m3:13.1.0")
         }
 
         commonMain.dependencies {
@@ -118,15 +121,14 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.ui)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.koin.core)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.androidx.lifecycle.viewmodel.compose)
-            implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+            implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
+            implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")
         }
 
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
+            implementation("org.jetbrains.kotlin:kotlin-test:2.2.21")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         }
     }
 }
@@ -148,6 +150,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
     }
@@ -182,8 +185,10 @@ android {
 
     splits {
         abi {
+            //noinspection WrongGradleMethod
             isEnable = gradle.startParameter.taskNames.none { it.contains("bundle", ignoreCase = true) }
             reset()
+            //noinspection ChromeOsAbiSupport
             include(*appAbiList.toTypedArray())
             isUniversalApk = false
         }
@@ -191,36 +196,17 @@ android {
 
     packaging {
         jniLibs {
-            excludes += listOf(
-                "lib/arm64-v8a/libjavet*.so",
-                "lib/armeabi-v7a/libjavet*.so",
-                "lib/x86_64/libjavet*.so",
-                "lib/x86/libjavet*.so",
-                "lib/**/libjavet-node-android.v.5.0.1.so",
-            )
+            excludes += listOf("lib/**/libjavet*.so")
             useLegacyPackaging = true
         }
         resources {
             excludes += listOf(
                 "SubStore/**",
-                "kotlin/**",
-                "kotlin/**/*",
-                "kotlin/**/**",
+                "**/*.kotlin_builtins",
                 "DebugProbesKt.bin",
-                "META-INF/*.kotlin_module",
-                "META-INF/LICENSE*",
-                "META-INF/AL2.0",
-                "META-INF/*.version",
-                "META-INF/DEPENDENCIES",
-                "META-INF/NOTICE",
-                "META-INF/*.txt",
-                "META-INF/index.list",
-                "META-INF/io.netty.versions.properties",
-                "index.android.bin",
+                "kotlin-tooling-metadata.json",
+                "META-INF/**",
                 "index.*.bin",
-                "META-INF/spring.*",
-                "META-INF/ASL2.0",
-                "META-INF/*.index",
             )
         }
     }
@@ -236,8 +222,10 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
     debugImplementation(compose.uiTooling)
-    add("kspAndroid", libs.compose.destinations.ksp)
+    ksp("io.github.raamcosta.compose-destinations:ksp:2.3.0")
 }
 
 ksp {
@@ -261,9 +249,9 @@ val downloadGeoFilesTask = tasks.register<DownloadGeoFilesTask>("downloadGeoFile
 
 tasks.configureEach {
     when {
-        name.startsWith("assemble") ||
-            name.startsWith("lintVitalAnalyze") ||
-            (name.startsWith("generate") && name.contains("LintVitalReportModel")) -> {
+        name.startsWith("assemble") || name.startsWith("lintVitalAnalyze") || (name.startsWith("generate") && name.contains(
+            "LintVitalReportModel"
+        )) -> {
             dependsOn(downloadGeoFilesTask)
         }
     }

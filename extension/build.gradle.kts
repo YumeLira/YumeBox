@@ -1,3 +1,7 @@
+@file:Suppress("UnstableApiUsage")
+
+import com.android.build.gradle.tasks.PackageAndroidArtifact
+
 /*
  * This file is part of YumeBox.
  *
@@ -18,32 +22,17 @@
  *
  */
 
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("yumebox.base.android")
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.annotation.jvm)
-    implementation(libs.compose.runtime)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-    implementation(libs.javet)
+    implementation("com.caoccao.javet:javet-node-android:5.0.2")
 }
 
 val extensionJvmTarget = gropify.project.jvm.toString()
 val extensionAbiList = gropify.abi.extension.list.split(",").map { it.trim() }
-
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(extensionJvmTarget))
-}
 
 android {
     namespace = gropify.project.namespace.extension
@@ -57,10 +46,20 @@ android {
         versionName = gropify.project.version.name
     }
 
+    tasks.withType<PackageAndroidArtifact> {
+        doFirst { appMetadata.asFile.orNull?.writeText("") }
+    }
     packaging {
         jniLibs {
             useLegacyPackaging = true
         }
+        resources {
+            excludes += listOf("META-INF/**")
+        }
+    }
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
     buildTypes {
         debug {
@@ -68,6 +67,8 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
+            vcsInfo.include = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -76,17 +77,9 @@ android {
         abi {
             isEnable = true
             reset()
+            //noinspection ChromeOsAbiSupport
             include(*extensionAbiList.toTypedArray())
             isUniversalApk = false
-        }
-    }
-
-    sourceSets {
-        getByName("main") {
-            manifest.srcFile("src/androidMain/AndroidManifest.xml")
-            java.srcDir("src/androidMain/kotlin")
-            res.srcDir("src/androidMain/res")
-            assets.srcDirs("src/androidMain/assets")
         }
     }
 }

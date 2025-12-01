@@ -18,6 +18,8 @@
  *
  */
 
+@file:Suppress("UnstableApiUsage")
+
 pluginManagement {
     repositories {
         google()
@@ -31,11 +33,6 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-    }
-    versionCatalogs {
-        create("libs") {
-            from(files("../gradle/libs.versions.toml"))
-        }
     }
 }
 

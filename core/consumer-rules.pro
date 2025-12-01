@@ -18,4 +18,8 @@
 
 # Keep data models for serialization
 -keep class plus.yumeyuka.yumebox.core.model.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+
+-dontwarn kotlinx.serialization.**
 
