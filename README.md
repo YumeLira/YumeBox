@@ -17,24 +17,24 @@
 
 ## Features
 
-* Mihomo  
-* SubStore  
-* Web dashboard  
-* bzdl ...
+  * Mihomo  
+  * SubStore  
+  * Web dashboard  
+  * bzdl ...
 
 ## Compatibility
-
-* Android 7.0 and above  
-* Supports `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64` architectures  
+ 
+  * Android 7.0 and above  
+  * Supports `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64` architectures  
 
 ## Usage
 
-* **Install**: Visit the [Releases](https://github.com/YumeYuka/YumeBox/releases) page  
-* **Build**: See the [Build section](#build)
+  * **Install**: Visit the [Releases](https://github.com/YumeYuka/YumeBox/releases) page  
+  * **Build**: See the [Build section](#build)
 
 ## Discussion
 
-* Telegram group: [@OOM_WG](https://t.me/OOM_Group)
+  * Telegram group: [@OOM_WG](https://t.me/OOM_Group)
 
 ## Contributing Translations
 
@@ -44,48 +44,48 @@ To translate YumeBox into your language or improve existing translations, please
 
 1. **Sync core source code**
 
-```bash
-sh scripts/sync-kernel.sh <alpha|meta|smart>
-````
+    ```bash
+    sh scripts/sync-kernel.sh <alpha|meta|smart>
+    ````
 
 2. **Install dependencies**
    Ensure that OpenJDK 24, Android SDK, CMake, and Golang are installed.
 
 3. **Create `local.properties` in the project root**
 
-```
-sdk.dir=/path/to/android-sdk
-```
+    ```properties
+    sdk.dir=/path/to/android-sdk
+    ```
 
 4. **(Optional) Customize the package name by editing `gradle.properties`**
 
-```
-project.namespace.base=plus.yumeyuka.yumebox
-project.namespace.core=${project.namespace.base}.core
-project.namespace.extension=${project.namespace.base}.extension
-project.namespace.buildlogic=${project.namespace.base}.buildlogic
-```
+    ```properties
+    project.namespace.base=plus.yumeyuka.yumebox
+    project.namespace.core=${project.namespace.base}.core
+    project.namespace.extension=${project.namespace.base}.extension
+    project.namespace.buildlogic=${project.namespace.base}.buildlogic
+    ```
 
 5. **Create `signing.properties` in the project root**
 
-```
-keystore.path=/path/to/keystore/file
-keystore.password=<key store password>
-key.alias=<key alias>
-key.password=<key password>
-```
+    ```properties
+    keystore.path=/path/to/keystore/file
+    keystore.password=<key store password>
+    key.alias=<key alias>
+    key.password=<key password>
+    ```
 
 6. **Build the application**
 
-```
-./gradlew app:assembleRelease
-```
+    ```bash
+    ./gradlew app:assembleRelease
+    ```
 
 ## Acknowledgements
 
-* [Mihomo](https://github.com/MetaCubeX/mihomo)
-* [ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
-* [SubStore](https://github.com/sub-store-org)
-* [SubCase](https://github.com/sion-codin/SubCase)
-* [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
-* [Zashboard](https://github.com/Zephyruso/zashboard)
+  * [Mihomo](https://github.com/MetaCubeX/mihomo)
+  * [ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
+  * [SubStore](https://github.com/sub-store-org)
+  * [SubCase](https://github.com/sion-codin/SubCase)
+  * [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
+  * [Zashboard](https://github.com/Zephyruso/zashboard)

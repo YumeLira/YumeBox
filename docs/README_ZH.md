@@ -15,24 +15,24 @@
 
 ## 特性
 
-* Mihomo
-* SubStore
-* Web 面板
-* bzdl ...
+  * Mihomo
+  * SubStore
+  * Web 面板
+  * bzdl ...
 
 ## 适配性
 
-* Android 7.0 及以上
-* 支持 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64` 架构
+  * Android 7.0 及以上
+  * 支持 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64` 架构
 
 ## 使用方法
 
-* **安装**：前往 [Releases](https://github.com/YumeYuka/YumeBox/releases)
-* **构建**：[跳转至构建章节](#构建)
+  * **安装**：前往 [Releases](https://github.com/YumeYuka/YumeBox/releases)
+  * **构建**：[跳转至构建章节](#构建)
 
 ## 讨论
 
-* Telegram 群组：[@OOM_WG](https://t.me/OOM_Group)
+  * Telegram 群组：[@OOM_WG](https://t.me/OOM_Group)
 
 ## 参与翻译
 
@@ -41,49 +41,49 @@
 ## 构建
 
 1. **同步 core 源码**
-
-```bash
-sh scripts/sync-kernel.sh <alpha|meta|smart>
-```
+    
+    ```bash
+    sh scripts/sync-kernel.sh <alpha|meta|smart>
+    ``` 
 
 2. **安装依赖**
    请确保已安装 OpenJDK 24、Android SDK、CMake 与 Golang。
 
 3. **在项目根目录创建 `local.properties`**
 
-```
-sdk.dir=/path/to/android-sdk
-```
+    ```properties
+    sdk.dir=/path/to/android-sdk
+    ```
 
 4. **（可选）自定义包名：修改 `gradle.properties`**
-
-```
-project.namespace.base=plus.yumeyuka.yumebox
-project.namespace.core=${project.namespace.base}.core
-project.namespace.extension=${project.namespace.base}.extension
-project.namespace.buildlogic=${project.namespace.base}.buildlogic
-```
+    
+    ```properties
+    project.namespace.base=plus.yumeyuka.yumebox
+    project.namespace.core=${project.namespace.base}.core
+    project.namespace.extension=${project.namespace.base}.extension
+    project.namespace.buildlogic=${project.namespace.base}.buildlogic
+    ```
 
 5. **在项目根目录创建 `signing.properties`**
 
-```
-keystore.path=/path/to/keystore/file
-keystore.password=<key store password>
-key.alias=<key alias>
-key.password=<key password>
-```
+    ```properties
+    keystore.path=/path/to/keystore/file
+    keystore.password=<key store password>
+    key.alias=<key alias>
+    key.password=<key password>
+    ```
 
 6. **构建应用**
 
-```
-./gradlew app:assembleRelease
-```
+    ```bash
+    ./gradlew app:assembleRelease
+    ```
 
 ## 鸣谢
 
-* [Mihomo](https://github.com/MetaCubeX/mihomo)
-* [ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
-* [SubStore](https://github.com/sub-store-org)
-* [SubCase](https://github.com/sion-codin/SubCase)
-* [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
-* [Zashboard](https://github.com/Zephyruso/zashboard)
+  * [Mihomo](https://github.com/MetaCubeX/mihomo)
+  * [ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)
+  * [SubStore](https://github.com/sub-store-org)
+  * [SubCase](https://github.com/sion-codin/SubCase)
+  * [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
+  * [Zashboard](https://github.com/Zephyruso/zashboard)
