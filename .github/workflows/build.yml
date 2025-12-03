@@ -69,10 +69,10 @@ jobs:
 
       - name: Write signing config
         run: |
-          if [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
-            echo "keystore.password=${{ secrets.KEYSTORE_PASSWORD }}" > signing.properties
-            echo "key.alias=${{ secrets.KEY_ALIAS }}" >> signing.properties
-            echo "key.password=${{ secrets.KEY_PASSWORD }}" >> signing.properties
+          if [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
+            echo "keystore.password=${{ secrets.SIGNING_STORE_PASSWORD }}" > signing.properties
+            echo "key.alias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
+            echo "key.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
             echo "keystore.path=release.keystore" >> signing.properties
           fi
 
@@ -83,42 +83,36 @@ jobs:
 
       - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: yumebox-arm64-v8a
           path: app/build/outputs/apk/release/*arm64-v8a*.apk
 
       - name: Upload armeabi-v7a APK
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: yumebox-armeabi-v7a
           path: app/build/outputs/apk/release/*armeabi-v7a*.apk
 
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: yumebox-x86_64
           path: app/build/outputs/apk/release/*x86_64*.apk
 
       - name: Upload x86 APK
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: yumebox-x86
           path: app/build/outputs/apk/release/*x86*.apk
 
       - name: Upload universal APK
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: yumebox-universal
           path: app/build/outputs/apk/release/*universal*.apk
 
       - name: Upload mappings
         uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         with:
           name: mappings
           path: app/build/outputs/mapping/release/
