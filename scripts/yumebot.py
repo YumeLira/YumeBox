@@ -36,11 +36,10 @@ def check_environ():
 
 
 def find_apk_files():
-    # 确保能找到所有 APK 文件
     patterns = [
-        "./app/build/outputs/apk/release/*.apk",
-        "app/build/outputs/apk/release/*.apk",
-        "/github/workspace/app/build/outputs/apk/release/*.apk"
+        "./app/build/outputs/apk/release/*arm64-v8a*.apk",
+        "app/build/outputs/apk/release/*arm64-v8a*.apk",
+        "/github/workspace/app/build/outputs/apk/release/*arm64-v8a*.apk"
     ]
 
     files = []
@@ -50,11 +49,10 @@ def find_apk_files():
             files.extend(found)
             print(f"[+] Found {len(found)} files in {pattern}")
 
-    # 去重
     files = list(set(files))
 
     if not files:
-        print("[-] No APK files found!")
+        print("[-] No arm64-v8a APK files found!")
         exit(1)
 
     print(f"[+] Total files to upload: {len(files)}")
@@ -68,7 +66,6 @@ def send_files_via_bot_api():
     print("[+] Starting Telegram upload")
     check_environ()
 
-    # 自动查找 APK 文件
     files = find_apk_files()
 
     # Bot API URL
@@ -77,42 +74,36 @@ def send_files_via_bot_api():
     caption = get_caption()
     print("[+] Caption:", caption)
 
-    # 发送文件
-    for i, file_path in enumerate(files):
-        print(f"[+] Uploading {file_path}...")
+    file_path = files[0]
+    print(f"[+] Uploading {file_path}...")
 
-        with open(file_path, 'rb') as f:
-            # 只在最后一个文件添加 caption
-            file_caption = caption if i == len(files) - 1 else ""
+    with open(file_path, 'rb') as f:
+        data = {
+            'chat_id': CHAT_ID,
+            'caption': caption,
+            'parse_mode': 'markdown'
+        }
 
-            data = {
-                'chat_id': CHAT_ID,
-                'caption': file_caption,
-                'parse_mode': 'markdown'
-            }
+        if MESSAGE_THREAD_ID:
+            data['message_thread_id'] = MESSAGE_THREAD_ID
 
-            if MESSAGE_THREAD_ID:
-                data['message_thread_id'] = MESSAGE_THREAD_ID
+        files_data = {
+            'document': f
+        }
 
-            files_data = {
-                'document': f
-            }
+        response = requests.post(
+            f"{bot_url}/sendDocument",
+            data=data,
+            files=files_data,
+            timeout=60
+        )
 
-            response = requests.post(
-                f"{bot_url}/sendDocument",
-                data=data,
-                files=files_data,
-                timeout=60
-            )
-
-        if response.status_code == 200:
-            print(f"[+] {file_path} uploaded successfully!")
-        else:
-            print(f"[-] Failed to upload {file_path}: {response.text}")
-            return False
-
-    print("[+] All files uploaded!")
-    return True
+    if response.status_code == 200:
+        print(f"[+] {file_path} uploaded successfully!")
+        return True
+    else:
+        print(f"[-] Failed to upload {file_path}: {response.text}")
+        return False
 
 
 if __name__ == "__main__":
