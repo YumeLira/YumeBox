@@ -1,0 +1,142 @@
+name: Build YumeBox
+
+on:
+  push:
+    branches: [ "Yume", "dev" ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '24'
+          cache: 'gradle'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/29.0.14206865
+          key: ndk-29.0.14206865
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;29.0.14206865"
+
+      - name: Update CA certificates
+        run: |
+          sudo apt-get update && sudo apt-get install -y ca-certificates
+          sudo update-ca-certificates
+          mkdir -p core/src/foss/golang/mihomo/component/ca
+          cp -f /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
+
+      - name: Sync kernel
+        run: |
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh meta
+
+      - name: Check upload availability
+        id: check_upload
+        run: echo "UPLOAD=${{ secrets.BOT_TOKEN != '' }}" >> $GITHUB_OUTPUT
+
+      - name: Write signing config
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
+            echo "keystore.password=${{ secrets.KEYSTORE_PASSWORD }}" > signing.properties
+            echo "key.alias=${{ secrets.KEY_ALIAS }}" >> signing.properties
+            echo "key.password=${{ secrets.KEY_PASSWORD }}" >> signing.properties
+            echo "keystore.path=release.keystore" >> signing.properties
+          fi
+
+      - name: Build Release APKs
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assembleRelease
+
+      - name: Upload arm64-v8a APK
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: yumebox-arm64-v8a
+          path: app/build/outputs/apk/release/*arm64-v8a*.apk
+
+      - name: Upload armeabi-v7a APK
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: yumebox-armeabi-v7a
+          path: app/build/outputs/apk/release/*armeabi-v7a*.apk
+
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: yumebox-x86_64
+          path: app/build/outputs/apk/release/*x86_64*.apk
+
+      - name: Upload x86 APK
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: yumebox-x86
+          path: app/build/outputs/apk/release/*x86*.apk
+
+      - name: Upload universal APK
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: yumebox-universal
+          path: app/build/outputs/apk/release/*universal*.apk
+
+      - name: Upload mappings
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
+        with:
+          name: mappings
+          path: app/build/outputs/mapping/release/
+
+      - name: Bot session cache
+        if: steps.check_upload.outputs.UPLOAD == 'true'
+        uses: actions/cache@v4
+        with:
+          path: scripts/yumebot.session
+          key: ${{ runner.os }}-bot-session
+
+      - name: Upload to Telegram
+        if: steps.check_upload.outputs.UPLOAD == 'true'
+        env:
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MESSAGE_THREAD_ID: ${{ secrets.MESSAGE_THREAD_ID }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          TITLE: YumeBox
+          BRANCH: ${{ github.ref_name }}
+        run: python3 $GITHUB_WORKSPACE/scripts/yumebot.py

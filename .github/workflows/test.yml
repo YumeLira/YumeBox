@@ -1,72 +1,53 @@
-name: Test Build
+name: PR Test
 
 on:
   pull_request:
-    branches:
-      - Yume
-      - Alpha
+    branches: [ "Yume", "dev" ]
     paths-ignore:
-      - "docs/**"
-      - "*.md"
-      - "*.mkd"
-      - "LICENSE*"
-      - ".*"
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'PR number to test'
-        required: true
-        type: string
-      force_build:
-        description: 'Force build even if checks would normally skip'
-        required: false
-        default: false
-        type: boolean
-
-permissions:
-  contents: write
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
 
 jobs:
-  build:
-    name: Build and Test APK
+  test:
     runs-on: ubuntu-latest
-    environment: test-build
-    env:
-      JAVA_VERSION: '24'
-      GO_VERSION: '1.21'
-      NDK_VERSION: '29.0.14206865'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.sha }}
 
-      - name: Extract version
-        id: version
-        run: echo "VERSION=$(grep 'project.version.name=' gradle.properties | cut -d'=' -f2-)" >> $GITHUB_OUTPUT
-
-      - uses: actions/setup-java@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          java-version: '24'
           cache: 'gradle'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          cache-read-only: false
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.21'
           cache: true
 
-      - name: Sync external sources
-        run: |
-          chmod +x scripts/sync-kernel.sh
-          ./scripts/sync-kernel.sh meta
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/29.0.14206865
+          key: ndk-29.0.14206865
+
+      - name: Install NDK
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        run: sdkmanager "ndk;29.0.14206865"
 
       - name: Update CA certificates
         run: |
@@ -75,49 +56,19 @@ jobs:
           mkdir -p core/src/foss/golang/mihomo/component/ca
           cp -f /etc/ssl/certs/ca-certificates.crt core/src/foss/golang/mihomo/component/ca/ca-certificates.crt
 
-      - uses: android-actions/setup-android@v3
+      - name: Sync kernel
+        run: |
+          chmod +x scripts/sync-kernel.sh
+          ./scripts/sync-kernel.sh meta
 
-      - name: Cache NDK
-        id: cache-ndk
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ env.NDK_VERSION }}
-          key: ndk-${{ env.NDK_VERSION }}
-
-      - if: steps.cache-ndk.outputs.cache-hit != 'true'
-        run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
-
-      - name: Build APK
+      - name: Build Debug APK
         run: |
           chmod +x gradlew
-          # Try to run tests first, then build
-          ./gradlew --no-daemon testDebugUnitTest || echo "Unit tests failed, continuing build"
-          # Build debug variant for PR tests
-          ./gradlew --no-daemon app:assembleDebug
+          ./gradlew assembleDebug
 
       - name: Generate build summary
         if: always()
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Type:** \`${{ github.event_name == 'workflow_dispatch' && 'Manual PR Test' || 'PR Auto-Test' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Status:** \`${{ job.status }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ -d "app/build/outputs/apk/debug" ]; then
-            echo "### APK Files" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Architecture | Size |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------------|------|" >> $GITHUB_STEP_SUMMARY
-            for apk in app/build/outputs/apk/debug/*.apk; do
-              if [ -f "$apk" ]; then
-                size=$(du -h "$apk" | cut -f1)
-                echo "| $(basename "$apk") | $size |" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-          else
-            echo "Build failed" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "**Status:** \`${{ job.status }}\`" >> $GITHUB_STEP_SUMMARY

@@ -175,8 +175,7 @@ android {
                 val prop = Properties().apply {
                     keystore.inputStream().use(this::load)
                 }
-
-                storeFile = rootProject.file("release.keystore")
+                storeFile = rootProject.file(prop.getProperty("keystore.path") ?: "release.keystore")
                 storePassword = prop.getProperty("keystore.password")!!
                 keyAlias = prop.getProperty("key.alias")!!
                 keyPassword = prop.getProperty("key.password")!!
@@ -197,7 +196,7 @@ android {
             isShrinkResources = true
             isDebuggable = false
             isJniDebuggable = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -291,3 +290,4 @@ aboutLibraries {
         outputFile = file("src/androidMain/resources/aboutlibraries.json")
     }
 }
+
