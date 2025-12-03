@@ -68,7 +68,6 @@ jobs:
         run: echo "UPLOAD=${{ secrets.BOT_TOKEN != '' }}" >> $GITHUB_OUTPUT
 
       - name: Write signing config
-        if: github.ref == 'refs/heads/Yume' || github.ref == 'refs/heads/dev' || github.ref_type == 'tag'
         run: |
           if [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ]; then
             echo "keystore.password=${{ secrets.KEYSTORE_PASSWORD }}" > signing.properties
