@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -38,12 +37,9 @@ import com.github.yumelira.yumebox.core.model.Proxy
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.TiltFeedback
-import top.yukonga.miuix.kmp.utils.pressable
 
 private object ProxyCardConstants {
     val CARD_CORNER_RADIUS = 12.dp
-    val BORDER_WIDTH = 1.5.dp
     val CONTENT_PADDING_HORIZONTAL = 12.dp
     val CONTENT_PADDING_VERTICAL = 16.dp
     val TEXT_SPACING = 8.dp
@@ -74,7 +70,7 @@ fun ProxyNodeCard(
     showDetail: Boolean = false
 ) {
     val backgroundColor = if (isSelected) {
-        MiuixTheme.colorScheme.primary.copy(alpha = 0.08f)
+        MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
         MiuixTheme.colorScheme.background
     }
@@ -87,38 +83,26 @@ fun ProxyNodeCard(
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    val cardModifier = modifier
-        .let { 
-            if (onClick != null) {
-                it.pressable(interactionSource = interactionSource, indication = TiltFeedback())
-            } else {
-                it
-            }
-        }
-        .fillMaxWidth()
-        .border(
-            width = if (isSelected) ProxyCardConstants.BORDER_WIDTH else 0.dp,
-            color = if (isSelected) MiuixTheme.colorScheme.primary else Color.Transparent,
-            shape = RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS)
-        )
-        .clip(RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS))
-        .let { 
-            if (onClick != null) {
-                it.clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                )
-            } else {
-                it
-            }
-        }
-
-    Card(modifier = cardModifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundColor)
+                .background(
+                    color = backgroundColor,
+                    shape = RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS)
+                )
+                .clip(RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS))
+                .let {
+                    if (onClick != null) {
+                        it.clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = onClick
+                        )
+                    } else {
+                        it
+                    }
+                }
                 .padding(
                     horizontal = ProxyCardConstants.CONTENT_PADDING_HORIZONTAL,
                     vertical = ProxyCardConstants.CONTENT_PADDING_VERTICAL
