@@ -61,7 +61,6 @@ fun AppSettingsScreen(
     val automaticRestart = viewModel.automaticRestart.state.collectAsState().value
     val hideAppIcon = viewModel.hideAppIcon.state.collectAsState().value
     val showTrafficNotification = viewModel.showTrafficNotification.state.collectAsState().value
-    val bottomBarFloating = viewModel.bottomBarFloating.state.collectAsState().value
     val showDivider = viewModel.showDivider.state.collectAsState().value
 
     val oneWord = viewModel.oneWord.state.collectAsState().value
@@ -146,12 +145,6 @@ EnumSelector(
                         ),
                         values = AppColorTheme.entries,
                         onValueChange = { viewModel.onColorThemeChange(it) },
-                    )
-                    SuperSwitch(
-                        title = MLang.AppSettings.Interface.FloatingNavbarTitle,
-                        summary = MLang.AppSettings.Interface.FloatingNavbarSummary,
-                        checked = bottomBarFloating,
-                        onCheckedChange = { viewModel.onBottomBarFloatingChange(it) },
                     )
                     SuperSwitch(
                         title = MLang.AppSettings.Interface.ShowDividerTitle,

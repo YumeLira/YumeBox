@@ -90,6 +90,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
         ScreenLazyColumn(
             scrollBehavior = scrollBehavior,
             innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
+            enableBottomBarAutoHide = true,
         ) {
 
             item {

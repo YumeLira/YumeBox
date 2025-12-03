@@ -198,7 +198,8 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
             ScreenLazyColumn(
                 scrollBehavior = scrollBehavior,
                 innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
-                topPadding = 20.dp
+                topPadding = 20.dp,
+                enableBottomBarAutoHide = true,
             ) {
                 items(profiles.size) { index ->
                     val profile = profiles[index]

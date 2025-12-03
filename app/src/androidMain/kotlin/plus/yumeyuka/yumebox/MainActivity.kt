@@ -28,11 +28,20 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.navigation.compose.rememberNavController
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
@@ -64,6 +73,7 @@ import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
 
@@ -171,14 +181,28 @@ fun MainScreen(navigator: DestinationsNavigator) {
 
     val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope) {
         { page ->
-            coroutineScope.launch { pagerState.animateScrollToPage(page) }
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(
+                    page = page,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
         }
     }
 
     BackHandler {
         if (pagerState.currentPage != 0) {
             coroutineScope.launch {
-                pagerState.animateScrollToPage(0)
+                pagerState.animateScrollToPage(
+                    page = 0,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
             }
         } else {
             activity?.finish()
@@ -190,16 +214,45 @@ fun MainScreen(navigator: DestinationsNavigator) {
         LocalHandlePageChange provides handlePageChange,
         LocalNavigator provides navigator,
     ) {
+        val verticalScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+
+                    return Offset.Zero
+                }
+                
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    if (abs(available.y) > abs(available.x) * 1.5f) {
+                        return Velocity(available.x, 0f)
+                    }
+                    return Velocity.Zero
+                }
+            }
+        }
+        
         Scaffold(
             bottomBar = {
                 BottomBar(hazeState, hazeStyle)
             },
         ) { innerPadding ->
             HorizontalPager(
-                modifier = Modifier.hazeSource(state = hazeState),
+                modifier = Modifier
+                    .hazeSource(state = hazeState)
+                    .nestedScroll(verticalScrollConnection),
                 state = pagerState,
                 beyondViewportPageCount = 1,
                 userScrollEnabled = true,
+                pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
+                    state = pagerState,
+                    orientation = androidx.compose.foundation.gestures.Orientation.Horizontal
+                ),
+                flingBehavior = PagerDefaults.flingBehavior(
+                    state = pagerState,
+                    snapAnimationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ),
             ) { page ->
                 when (page) {
                     0 -> HomePager(innerPadding)

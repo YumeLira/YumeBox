@@ -330,12 +330,40 @@ private fun ProxyGroupPage(
         if (isSelectable) { proxyName: String -> onProxySelect(groupName, proxyName) } else null
     }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    var previousScrollOffset by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var previousFirstVisibleIndex by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    
+    val isScrollingDown by remember {
+        androidx.compose.runtime.derivedStateOf {
+            val currentFirstVisibleIndex = listState.firstVisibleItemIndex
+            val currentScrollOffset = listState.firstVisibleItemScrollOffset
+            
+            val scrollingDown = when {
+                currentFirstVisibleIndex > previousFirstVisibleIndex -> true
+                currentFirstVisibleIndex < previousFirstVisibleIndex -> false
+                else -> currentScrollOffset > previousScrollOffset
+            }
+            
+            previousFirstVisibleIndex = currentFirstVisibleIndex
+            previousScrollOffset = currentScrollOffset
+            
+            scrollingDown
+        }
+    }
+    
+    LaunchedEffect(isScrollingDown) {
+        com.github.yumelira.yumebox.presentation.component.BottomBarVisibility.toggle(!isScrollingDown)
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .scrollEndHaptic()
             .overScrollVertical()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        state = listState,
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,

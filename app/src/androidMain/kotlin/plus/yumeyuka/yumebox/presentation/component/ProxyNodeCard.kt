@@ -23,9 +23,11 @@ package com.github.yumelira.yumebox.presentation.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +38,8 @@ import com.github.yumelira.yumebox.core.model.Proxy
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.TiltFeedback
+import top.yukonga.miuix.kmp.utils.pressable
 
 private object ProxyCardConstants {
     val CARD_CORNER_RADIUS = 12.dp
@@ -81,7 +85,16 @@ fun ProxyNodeCard(
         MiuixTheme.colorScheme.onSurface
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+
     val cardModifier = modifier
+        .let { 
+            if (onClick != null) {
+                it.pressable(interactionSource = interactionSource, indication = TiltFeedback())
+            } else {
+                it
+            }
+        }
         .fillMaxWidth()
         .border(
             width = if (isSelected) ProxyCardConstants.BORDER_WIDTH else 0.dp,
@@ -89,7 +102,17 @@ fun ProxyNodeCard(
             shape = RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS)
         )
         .clip(RoundedCornerShape(ProxyCardConstants.CARD_CORNER_RADIUS))
-        .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+        .let { 
+            if (onClick != null) {
+                it.clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+            } else {
+                it
+            }
+        }
 
     Card(modifier = cardModifier) {
         Box(

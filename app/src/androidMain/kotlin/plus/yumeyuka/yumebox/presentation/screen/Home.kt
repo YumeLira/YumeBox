@@ -29,7 +29,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import com.github.yumelira.yumebox.common.AppConstants
@@ -39,7 +38,6 @@ import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
 import com.github.yumelira.yumebox.presentation.screen.home.HomeIdleContent
 import com.github.yumelira.yumebox.presentation.screen.home.HomeRunningContent
-import com.github.yumelira.yumebox.presentation.screen.home.ProxyControlButton
 import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -54,14 +52,9 @@ fun HomePager(mainInnerPadding: PaddingValues) {
     val homeViewModel = koinViewModel<HomeViewModel>()
     val navigator = LocalNavigator.current
 
-    val isRunning by homeViewModel.isRunning.collectAsState()
     val displayRunning by homeViewModel.displayRunning.collectAsState()
-    val isToggling by homeViewModel.isToggling.collectAsState()
     val trafficNow by homeViewModel.trafficNow.collectAsState()
-    val profiles by homeViewModel.profiles.collectAsState()
     val ipMonitoringState by homeViewModel.ipMonitoringState.collectAsState()
-    val recommendedProfile by homeViewModel.recommendedProfile.collectAsState()
-    val hasEnabledProfile by homeViewModel.hasEnabledProfile.collectAsState(initial = false)
     val tunnelState by homeViewModel.tunnelState.collectAsState()
     val currentProfile by homeViewModel.currentProfile.collectAsState()
     val oneWord by homeViewModel.oneWord.collectAsState()
@@ -69,9 +62,6 @@ fun HomePager(mainInnerPadding: PaddingValues) {
     val selectedServerName by homeViewModel.selectedServerName.collectAsState()
     val selectedServerPing by homeViewModel.selectedServerPing.collectAsState()
     val speedHistory by homeViewModel.speedHistory.collectAsState()
-    val uiState by homeViewModel.uiState.collectAsState()
-
-    val coroutineScope = rememberCoroutineScope()
 
     val displayState = if (displayRunning) HomeDisplayState.Running else HomeDisplayState.Idle
 
@@ -98,78 +88,49 @@ fun HomePager(mainInnerPadding: PaddingValues) {
     Scaffold(
         topBar = { TopBar(title = "YumeBox", scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            ScreenLazyColumn(
-                scrollBehavior = scrollBehavior,
-                innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
-            ) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
-                            .padding(top = AppConstants.UI.DEFAULT_VERTICAL_SPACING),
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(AppConstants.UI.DEFAULT_VERTICAL_SPACING)
-                    ) {
-                        AnimatedContent(
-                            targetState = displayState,
-                            transitionSpec = { createHomeTransitionSpec() },
-                            label = "HomeContentTransition"
-                        ) { state ->
-                            when (state) {
-                                HomeDisplayState.Idle -> HomeIdleContent(
-                                    oneWord = oneWord,
-                                    author = oneWordAuthor
-                                )
-                                HomeDisplayState.Running -> HomeRunningContent(
-                                    trafficNow = trafficNow,
-                                    profileName = currentProfile?.name,
-                                    tunnelMode = tunnelState?.mode,
-                                    serverName = selectedServerName,
-                                    serverPing = selectedServerPing,
-                                    ipMonitoringState = ipMonitoringState,
-                                    speedHistory = speedHistory,
-                                    onChartClick = {
-                                        navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true }
-                                    }
-                                )
-                            }
+        ScreenLazyColumn(
+            scrollBehavior = scrollBehavior,
+            innerPadding = combinePaddingValues(innerPadding, mainInnerPadding),
+            topPadding = 20.dp,
+            enableBottomBarAutoHide = true,
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
+                        .padding(top = AppConstants.UI.DEFAULT_VERTICAL_SPACING),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(AppConstants.UI.DEFAULT_VERTICAL_SPACING)
+                ) {
+                    AnimatedContent(
+                        targetState = displayState,
+                        transitionSpec = { createHomeTransitionSpec() },
+                        label = "HomeContentTransition"
+                    ) { state ->
+                        when (state) {
+                            HomeDisplayState.Idle -> HomeIdleContent(
+                                oneWord = oneWord,
+                                author = oneWordAuthor
+                            )
+                            HomeDisplayState.Running -> HomeRunningContent(
+                                trafficNow = trafficNow,
+                                profileName = currentProfile?.name,
+                                tunnelMode = tunnelState?.mode,
+                                serverName = selectedServerName,
+                                serverPing = selectedServerPing,
+                                ipMonitoringState = ipMonitoringState,
+                                speedHistory = speedHistory,
+                                onChartClick = {
+                                    navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true }
+                                }
+                            )
                         }
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(32.dp)) }
             }
 
-            ProxyControlButton(
-                isRunning = displayRunning,
-                isEnabled = profiles.isNotEmpty() && hasEnabledProfile && !isToggling,
-                hasEnabledProfile = hasEnabledProfile,
-                hasProfiles = profiles.isNotEmpty(),
-                onClick = {
-                    handleProxyToggle(
-                        isRunning = displayRunning,
-                        recommendedProfile = recommendedProfile,
-                        onStart = { profile ->
-                            pendingProfileId = profile.id
-                            coroutineScope.launch {
-                                homeViewModel.startProxy(profileId = profile.id)
-                            }
-                        },
-                        onStop = {
-                            coroutineScope.launch {
-                                homeViewModel.stopProxy()
-                            }
-                        }
-                    )
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
-                    .padding(bottom = mainInnerPadding.calculateBottomPadding() + 32.dp)
-                    .padding(top = AppConstants.UI.DEFAULT_VERTICAL_SPACING)
-            )
+            item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
 }
@@ -192,18 +153,5 @@ private fun AnimatedContentTransitionScope<HomeDisplayState>.createHomeTransitio
                 scaleOut(targetScale = 1.08f, animationSpec = tween(animDuration))
             )
         }
-    }
-}
-
-private fun handleProxyToggle(
-    isRunning: Boolean,
-    recommendedProfile: com.github.yumelira.yumebox.data.model.Profile?,
-    onStart: (com.github.yumelira.yumebox.data.model.Profile) -> Unit,
-    onStop: () -> Unit
-) {
-    if (!isRunning) {
-        recommendedProfile?.let { profile -> onStart(profile) }
-    } else {
-        onStop()
     }
 }

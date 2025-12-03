@@ -26,7 +26,15 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
@@ -44,14 +52,45 @@ fun ScreenLazyColumn(
     modifier: Modifier = Modifier,
     bottomPadding: Dp = 0.dp,
     topPadding: Dp = 0.dp,
+    enableBottomBarAutoHide: Boolean = false,
     content: LazyListScope.() -> Unit,
 ) {
+    val listState = rememberLazyListState()
+
+    if (enableBottomBarAutoHide) {
+        var previousScrollOffset by remember { mutableIntStateOf(0) }
+        var previousFirstVisibleIndex by remember { mutableIntStateOf(0) }
+        
+        val isScrollingDown by remember {
+            derivedStateOf {
+                val currentFirstVisibleIndex = listState.firstVisibleItemIndex
+                val currentScrollOffset = listState.firstVisibleItemScrollOffset
+                
+                val scrollingDown = when {
+                    currentFirstVisibleIndex > previousFirstVisibleIndex -> true
+                    currentFirstVisibleIndex < previousFirstVisibleIndex -> false
+                    else -> currentScrollOffset > previousScrollOffset
+                }
+                
+                previousFirstVisibleIndex = currentFirstVisibleIndex
+                previousScrollOffset = currentScrollOffset
+                
+                scrollingDown
+            }
+        }
+        
+        LaunchedEffect(isScrollingDown) {
+            BottomBarVisibility.toggle(!isScrollingDown)
+        }
+    }
+    
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .scrollEndHaptic()
             .overScrollVertical()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        state = listState,
         contentPadding = PaddingValues(
             top = innerPadding.calculateTopPadding() + topPadding,
             bottom = innerPadding.calculateBottomPadding() + bottomPadding,
