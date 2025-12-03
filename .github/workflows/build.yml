@@ -28,11 +28,20 @@ jobs:
           java-version: '24'
           cache: 'gradle'
 
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-          cache: true
+          go-version: "1.25"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -82,7 +91,7 @@ jobs:
       - name: Build Release APKs
         run: |
           chmod +x gradlew
-          ./gradlew clean assembleRelease
+          ./gradlew --no-daemon assembleRelease
 
       - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v4
