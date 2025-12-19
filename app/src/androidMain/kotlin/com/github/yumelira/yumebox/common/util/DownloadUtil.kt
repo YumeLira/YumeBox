@@ -55,7 +55,7 @@ data class SubscriptionInfo(
 )
 
 object DownloadUtil {
-    private const val USER_AGENT = "Clash.Meta"
+    private const val USER_AGENT = "YumeBox/$versionName clash.meta/$versionName mihomo/$versionName"
     private const val UPDATE_INTERVAL_MS = 500L
 
     private fun parseFilenameFromContentDisposition(headers: Headers): String? {

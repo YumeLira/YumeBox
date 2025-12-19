@@ -42,7 +42,7 @@ func GetCustomUserAgent() string {
 	if customUserAgent != "" {
 		return customUserAgent
 	}
-	return "clash.meta/" + app.VersionName()
+	return "YumeBox/" + app.VersionName() + " clash.meta/" + app.VersionName() + " mihomo/" + app.VersionName()
 }
 
 func openUrl(ctx context.Context, url string) (io.ReadCloser, error) {
