@@ -1,12 +1,12 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.android.build.gradle.tasks.MergeSourceSetFolders
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.util.Properties
+import java.util.*
 
 abstract class DownloadGeoFilesTask : DefaultTask() {
     @get:Input
@@ -68,7 +68,7 @@ val appNamespace = gropify.project.namespace.base
 val appName = gropify.project.name
 val jvmVersionNumber = gropify.project.jvm
 val jvmVersion = jvmVersionNumber.toString()
-val javaVersion = JavaVersion.toVersion(jvmVersionNumber)
+val javaVersion = JavaVersion.toVersion(jvmVersionNumber) ?: JavaVersion.VERSION_17
 val appAbiList = gropify.abi.app.list.split(",").map { it.trim() }
 val localeList = gropify.locale.app.list.split(",").map { it.trim() }
 
@@ -221,7 +221,7 @@ android {
 
     applicationVariants.all {
         outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val output = this as BaseVariantOutputImpl
             val abiName = filters.find { it.filterType == "ABI" }?.identifier ?: "universal"
             val buildTypeName = buildType.name
             output.outputFileName = "${appName}-${abiName}-${buildTypeName}.apk"
@@ -240,7 +240,7 @@ ksp {
     arg("compose-destinations.defaultTransitions", "none")
 }
 
-val geoFilesDownloadDir = layout.projectDirectory.dir("src/androidMain/assets")
+val geoFilesDownloadDir: Directory? = layout.projectDirectory.dir("src/androidMain/assets")
 
 val downloadGeoFilesTask = tasks.register<DownloadGeoFilesTask>("downloadGeoFiles") {
     description = "Download GeoIP and GeoSite databases from MetaCubeX"

@@ -2,9 +2,9 @@ package com.github.yumelira.yumebox.core.model
 
 import android.os.Parcel
 import android.os.Parcelable
+import com.github.yumelira.yumebox.core.util.Parcelizer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.github.yumelira.yumebox.core.util.Parcelizer
 
 @Serializable
 data class ConfigurationOverride(

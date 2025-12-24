@@ -23,8 +23,8 @@ package com.github.yumelira.yumebox.substore
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 import com.github.yumelira.yumebox.common.native.NativeLibraryManager
+import timber.log.Timber
 
 class SubStoreService : Service() {
 
@@ -55,7 +55,7 @@ class SubStoreService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        try {
+        return runCatching {
             val frontendPort = intent?.getIntExtra("frontendPort", 8080) ?: 8080
             val backendPort = intent?.getIntExtra("backendPort", 8081) ?: 8081
             val allowLan = intent?.getBooleanExtra("allowLan", false) ?: false
@@ -82,54 +82,44 @@ class SubStoreService : Service() {
             engine.startServer()
             isRunning = true
 
-            return START_STICKY
-        } catch (e: Exception) {
-            e.printStackTrace()
+            START_STICKY
+        }.getOrElse { e ->
+            Timber.e(e, "SubStore service start failed")
             isRunning = false
-            return START_NOT_STICKY
+            START_NOT_STICKY
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
+        runCatching {
             caseEngine?.stopServer()
             caseEngine = null
             isRunning = false
-        } catch (e: Exception) {
-            e.printStackTrace()
+        }.onFailure { e ->
+            Timber.e(e, "Failed to stop SubStore service")
         }
     }
 
-    private fun ensureJavetLibraryLoaded(): Boolean {
-        return try {
-            NativeLibraryManager.initialize(applicationContext)
-            val javetLibBaseName = "libjavet-node-android"
+    private fun ensureJavetLibraryLoaded(): Boolean = runCatching {
+        NativeLibraryManager.initialize(applicationContext)
+        val javetLibBaseName = "libjavet-node-android"
 
-            if (NativeLibraryManager.isLibraryAvailable(javetLibBaseName)) {
-                Log.d("SubStoreService", "Javet 库已存在，准备加载")
-            } else {
-                Log.d("SubStoreService", "Javet 库不存在，开始提取")
-                val results = NativeLibraryManager.extractAllLibraries()
-                Log.d("SubStoreService", "库提取结果: $results")
-                if (results[javetLibBaseName] != true) {
-                    Log.e("SubStoreService", "Javet 库提取失败")
-                    return false
-                }
+        if (!NativeLibraryManager.isLibraryAvailable(javetLibBaseName)) {
+            val results = NativeLibraryManager.extractAllLibraries()
+            if (results[javetLibBaseName] != true) {
+                Timber.e("Javet 库提取失败")
+                return false
             }
-
-            val loaded = NativeLibraryManager.loadJniLibrary(javetLibBaseName)
-            if (loaded) {
-                Log.d("SubStoreService", "Javet 库加载成功")
-            } else {
-                Log.e("SubStoreService", "Javet 库加载失败")
-                Log.e("SubStoreService", "库状态: ${NativeLibraryManager.getLibraryStatus(javetLibBaseName)}")
-            }
-            loaded
-        } catch (e: Exception) {
-            Log.e("SubStoreService", "Javet 库加载异常", e)
-            e.printStackTrace()
-            false
         }
+
+        val loaded = NativeLibraryManager.loadJniLibrary(javetLibBaseName)
+        if (!loaded) {
+            Timber.e("Javet 库加载失败，库状态: ${NativeLibraryManager.getLibraryStatus(javetLibBaseName)}")
+        }
+        loaded
+    }.getOrElse { e ->
+        Timber.e(e, "Javet 库加载异常")
+        false
     }
 }

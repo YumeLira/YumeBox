@@ -271,7 +271,6 @@ class AccessControlViewModel(
 
 
         val packagesToSave = _uiState.value.selectedPackages
-        android.util.Log.d("AccessControlVM", "保存应用列表: $packagesToSave (数量: ${packagesToSave.size})")
         storage.accessControlPackages.set(packagesToSave)
     }
 

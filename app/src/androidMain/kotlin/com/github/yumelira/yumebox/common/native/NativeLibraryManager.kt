@@ -105,12 +105,12 @@ object NativeLibraryManager {
             return true
         }
 
-        return try {
+        return runCatching {
             when (info.source) {
                 LibrarySource.MAIN_APK -> extractFromMainApk(info, targetFile)
                 LibrarySource.EXTENSION_APK -> extractFromExtensionApk(info, targetFile)
             }
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Timber.w(e, "提取库失败: ${info.name}")
             false
         }
@@ -164,15 +164,12 @@ object NativeLibraryManager {
         }
 
         val abi = getSupportedAbi()
-        Timber.d("Extracting ${info.name} from ${extensionApk.absolutePath}, ABI: $abi")
 
         ZipFile(extensionApk).use { zip ->
             val libEntries = zip.entries().asSequence()
                 .filter { it.name.startsWith("lib/") }
                 .map { it.name }
                 .toList()
-            Timber.d("Available libs in extension APK: $libEntries")
-
 
             val pattern =
                 Regex("lib/($abi|${Build.SUPPORTED_ABIS.joinToString("|")})/${info.name}\\.v\\.\\d+\\.\\d+\\.\\d+\\.so")
@@ -185,12 +182,8 @@ object NativeLibraryManager {
                 return false
             }
 
-            Timber.d("Found library via regex match: ${entry.name}")
-
-
             val actualFileName = entry.name.substringAfterLast("/")
             val actualTargetFile = File(targetFile.parentFile, actualFileName)
-
 
             actualLibraryNames[info.name] = actualFileName
 
@@ -205,22 +198,17 @@ object NativeLibraryManager {
                 actualTargetFile.setExecutable(true, false)
             }
 
-            Timber.d("Successfully extracted $actualFileName to ${actualTargetFile.absolutePath}")
             return true
         }
     }
 
     private val actualLibraryNames = mutableMapOf<String, String>()
 
-    private fun getExtensionApk(packageName: String): File? {
-        return try {
-            val pm = context?.packageManager ?: return null
-            val info = pm.getApplicationInfo(packageName, 0)
-            File(info.sourceDir)
-        } catch (_: Exception) {
-            null
-        }
-    }
+    private fun getExtensionApk(packageName: String): File? = runCatching {
+        val pm = context?.packageManager ?: return null
+        val info = pm.getApplicationInfo(packageName, 0)
+        File(info.sourceDir)
+    }.getOrNull()
 
     fun getLibraryPath(name: String): String? {
         if (!isInitialized) return null
@@ -250,10 +238,10 @@ object NativeLibraryManager {
 
         val path = getLibraryPath(name) ?: return false
 
-        return try {
+        return runCatching {
             System.load(path)
             true
-        } catch (e: UnsatisfiedLinkError) {
+        }.getOrElse { e ->
             Timber.e(e, "加载JNI库失败: $name")
             false
         }

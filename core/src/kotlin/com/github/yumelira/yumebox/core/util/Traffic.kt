@@ -1,22 +1,27 @@
+/*
+ * This file is part of YumeBox.
+ *
+ * YumeBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c)  YumeLira 2025.
+ *
+ */
+
 package com.github.yumelira.yumebox.core.util
 
 import android.annotation.SuppressLint
-import com.github.yumelira.yumebox.core.model.Traffic
 
-fun Traffic.trafficUpload(): String {
-    return trafficString(scaleTraffic(this ushr 32))
-}
-
-fun Traffic.trafficDownload(): String {
-    return trafficString(scaleTraffic(this and 0xFFFFFFFF))
-}
-
-fun Traffic.trafficTotal(): String {
-    val upload = scaleTraffic(this ushr 32)
-    val download = scaleTraffic(this and 0xFFFFFFFF)
-
-    return trafficString(upload + download)
-}
 
 @SuppressLint("DefaultLocale")
 private fun trafficString(scaled: Long): String {

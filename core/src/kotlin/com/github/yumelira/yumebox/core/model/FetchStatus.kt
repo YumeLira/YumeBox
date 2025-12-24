@@ -2,8 +2,8 @@ package com.github.yumelira.yumebox.core.model
 
 import android.os.Parcel
 import android.os.Parcelable
-import kotlinx.serialization.Serializable
 import com.github.yumelira.yumebox.core.util.Parcelizer
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class FetchStatus(

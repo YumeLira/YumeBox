@@ -1,9 +1,9 @@
 package com.github.yumelira.yumebox.core.util
 
-import java.net.NetworkInterface
-import java.net.InetAddress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.InetAddress
+import java.net.NetworkInterface
 
 object NetworkInterfaces {
     suspend fun getLocalIpAddress(): String? = withContext(Dispatchers.IO) {

@@ -59,8 +59,6 @@ class AutoRestartService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Timber.tag(TAG).d("AutoRestartService 启动")
-
         // 对于 Android 8.0+，必须在5秒内调用 startForeground
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
@@ -77,7 +75,7 @@ class AutoRestartService : Service() {
         }
 
         serviceScope.launch {
-            try {
+            runCatching {
                 ProxyAutoStartHelper.checkAndAutoStart(
                     proxyConnectionService = proxyConnectionService,
                     appSettingsStorage = appSettingsStorage,
@@ -86,13 +84,12 @@ class AutoRestartService : Service() {
                     clashManager = clashManager,
                     isBootCompleted = true
                 )
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Timber.tag(TAG).e(e, "自动启动失败: ${e.message}")
-            } finally {
-                // 完成后立即停止前台服务
-                ServiceCompat.stopForeground(this@AutoRestartService, ServiceCompat.STOP_FOREGROUND_REMOVE)
-                stopSelf()
             }
+            // 完成后立即停止前台服务
+            ServiceCompat.stopForeground(this@AutoRestartService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            stopSelf()
         }
 
         return START_NOT_STICKY

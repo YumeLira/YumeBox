@@ -54,7 +54,6 @@ class IntentController(
                 ACTION_START_CLASH -> handleStartClash()
                 ACTION_STOP_CLASH -> handleStopClash()
                 else -> {
-                    Timber.d("Unknown external control action: ${safeIntent.action}")
                 }
             }
         }

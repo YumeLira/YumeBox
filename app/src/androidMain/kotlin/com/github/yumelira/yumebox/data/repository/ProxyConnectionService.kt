@@ -47,15 +47,11 @@ class ProxyConnectionService(
         forceTunMode: Boolean? = null
     ): Result<Intent?> {
         return try {
-            Timber.tag(TAG).d("准备启动代理: profileId=$profileId")
-
             val proxyMode = determineProxyMode(forceTunMode)
-            Timber.tag(TAG).d("选定代理模式: $proxyMode")
 
             if (proxyMode == ProxyMode.Tun) {
                 val prepareIntent = VpnService.prepare(context)
                 if (prepareIntent != null) {
-                    Timber.tag(TAG).d("需要 VPN 授权")
                     return Result.success(prepareIntent)
                 }
             }
@@ -74,8 +70,6 @@ class ProxyConnectionService(
         mode: ProxyMode
     ): Result<Unit> {
         return try {
-            Timber.tag(TAG).d("启动代理服务: profileId=$profileId, mode=$mode")
-
             val profile = profilesStore.getAllProfiles().find { it.id == profileId }
             if (profile == null) {
                 Timber.tag(TAG).e("未找到配置文件: $profileId")
@@ -86,12 +80,10 @@ class ProxyConnectionService(
 
             when (mode) {
                 ProxyMode.Tun -> {
-                    Timber.tag(TAG).d("启动 VPN 服务: ${profile.name}")
                     ClashVpnService.start(context, profileId)
                 }
 
                 ProxyMode.Http -> {
-                    Timber.tag(TAG).d("启动 HTTP 服务: ${profile.name}")
                     ClashHttpService.start(context, profileId)
                 }
             }
@@ -105,7 +97,6 @@ class ProxyConnectionService(
 
     fun stop(currentMode: RunningMode) {
         try {
-            Timber.tag(TAG).d("停止代理服务: mode=$currentMode")
             when (currentMode) {
                 is RunningMode.Tun -> ClashVpnService.stop(context)
                 is RunningMode.Http -> ClashHttpService.stop(context)

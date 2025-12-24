@@ -63,7 +63,7 @@ object DownloadUtil : KoinComponent {
     private fun parseFilenameFromContentDisposition(headers: Headers): String? {
         val contentDisposition = headers["Content-Disposition"] ?: return null
 
-        return try {
+        return runCatching {
             if (contentDisposition.contains("filename*=")) {
                 val regex = """filename\*=([^']*)'([^']*)'([^;]+)""".toRegex(RegexOption.IGNORE_CASE)
                 regex.find(contentDisposition)?.let { match ->
@@ -76,40 +76,34 @@ object DownloadUtil : KoinComponent {
                     match.groupValues[1].trim('"', '\'')
                 }
             }
-        } catch (_: Exception) {
-            null
-        }
+        }.getOrNull()
     }
 
     private fun parseSubscriptionInfo(headers: Headers): SubscriptionInfo {
 
-        fun parseExpireDate(expireStr: String): Long? {
-            return try {
-                when {
-                    expireStr.matches(Regex("\\d+")) -> expireStr.toLong() * 1000
-                    expireStr.contains("-") -> {
+        fun parseExpireDate(expireStr: String): Long? = runCatching {
+            when {
+                expireStr.matches(Regex("\\d+")) -> expireStr.toLong() * 1000
+                expireStr.contains("-") -> {
 
-                        val parts = expireStr.split("-")
-                        if (parts.size >= 3) {
-                            val year = parts[0].toIntOrNull()
-                            val month = parts[1].toIntOrNull()
-                            val day = parts[2].toIntOrNull()
+                    val parts = expireStr.split("-")
+                    if (parts.size >= 3) {
+                        val year = parts[0].toIntOrNull()
+                        val month = parts[1].toIntOrNull()
+                        val day = parts[2].toIntOrNull()
 
-                            if (year != null && month != null && day != null) {
-                                val calendar = java.util.Calendar.getInstance()
-                                calendar.set(year, month - 1, day, 0, 0, 0)
-                                calendar.set(java.util.Calendar.MILLISECOND, 0)
-                                calendar.timeInMillis
-                            } else null
+                        if (year != null && month != null && day != null) {
+                            val calendar = java.util.Calendar.getInstance()
+                            calendar.set(year, month - 1, day, 0, 0, 0)
+                            calendar.set(java.util.Calendar.MILLISECOND, 0)
+                            calendar.timeInMillis
                         } else null
-                    }
-
-                    else -> null
+                    } else null
                 }
-            } catch (_: Exception) {
-                null
+
+                else -> null
             }
-        }
+        }.getOrNull()
 
         return SubscriptionInfo(
             upload = headers["Subscription-Userinfo"]?.let { userInfo ->
