@@ -195,7 +195,7 @@ fun FeatureScreen(
                         },
                         onClick = {
                             if (!isExtensionInstalled) {
-                                openUrl(context, "https://github.com/YumeYuka/YumeBox/releases/tag/Expand")
+                                openUrl(context, "https://github.com/YumeLira/YumeBox/releases/tag/Expand")
                             } else {
                                 viewModel.refreshExtensionStatus()
                             }

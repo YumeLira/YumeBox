@@ -36,13 +36,19 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Velocity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.github.yumelira.yumebox.common.util.IntentController
+import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.screen.HomePager
+import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
+import com.github.yumelira.yumebox.presentation.screen.ProxyPager
+import com.github.yumelira.yumebox.presentation.screen.SettingPager
+import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
+import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
+import com.github.yumelira.yumebox.presentation.theme.YumeTheme
+import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -58,23 +64,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.koinViewModel
-import com.github.yumelira.yumebox.common.util.IntentController
-import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
-import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
-import com.github.yumelira.yumebox.presentation.theme.YumeTheme
-import com.github.yumelira.yumebox.presentation.component.BottomBar
-import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
-import com.github.yumelira.yumebox.presentation.component.LocalNavigator
-import com.github.yumelira.yumebox.presentation.component.LocalPagerState
-import com.github.yumelira.yumebox.presentation.screen.HomePager
-import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
-import com.github.yumelira.yumebox.presentation.screen.ProxyPager
-import com.github.yumelira.yumebox.presentation.screen.SettingPager
-import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
 
@@ -82,7 +74,9 @@ class MainActivity : ComponentActivity() {
         private const val REQUEST_NOTIFICATION_PERMISSION = 1001
         private val _pendingImportUrl = MutableStateFlow<String?>(null)
         val pendingImportUrl: StateFlow<String?> = _pendingImportUrl.asStateFlow()
-        fun clearPendingImportUrl() { _pendingImportUrl.value = null }
+        fun clearPendingImportUrl() {
+            _pendingImportUrl.value = null
+        }
     }
 
     private val appSettingsStorage: com.github.yumelira.yumebox.data.store.AppSettingsStorage by inject()
@@ -188,14 +182,15 @@ fun MainScreen(navigator: DestinationsNavigator) {
         tint = HazeTint(MiuixTheme.colorScheme.background.copy(0.8f)),
     )
 
+    val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
+    val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
+
     val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope) {
         { page ->
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = page,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
+                    page = page, animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
                     )
                 )
             }
@@ -206,10 +201,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
         if (pagerState.currentPage != 0) {
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = 0,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
+                    page = 0, animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
                     )
                 )
             }
@@ -223,43 +216,34 @@ fun MainScreen(navigator: DestinationsNavigator) {
         LocalHandlePageChange provides handlePageChange,
         LocalNavigator provides navigator,
     ) {
-        val verticalScrollConnection = remember {
-            object : NestedScrollConnection {
-                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+        val bottomBarScrollBehavior = rememberBottomBarScrollBehavior(
+            autoHideEnabled = bottomBarAutoHide
+        )
 
-                    return Offset.Zero
-                }
-
-                override suspend fun onPreFling(available: Velocity): Velocity {
-                    if (abs(available.y) > abs(available.x) * 1.5f) {
-                        return Velocity(available.x, 0f)
-                    }
-                    return Velocity.Zero
-                }
-            }
+        LaunchedEffect(bottomBarAutoHide) {
+            bottomBarScrollBehavior.isAutoHideEnabled = bottomBarAutoHide
         }
 
         Scaffold(
             bottomBar = {
-                BottomBar(hazeState, hazeStyle)
+                BottomBar(
+                    hazeState = hazeState, hazeStyle = hazeStyle, isVisible = bottomBarScrollBehavior.isBottomBarVisible
+                )
             },
         ) { innerPadding ->
             HorizontalPager(
                 modifier = Modifier
                     .hazeSource(state = hazeState)
-                    .nestedScroll(verticalScrollConnection),
+                    .nestedScroll(bottomBarScrollBehavior.nestedScrollConnection),
                 state = pagerState,
                 beyondViewportPageCount = 1,
                 userScrollEnabled = true,
                 pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
-                    state = pagerState,
-                    orientation = androidx.compose.foundation.gestures.Orientation.Horizontal
+                    state = pagerState, orientation = androidx.compose.foundation.gestures.Orientation.Horizontal
                 ),
                 flingBehavior = PagerDefaults.flingBehavior(
-                    state = pagerState,
-                    snapAnimationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
+                    state = pagerState, snapAnimationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
                     )
                 ),
             ) { page ->
