@@ -8,6 +8,10 @@ on:
       - 'docs/**'
       - '.gitignore'
 
+concurrency:
+  group: docs-deployer
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

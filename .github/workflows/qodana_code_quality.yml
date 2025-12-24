@@ -12,6 +12,10 @@ on:
       - Yume
       - dev
 
+concurrency:
+  group: docs-deployer
+  cancel-in-progress: true
+
 jobs:
   qodana:
     runs-on: ubuntu-latest
