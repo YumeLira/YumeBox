@@ -106,7 +106,7 @@ fun BottomBar(
         ),
         label = "BottomBarVisibility"
     ) {
-        AnimatedContent<Boolean>(
+        AnimatedContent(
             targetState = bottomBarFloating,
             transitionSpec = {
                 (fadeIn(animationSpec = tween(300)) +

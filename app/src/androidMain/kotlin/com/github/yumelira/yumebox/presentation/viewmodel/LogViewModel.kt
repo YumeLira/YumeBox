@@ -21,8 +21,6 @@
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import android.app.Application
-import android.content.Intent
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.LogMessage
@@ -78,9 +76,7 @@ class LogViewModel(
             _isRecording.value = isCurrentlyRecording
 
             val files = logDir.listFiles { file ->
-                file.isFile &&
-                        file.name.startsWith(LogRecordService.LOG_PREFIX) &&
-                        file.name.endsWith(LogRecordService.LOG_SUFFIX)
+                file.isFile && file.name.startsWith(LogRecordService.LOG_PREFIX) && file.name.endsWith(LogRecordService.LOG_SUFFIX)
             }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
             val fileInfos = files.map { file ->
@@ -146,50 +142,24 @@ class LogViewModel(
 
     private fun parseLogLine(line: String): LogEntry? {
         if (line.isBlank()) return null
-        val regex = """\[(.+?)\] \[(.+?)\] (.+)""".toRegex()
+        val regex = """\[(.+?)] \[(.+?)] (.+)""".toRegex()
         val match = regex.find(line) ?: return null
         val (timeStr, levelStr, message) = match.destructured
 
         val level = try {
             LogMessage.Level.valueOf(levelStr)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             LogMessage.Level.Unknown
         }
 
         return LogEntry(time = timeStr, level = level, message = message)
     }
 
-    fun createShareIntent(file: File): Intent? {
-        return try {
-            val context = getApplication<Application>()
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        } catch (e: Exception) {
-            timber.log.Timber.e(e, "创建分享Intent失败")
-            null
-        }
-    }
-
     data class LogFileInfo(
-        val file: File,
-        val name: String,
-        val createdAt: Long,
-        val size: Long,
-        val isRecording: Boolean
+        val file: File, val name: String, val createdAt: Long, val size: Long, val isRecording: Boolean
     )
 
     data class LogEntry(
-        val time: String,
-        val level: LogMessage.Level,
-        val message: String
+        val time: String, val level: LogMessage.Level, val message: String
     )
 }

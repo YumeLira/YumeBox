@@ -30,7 +30,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
@@ -67,7 +66,6 @@ import com.github.yumelira.yumebox.presentation.component.BottomBar
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.LocalPagerState
-import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.screen.HomePager
 import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
 import com.github.yumelira.yumebox.presentation.screen.ProxyPager
@@ -138,7 +136,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            
+
             LaunchedEffect(Unit) {
                 kotlinx.coroutines.delay(com.github.yumelira.yumebox.common.AppConstants.Timing.AUTO_START_DELAY_MS)
                 com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper.checkAndAutoStart(
@@ -152,12 +150,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
-    
+
     private fun handleIntent(intent: Intent?) {
         intent?.let { safeIntent ->
             safeIntent.data?.let { uri ->
@@ -189,9 +187,6 @@ fun MainScreen(navigator: DestinationsNavigator) {
         backgroundColor = MiuixTheme.colorScheme.background,
         tint = HazeTint(MiuixTheme.colorScheme.background.copy(0.8f)),
     )
-
-    val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
-    val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
 
     val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope) {
         { page ->
@@ -228,27 +223,31 @@ fun MainScreen(navigator: DestinationsNavigator) {
         LocalHandlePageChange provides handlePageChange,
         LocalNavigator provides navigator,
     ) {
-        val bottomBarScrollBehavior = rememberBottomBarScrollBehavior(
-            autoHideEnabled = bottomBarAutoHide
-        )
+        val verticalScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
 
-        LaunchedEffect(bottomBarAutoHide) {
-            bottomBarScrollBehavior.isAutoHideEnabled = bottomBarAutoHide
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    if (abs(available.y) > abs(available.x) * 1.5f) {
+                        return Velocity(available.x, 0f)
+                    }
+                    return Velocity.Zero
+                }
+            }
         }
 
         Scaffold(
             bottomBar = {
-                BottomBar(
-                    hazeState = hazeState,
-                    hazeStyle = hazeStyle,
-                    isVisible = bottomBarScrollBehavior.isBottomBarVisible
-                )
+                BottomBar(hazeState, hazeStyle)
             },
         ) { innerPadding ->
             HorizontalPager(
                 modifier = Modifier
                     .hazeSource(state = hazeState)
-                    .nestedScroll(bottomBarScrollBehavior.nestedScrollConnection),
+                    .nestedScroll(verticalScrollConnection),
                 state = pagerState,
                 beyondViewportPageCount = 1,
                 userScrollEnabled = true,

@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.common.util
 
 import android.content.Context
-import android.os.Build
 import timber.log.Timber
 
 object SystemProxyHelper {
@@ -30,43 +29,14 @@ object SystemProxyHelper {
 
     fun clearSystemProxy(context: Context) {
         runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                clearSystemProxyQ(context)
-            } else {
-                clearSystemProxyLegacy(context)
-            }
+            System.clearProperty("http.proxyHost")
+            System.clearProperty("http.proxyPort")
+            System.clearProperty("https.proxyHost")
+            System.clearProperty("https.proxyPort")
+            System.clearProperty("socksProxyHost")
+            System.clearProperty("socksProxyPort")
         }.onFailure { e ->
             Timber.tag(TAG).e(e, "清理系统代理失败: ${e.message}")
         }
-    }
-
-    @Suppress("NewApi")
-    private fun clearSystemProxyQ(context: Context) {
-        runCatching {
-            val proxyHost = System.getProperty("http.proxyHost")
-            val proxyPort = System.getProperty("http.proxyPort")
-            if (proxyHost != null || proxyPort != null) {
-                getSystemProxy(context)
-            }
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "Android 10+ 代理清除失败: ${e.message}")
-        }
-    }
-
-    private fun clearSystemProxyLegacy(context: Context) {
-        runCatching {
-            getSystemProxy(context)
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "旧版本代理清除失败: ${e.message}")
-        }
-    }
-
-    private fun getSystemProxy(context: Context) {
-        System.clearProperty("http.proxyHost")
-        System.clearProperty("http.proxyPort")
-        System.clearProperty("https.proxyHost")
-        System.clearProperty("https.proxyPort")
-        System.clearProperty("socksProxyHost")
-        System.clearProperty("socksProxyPort")
     }
 }

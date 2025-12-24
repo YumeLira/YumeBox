@@ -33,6 +33,7 @@ import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.facade.ProfilesRepository
 import com.github.yumelira.yumebox.domain.facade.ProxyFacade
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -41,7 +42,7 @@ class HomeViewModel(
     application: Application,
     private val proxyFacade: ProxyFacade,
     private val profilesRepository: ProfilesRepository,
-    private val appSettingsStorage: AppSettingsStorage,
+    appSettingsStorage: AppSettingsStorage,
     private val clashManager: ClashManager,
     private val networkInfoService: NetworkInfoService,
     private val proxyChainResolver: ProxyChainResolver
@@ -51,21 +52,14 @@ class HomeViewModel(
     val recommendedProfile: StateFlow<Profile?> = profilesRepository.recommendedProfile
     val hasEnabledProfile: Flow<Boolean> = profiles.map { it.any { profile -> profile.enabled } }
 
-    val proxyState = proxyFacade.proxyState
     val isRunning = proxyFacade.isRunning
-    val runningMode = proxyFacade.runningMode
     val currentProfile = proxyFacade.currentProfile
     val trafficNow = proxyFacade.trafficNow
-    val trafficTotal = proxyFacade.trafficTotal
     val proxyGroups = proxyFacade.proxyGroups
     val tunnelState = proxyFacade.tunnelState
 
     val oneWord: StateFlow<String> = appSettingsStorage.oneWord.state
     val oneWordAuthor: StateFlow<String> = appSettingsStorage.oneWordAuthor.state
-    val oneWordAndAuthor: StateFlow<String> =
-        combine(appSettingsStorage.oneWord.state, appSettingsStorage.oneWordAuthor.state) { word, author ->
-            "\"$word\" — $author"
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -77,9 +71,7 @@ class HomeViewModel(
     val isToggling: StateFlow<Boolean> = _isToggling.asStateFlow()
 
     private val _vpnPrepareIntent = MutableSharedFlow<Intent>(
-        replay = 0,
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
+        replay = 0, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val vpnPrepareIntent = _vpnPrepareIntent.asSharedFlow()
 
@@ -97,8 +89,8 @@ class HomeViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val selectedServerName: StateFlow<String?> = mainProxyNode.map { it?.name }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val selectedServerName: StateFlow<String?> =
+        mainProxyNode.map { it?.name }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val selectedServerPing: StateFlow<Int?> = mainProxyNode.map { node ->
         node?.let {
@@ -106,17 +98,16 @@ class HomeViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val ipMonitoringState: StateFlow<IpMonitoringState> =
-        isRunning.flatMapLatest { running ->
-            if (running) {
-                networkInfoService.startIpMonitoring(isRunning)
-            } else {
-                flowOf(IpMonitoringState.Loading)
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), IpMonitoringState.Loading)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val ipMonitoringState: StateFlow<IpMonitoringState> = isRunning.flatMapLatest { running ->
+        if (running) {
+            networkInfoService.startIpMonitoring(isRunning)
+        } else {
+            flowOf(IpMonitoringState.Loading)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), IpMonitoringState.Loading)
 
     private val _recentLogs = MutableStateFlow<List<LogMessage>>(emptyList())
-    val recentLogs: StateFlow<List<LogMessage>> = _recentLogs.asStateFlow()
 
     init {
         syncDisplayState()
@@ -172,24 +163,21 @@ class HomeViewModel(
 
                 val result = proxyFacade.startProxy(profileId, useTunMode)
 
-                result.fold(
-                    onSuccess = { intent ->
-                        if (intent != null) {
-                            _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                            _vpnPrepareIntent.emit(intent)
-                            _displayRunning.value = false
-                            _isToggling.value = false
-                        } else {
-                            _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                        }
-                    },
-                    onFailure = { error ->
+                result.fold(onSuccess = { intent ->
+                    if (intent != null) {
+                        _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
+                        _vpnPrepareIntent.emit(intent)
                         _displayRunning.value = false
                         _isToggling.value = false
+                    } else {
                         _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                        showError("启动失败: ${error.message}")
                     }
-                )
+                }, onFailure = { error ->
+                    _displayRunning.value = false
+                    _isToggling.value = false
+                    _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
+                    showError("启动失败: ${error.message}")
+                })
             } catch (e: Exception) {
                 _displayRunning.value = false
                 _isToggling.value = false
@@ -217,12 +205,6 @@ class HomeViewModel(
                 setLoading(false)
             }
         }
-    }
-
-    fun refreshIpInfo() = networkInfoService.triggerRefresh()
-
-    fun clearLogs() {
-        _recentLogs.value = emptyList()
     }
 
     private fun subscribeToLogs() {
@@ -260,8 +242,6 @@ class HomeViewModel(
     private fun setLoading(loading: Boolean) = _uiState.update { it.copy(isLoading = loading) }
     private fun showMessage(message: String) = _uiState.update { it.copy(message = message) }
     private fun showError(error: String) = _uiState.update { it.copy(error = error) }
-    fun clearMessage() = _uiState.update { it.copy(message = null) }
-    fun clearError() = _uiState.update { it.copy(error = null) }
 
     data class HomeUiState(
         val isLoading: Boolean = false,

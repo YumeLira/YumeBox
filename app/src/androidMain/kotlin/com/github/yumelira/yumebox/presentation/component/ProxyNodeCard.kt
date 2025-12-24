@@ -54,8 +54,8 @@ private fun DelayIndicator(
     val (text, color) = when {
         delay < 0 -> "TIMEOUT" to Color(0xFF9E9E9E)
         delay == 0 -> "N/A" to Color(0xFFBDBDBD)
-        delay in 1..500 -> "${delay}" to Color(0xFF4CAF50)
-        delay in 501..1000 -> "${delay}" to Color(0xFFFFA726)
+        delay in 1..800 -> "$delay" to Color(0xFF4CAF50)
+        delay in 801..5000 -> "$delay" to Color(0xFFFFA726)
         else -> return
     }
     Text(text = text, style = textStyle, color = color)

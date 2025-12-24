@@ -77,7 +77,7 @@ val appModule = module {
 
     viewModel { AppSettingsViewModel(get()) }
     viewModel { HomeViewModel(androidApplication(), get(), get(), get(), get(), get(), get()) }
-    viewModel { ProfilesViewModel(androidApplication(), get(), get()) }
+    viewModel { ProfilesViewModel(androidApplication(), get()) }
     viewModel { ProxyViewModel(get<ClashManager>(), get()) }
     viewModel { ProvidersViewModel(get()) }
     viewModel { LogViewModel(androidApplication()) }

@@ -18,7 +18,7 @@
  *
  */
 
-package com.github.yumelira.yumebox.presentation.component
+package com.github.yumelira.yumebox.presentation.webview
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -35,11 +35,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.github.yumelira.yumebox.presentation.webview.WebViewActivity
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 
@@ -53,7 +51,7 @@ fun LocalWebView(
     onPageError: (String, String) -> Unit = { _, _ -> },
 ) {
     LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val webViewRef = remember { mutableStateOf<WebView?>(null) }
 
     LaunchedEffect(enableDebug) {
@@ -99,8 +97,7 @@ fun LocalWebView(
 
     if (initialUrl.isEmpty()) {
         Box(
-            modifier = modifier.statusBarsPadding(),
-            contentAlignment = Alignment.Center
+            modifier = modifier.statusBarsPadding(), contentAlignment = Alignment.Center
         ) {
             Text(MLang.Component.WebView.InvalidUrl)
         }
@@ -139,10 +136,6 @@ private fun createWebView(
             allowFileAccess = true
             allowContentAccess = true
 
-            @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = true
-            @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true
 
             setSupportZoom(true)
             builtInZoomControls = false
@@ -175,8 +168,7 @@ private fun createWebView(
                 request: WebResourceRequest?,
                 error: WebResourceError?,
             ) {
-                @Suppress("DEPRECATION")
-                super.onReceivedError(view, request, error)
+                @Suppress("DEPRECATION") super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
                     val errorUrl = request.url?.toString() ?: "unknown"
                     val errorCode = error?.errorCode ?: -1
@@ -207,8 +199,7 @@ private fun createWebView(
                 description: String?,
                 failingUrl: String?,
             ) {
-                @Suppress("DEPRECATION")
-                super.onReceivedError(view, errorCode, description, failingUrl)
+                @Suppress("DEPRECATION") super.onReceivedError(view, errorCode, description, failingUrl)
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
                     onPageError(failingUrl ?: "unknown", "Error $errorCode: $description")
                 }
@@ -221,9 +212,7 @@ private fun createWebView(
             }
 
             override fun onShowFileChooser(
-                webView: WebView?,
-                filePathCallback: ValueCallback<Array<Uri>>?,
-                fileChooserParams: FileChooserParams?
+                webView: WebView?, filePathCallback: ValueCallback<Array<Uri>>?, fileChooserParams: FileChooserParams?
             ): Boolean {
                 if (activity == null) {
                     filePathCallback?.onReceiveValue(null)

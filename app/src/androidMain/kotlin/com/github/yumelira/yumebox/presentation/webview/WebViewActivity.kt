@@ -56,7 +56,7 @@ class WebViewActivity : ComponentActivity() {
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
-        filePathCallback?.onReceiveValue(uris?.toTypedArray())
+        filePathCallback?.onReceiveValue(uris.toTypedArray())
         filePathCallback = null
     }
 

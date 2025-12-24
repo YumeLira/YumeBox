@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.inject.Inject
 
 /**
  * 代理状态仓库
@@ -42,7 +41,7 @@ import javax.inject.Inject
  * 3. 处理节点选择（仅 Selector 类型）
  * 4. 处理延迟测试
  */
-class ProxyStateRepository @Inject constructor(
+class ProxyStateRepository(
     private val context: Context,
     private val proxyChainResolver: ProxyChainResolver
 ) {

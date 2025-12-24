@@ -21,7 +21,6 @@
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.github.yumelira.yumebox.data.model.AppLanguage
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
@@ -29,13 +28,12 @@ import com.github.yumelira.yumebox.presentation.theme.AppColorTheme
 
 
 class AppSettingsViewModel(
-    private val storage: AppSettingsStorage,
+    storage: AppSettingsStorage,
 ) : ViewModel() {
 
 
     val themeMode: Preference<ThemeMode> = storage.themeMode
     val colorTheme: Preference<AppColorTheme> = storage.colorTheme
-    val appLanguage: Preference<AppLanguage> = storage.appLanguage
     val automaticRestart: Preference<Boolean> = storage.automaticRestart
     val hideAppIcon: Preference<Boolean> = storage.hideAppIcon
     val showTrafficNotification: Preference<Boolean> = storage.showTrafficNotification
@@ -51,7 +49,6 @@ class AppSettingsViewModel(
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
     fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
-    fun onAppLanguageChange(language: AppLanguage) = appLanguage.set(language)
     fun onAutomaticRestartChange(enabled: Boolean) = automaticRestart.set(enabled)
     fun onHideAppIconChange(hide: Boolean) = hideAppIcon.set(hide)
     fun onShowTrafficNotificationChange(show: Boolean) = showTrafficNotification.set(show)

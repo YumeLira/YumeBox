@@ -26,10 +26,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.clash.downloadProfile
 import com.github.yumelira.yumebox.clash.exception.ConfigImportException
-import com.github.yumelira.yumebox.clash.manager.ClashManager
 import com.github.yumelira.yumebox.data.model.Profile
 import com.github.yumelira.yumebox.data.model.ProfileType
-import com.github.yumelira.yumebox.data.model.Subscription
 import com.github.yumelira.yumebox.data.store.ProfilesStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,11 +39,9 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.*
 
-data class ProfileInfo(val profile: Profile, val subscription: Subscription? = null)
 
 class ProfilesViewModel(
     application: Application,
-    private val clashManager: ClashManager,
     private val profilesStore: ProfilesStore,
 ) : AndroidViewModel(application) {
 
@@ -67,7 +63,7 @@ class ProfilesViewModel(
         }
     }
 
-    private suspend fun cleanupOrphanedFiles() {
+    private fun cleanupOrphanedFiles() {
         runCatching {
             val activeIds = profilesStore.profiles.value.map { it.id }.toSet()
             val importedDir = getApplication<Application>().filesDir.resolve("imported")
@@ -156,11 +152,8 @@ class ProfilesViewModel(
                     profilesStore.profiles.value.find { it.id == profile.id }
                 } else null
 
-                var updated = if (existingProfile != null) {
-                    existingProfile.copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
-                } else {
-                    profile.copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
-                }
+                var updated = existingProfile?.copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
+                    ?: profile.copy(updatedAt = System.currentTimeMillis(), config = configFilePath)
 
                 subscriptionInfo?.filename?.let { fileName ->
                     val nameWithoutExt = if (fileName.contains(".")) {
@@ -342,42 +335,9 @@ class ProfilesViewModel(
         }
     }
 
-    fun updateProfileSubscriptionInfo(
-        profileId: String,
-        provider: String? = null,
-        expireAt: Long? = null,
-        usedBytes: Long = 0L,
-        totalBytes: Long? = null
-    ) {
-        viewModelScope.launch {
-            runCatching {
-                val target = profilesStore.profiles.value.find { it.id == profileId }
-                    ?: throw Exception("配置不存在")
-                profilesStore.updateProfile(
-                    target.copy(
-                        provider = provider ?: target.provider,
-                        expireAt = expireAt ?: target.expireAt,
-                        usedBytes = usedBytes,
-                        totalBytes = totalBytes ?: target.totalBytes,
-                        lastUpdatedAt = System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
-                showMessage("订阅信息已更新")
-            }.onFailure { e ->
-                timber.log.Timber.e(e, "updateProfileSubscriptionInfo failed")
-                showError("更新订阅信息失败: ${e.message}")
-            }
-        }
-    }
-
     private fun setLoading(loading: Boolean) = _uiState.update { it.copy(isLoading = loading) }
     private fun showMessage(message: String) = _uiState.update { it.copy(message = message) }
-    fun showError(error: String) {
-        _uiState.update {
-            it.copy(error = error)
-        }
-    }
+    private fun showError(error: String) = _uiState.update { it.copy(error = error) }
 
     fun clearMessage() = _uiState.update { it.copy(message = null) }
     fun clearError() = _uiState.update { it.copy(error = null) }
