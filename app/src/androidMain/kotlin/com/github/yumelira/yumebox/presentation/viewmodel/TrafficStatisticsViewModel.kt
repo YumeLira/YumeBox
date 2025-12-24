@@ -30,13 +30,11 @@ import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.presentation.component.BarChartItem
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TrafficStatisticsViewModel(
-    application: Application,
-    private val trafficStatisticsStore: TrafficStatisticsStore
+    application: Application, private val trafficStatisticsStore: TrafficStatisticsStore
 ) : AndroidViewModel(application) {
 
     private val _selectedTimeRange = MutableStateFlow(StatisticsTimeRange.TODAY)
@@ -45,27 +43,24 @@ class TrafficStatisticsViewModel(
     private val _selectedBarIndex = MutableStateFlow(-1)
     val selectedBarIndex: StateFlow<Int> = _selectedBarIndex.asStateFlow()
 
-    val todaySummary: StateFlow<DailyTrafficSummary> = trafficStatisticsStore.dailySummaries
-        .map { trafficStatisticsStore.getTodaySummary() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
+    val todaySummary: StateFlow<DailyTrafficSummary> =
+        trafficStatisticsStore.dailySummaries.map { trafficStatisticsStore.getTodaySummary() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
 
-    val yesterdaySummary: StateFlow<DailyTrafficSummary> = trafficStatisticsStore.dailySummaries
-        .map { trafficStatisticsStore.getYesterdaySummary() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
+    val yesterdaySummary: StateFlow<DailyTrafficSummary> =
+        trafficStatisticsStore.dailySummaries.map { trafficStatisticsStore.getYesterdaySummary() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DailyTrafficSummary.EMPTY)
 
-    val weekSummary: StateFlow<Long> = trafficStatisticsStore.dailySummaries
-        .map {
+    val weekSummary: StateFlow<Long> = trafficStatisticsStore.dailySummaries.map {
             trafficStatisticsStore.getDailySummaries(7).sumOf { it.total }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     val trafficDifference: StateFlow<Long> = combine(todaySummary, yesterdaySummary) { today, yesterday ->
         today.total - yesterday.total
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     val chartItems: StateFlow<List<BarChartItem>> = combine(
-        _selectedTimeRange,
-        trafficStatisticsStore.dailySummaries
+        _selectedTimeRange, trafficStatisticsStore.dailySummaries
     ) { timeRange, _ ->
         when (timeRange) {
             StatisticsTimeRange.TODAY -> getTodayHourlyChartItems()
@@ -73,13 +68,9 @@ class TrafficStatisticsViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val profileUsages: StateFlow<List<ProfileTrafficUsage>> = trafficStatisticsStore.profileUsages
-        .map { usages ->
-            usages.values
-                .sortedByDescending { it.totalBytes }
-                .take(10)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val profileUsages: StateFlow<List<ProfileTrafficUsage>> = trafficStatisticsStore.profileUsages.map { usages ->
+            usages.values.sortedByDescending { it.totalBytes }.take(10)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setTimeRange(range: StatisticsTimeRange) {
         _selectedTimeRange.value = range
@@ -98,9 +89,7 @@ class TrafficStatisticsViewModel(
         return TimeSlot.entries.map { slot ->
             val slotData = hourlyData.getOrNull(slot.ordinal)
             BarChartItem(
-                label = slot.label,
-                value = slotData?.total ?: 0L,
-                isHighlighted = slot == currentSlot
+                label = slot.label, value = slotData?.total ?: 0L, isHighlighted = slot == currentSlot
             )
         }
     }
@@ -118,9 +107,7 @@ class TrafficStatisticsViewModel(
                 dateFormat.format(calendar.time)
             }
             BarChartItem(
-                label = label,
-                value = summary.total,
-                isHighlighted = summary.dateMillis == todayKey
+                label = label, value = summary.total, isHighlighted = summary.dateMillis == todayKey
             )
         }
     }

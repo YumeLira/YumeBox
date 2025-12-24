@@ -136,7 +136,7 @@ fun StringListInput(
     onValueChange: (List<String>?) -> Unit,
 ) {
     val itemCount = value?.size ?: 0
-    val displayValue = if (itemCount > 0) "${itemCount} 项" else "不修改"
+    val displayValue = if (itemCount > 0) "$itemCount 项" else "不修改"
 
     SuperArrow(
         title = title,
@@ -163,7 +163,7 @@ fun StringMapInput(
     onValueChange: (Map<String, String>?) -> Unit,
 ) {
     val itemCount = value?.size ?: 0
-    val displayValue = if (itemCount > 0) "${itemCount} 项" else "不修改"
+    val displayValue = if (itemCount > 0) "$itemCount 项" else "不修改"
 
     SuperArrow(
         title = title,

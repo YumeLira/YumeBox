@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class SettingViewModel(
-    private val featureStore: FeatureStore,
+    featureStore: FeatureStore,
 ) : ViewModel() {
 
     val allowLanAccess = featureStore.allowLanAccess
