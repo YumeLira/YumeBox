@@ -33,7 +33,6 @@ val pruneStaleGolangOutputs = tasks.register("pruneStaleGolangOutputs") {
     val outputRoot = golangOutputDir.get().asFile
     val golangAbiFolders = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
 
-    // Only use inputs/outputs for configuration cache compatibility
     inputs.dir(outputRoot)
         .skipWhenEmpty()
 
@@ -48,7 +47,6 @@ val pruneStaleGolangOutputs = tasks.register("pruneStaleGolangOutputs") {
     }
 }
 
-// 使用 ValueSource 实现配置缓存兼容的 git 信息获取
 abstract class GitCommandValueSource : ValueSource<String, GitCommandValueSource.Parameters> {
     interface Parameters : ValueSourceParameters {
         val workingDir: DirectoryProperty
@@ -71,7 +69,6 @@ abstract class GitCommandValueSource : ValueSource<String, GitCommandValueSource
     }
 }
 
-// 配置缓存兼容的 git 信息 Provider
 val mihomoDir = layout.projectDirectory.dir("src/foss/golang/mihomo")
 
 val gitCommitProvider: Provider<String> = providers.of(GitCommandValueSource::class) {
@@ -88,7 +85,6 @@ val gitBranchProvider: Provider<String> = providers.of(GitCommandValueSource::cl
     }
 }
 
-// 读取 kernel.properties
 val kernelProps = Properties()
 val kernelFile = rootProject.file("kernel.properties")
 if (kernelFile.exists()) {
@@ -100,7 +96,6 @@ val buildTimestampProvider: Provider<String> = providers.provider {
     if (includeTimestamp) SimpleDateFormat("yyMMdd").format(Date()) else ""
 }
 
-// 创建任务来保存 git 信息（使用 abstract class 实现配置缓存兼容）
 abstract class MihomoGitInfoTask : DefaultTask() {
     @get:Input
     abstract val gitCommit: Property<String>

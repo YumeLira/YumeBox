@@ -95,7 +95,6 @@ class App : Application() {
                 val profiles = profilesStore.getAllProfiles()
                 val clashWorkDir = File(filesDir, "clash")
                 cleanupOrphanedConfigs(clashWorkDir, profiles)
-                Timber.d("应用启动时清理孤儿配置完成")
             } catch (e: Exception) {
                 Timber.e(e, "清理孤儿配置失败")
             }

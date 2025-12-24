@@ -70,6 +70,15 @@ jobs:
           chmod +x scripts/sync-kernel.sh
           ./scripts/sync-kernel.sh meta
 
+      - name: Write signing config
+        run: |
+          if [ -n "${{ secrets.SIGNING_STORE_PASSWORD }}" ]; then
+            echo "keystore.password=${{ secrets.SIGNING_STORE_PASSWORD }}" > signing.properties
+            echo "key.alias=${{ secrets.SIGNING_KEY_ALIAS }}" >> signing.properties
+            echo "key.password=${{ secrets.SIGNING_KEY_PASSWORD }}" >> signing.properties
+            echo "keystore.path=release.keystore" >> signing.properties
+          fi
+
       - name: Inject google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/google-services.json
 

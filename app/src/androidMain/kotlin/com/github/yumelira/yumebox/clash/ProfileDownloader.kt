@@ -16,9 +16,7 @@ suspend fun downloadProfile(
     force: Boolean = true,
     onProgress: ((String, Int) -> Unit)? = null
 ): Result<String> = withContext(Dispatchers.IO) {
-    try {
-        Timber.d("开始下载配置: ${profile.name}, force=$force")
-
+    runCatching {
         val importService = ImportService(workDir)
 
         val result = importService.importProfile(
@@ -32,7 +30,6 @@ suspend fun downloadProfile(
 
         if (result.isSuccess) {
             val configPath = result.getOrThrow()
-            Timber.d("配置下载成功: ${profile.name}, path=$configPath")
             Result.success(configPath)
         } else {
             val error = result.exceptionOrNull()
@@ -45,7 +42,7 @@ suspend fun downloadProfile(
 
             Result.failure(UnknownException(friendlyError, error))
         }
-    } catch (e: Exception) {
+    }.getOrElse { e ->
         Timber.e(e, "下载配置异常: ${profile.name}")
         Result.failure(e)
     }
@@ -71,12 +68,11 @@ fun cleanupOrphanedConfigs(
     workDir: File,
     validProfiles: List<Profile>
 ) {
-    try {
+    runCatching {
         val importService = ImportService(workDir)
         val validIds = validProfiles.map { it.id }.toSet()
         importService.cleanupOrphanedConfigs(validIds)
-        Timber.d("孤儿配置清理完成")
-    } catch (e: Exception) {
+    }.onFailure { e ->
         Timber.e(e, "孤儿配置清理失败")
     }
 }

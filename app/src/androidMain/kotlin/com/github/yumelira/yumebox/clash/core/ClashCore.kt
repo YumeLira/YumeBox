@@ -28,23 +28,9 @@ object ClashCore {
         }
     }
 
-    fun reset() {
-        try {
-            Clash.reset()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to reset clash core")
-            throw e
-        }
-    }
+    fun reset() = Clash.reset()
 
-    fun suspend(suspended: Boolean) {
-        try {
-            Clash.suspendCore(suspended)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to suspend clash core")
-            throw e
-        }
-    }
+    fun suspend(suspended: Boolean) = Clash.suspendCore(suspended)
 
     suspend fun loadConfig(
         configDir: File,
@@ -131,27 +117,19 @@ object ClashCore {
         }
     }
 
-    fun queryOverride(slot: Clash.OverrideSlot): ConfigurationOverride {
-        return try {
-            Clash.queryOverride(slot)
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to query override for slot $slot, returning empty")
-            ConfigurationOverride()
-        }
-    }
+    fun queryOverride(slot: Clash.OverrideSlot): ConfigurationOverride =
+        runCatching { Clash.queryOverride(slot) }
+            .getOrElse { e ->
+                Timber.w(e, "Failed to query override for slot $slot, returning empty")
+                ConfigurationOverride()
+            }
 
-    fun patchOverride(slot: Clash.OverrideSlot, override: ConfigurationOverride) {
-        try {
-            Clash.patchOverride(slot, override)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to patch override for slot $slot")
-            throw e
-        }
-    }
+    fun patchOverride(slot: Clash.OverrideSlot, override: ConfigurationOverride) =
+        Clash.patchOverride(slot, override)
 
 
-    fun selectProxy(selector: String, proxyName: String): Boolean {
-        return try {
+    fun selectProxy(selector: String, proxyName: String): Boolean =
+        runCatching {
             val result = Clash.patchSelector(selector, proxyName)
             if (result) {
                 Timber.d("Proxy selected: $selector -> $proxyName")
@@ -159,11 +137,10 @@ object ClashCore {
                 Timber.w("Failed to select proxy: $selector -> $proxyName")
             }
             result
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             Timber.e(e, "Error selecting proxy: $selector -> $proxyName")
             false
         }
-    }
 
 
     fun startTun(
@@ -174,68 +151,29 @@ object ClashCore {
         dns: String,
         markSocket: (Int) -> Boolean,
         querySocketUid: (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int
-    ) {
-        try {
-            Clash.startTun(fd, stack, gateway, portal, dns, markSocket, querySocketUid)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to start TUN")
-            throw e
-        }
-    }
+    ) = Clash.startTun(fd, stack, gateway, portal, dns, markSocket, querySocketUid)
 
-    fun stopTun() {
-        try {
-            Clash.stopTun()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to stop TUN")
-            throw e
-        }
-    }
+    fun stopTun() = Clash.stopTun()
 
-    fun startHttp(listenAt: String): String? {
-        return try {
-            Clash.startHttp(listenAt)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to start HTTP proxy")
-            throw e
-        }
-    }
+    fun startHttp(listenAt: String): String? = Clash.startHttp(listenAt)
 
-    fun stopHttp() {
-        try {
-            Clash.stopHttp()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to stop HTTP proxy")
-            throw e
-        }
-    }
+    fun stopHttp() = Clash.stopHttp()
 
-    fun queryTunnelState(): TunnelState {
-        return try {
-            Clash.queryTunnelState()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to query tunnel state")
-            throw e
-        }
-    }
+    fun queryTunnelState(): TunnelState = Clash.queryTunnelState()
 
-    fun queryTrafficNow(): Traffic {
-        return try {
-            Clash.queryTrafficNow()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to query traffic now")
-            0L
-        }
-    }
+    fun queryTrafficNow(): Traffic =
+        runCatching { Clash.queryTrafficNow() }
+            .getOrElse { e ->
+                Timber.e(e, "Failed to query traffic now")
+                0L
+            }
 
-    fun queryTrafficTotal(): Traffic {
-        return try {
-            Clash.queryTrafficTotal()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to query traffic total")
-            0L
-        }
-    }
+    fun queryTrafficTotal(): Traffic =
+        runCatching { Clash.queryTrafficTotal() }
+            .getOrElse { e ->
+                Timber.e(e, "Failed to query traffic total")
+                0L
+            }
 
     fun subscribeLogcat() = Clash.subscribeLogcat()
 

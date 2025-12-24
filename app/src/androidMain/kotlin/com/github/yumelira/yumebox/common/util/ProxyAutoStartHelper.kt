@@ -40,15 +40,13 @@ object ProxyAutoStartHelper {
         clashManager: ClashManager,
         isBootCompleted: Boolean = false
     ) {
-        try {
+        runCatching {
             val automaticRestart = appSettingsStorage.automaticRestart.value
             if (!automaticRestart) {
-                Timber.tag(TAG).d("自动启动已禁用")
                 return
             }
 
             if (clashManager.isRunning.value) {
-                Timber.tag(TAG).d("代理已在运行，跳过自动启动")
                 return
             }
 
@@ -59,23 +57,19 @@ object ProxyAutoStartHelper {
             }
 
             if (isBootCompleted) {
-                Timber.tag(TAG).d("开机自启：延迟 3 秒后启动...")
                 delay(3000)
             }
 
             val proxyMode = networkSettingsStorage.proxyMode.value
-            Timber.tag(TAG).d("自动启动代理: profileId=$profileId, mode=$proxyMode")
 
             val result = proxyConnectionService.startDirect(
                 profileId = profileId, mode = proxyMode
             )
 
-            if (result.isSuccess) {
-                Timber.tag(TAG).d("自动启动代理成功")
-            } else {
+            if (result.isFailure) {
                 Timber.tag(TAG).e("自动启动代理失败: ${result.exceptionOrNull()?.message}")
             }
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Timber.tag(TAG).e(e, "自动启动代理失败: ${e.message}")
         }
     }
@@ -85,20 +79,17 @@ object ProxyAutoStartHelper {
         if (lastUsedId.isNotEmpty()) {
             val lastUsedProfile = profilesStore.getAllProfiles().find { it.id == lastUsedId }
             if (lastUsedProfile != null) {
-                Timber.tag(TAG).d("使用上次使用的配置: ${lastUsedProfile.name}")
                 return lastUsedId
             }
         }
 
         val enabledProfile = profilesStore.getAllProfiles().find { it.enabled }
         if (enabledProfile != null) {
-            Timber.tag(TAG).d("使用已启用的配置: ${enabledProfile.name}")
             return enabledProfile.id
         }
 
         val firstProfile = profilesStore.getAllProfiles().firstOrNull()
         if (firstProfile != null) {
-            Timber.tag(TAG).d("使用第一个配置: ${firstProfile.name}")
             return firstProfile.id
         }
 

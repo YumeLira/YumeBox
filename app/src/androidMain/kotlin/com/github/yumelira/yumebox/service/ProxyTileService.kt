@@ -53,7 +53,6 @@ class ProxyTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        Timber.tag(TAG).d("开始监听磁贴状态")
 
         serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         startObservingState()
@@ -61,7 +60,6 @@ class ProxyTileService : TileService() {
 
     override fun onStopListening() {
         super.onStopListening()
-        Timber.tag(TAG).d("停止监听磁贴状态")
 
         stateObserverJob?.cancel()
         stateObserverJob = null
@@ -71,10 +69,8 @@ class ProxyTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        Timber.tag(TAG).d("磁贴被点击")
 
         if (isOperating) {
-            Timber.tag(TAG).d("正在操作中，忽略点击")
             return
         }
 
@@ -100,27 +96,22 @@ class ProxyTileService : TileService() {
         updateTileState(TileState.CONNECTING)
 
         serviceScope?.launch(Dispatchers.IO) {
-            try {
+            runCatching {
                 val result = proxyConnectionService.prepareAndStart(profile.id)
 
-                result.fold(
-                    onSuccess = { intent ->
-                        if (intent != null) {
-                            Timber.tag(TAG).d("需要 VPN 授权，打开应用")
-                            openApp()
-                        }
-                    },
-                    onFailure = { error ->
-                        Timber.tag(TAG).e(error, "启动代理失败")
-                        updateTileState(TileState.DISCONNECTED)
+                result.fold(onSuccess = { intent ->
+                    if (intent != null) {
+                        openApp()
                     }
-                )
-            } catch (e: Exception) {
+                }, onFailure = { error ->
+                    Timber.tag(TAG).e(error, "启动代理失败")
+                    updateTileState(TileState.DISCONNECTED)
+                })
+            }.onFailure { e ->
                 Timber.tag(TAG).e(e, "启动代理异常")
                 updateTileState(TileState.DISCONNECTED)
-            } finally {
-                isOperating = false
             }
+            isOperating = false
         }
     }
 
@@ -129,14 +120,13 @@ class ProxyTileService : TileService() {
         updateTileState(TileState.DISCONNECTING)
 
         serviceScope?.launch(Dispatchers.IO) {
-            try {
+            runCatching {
                 val currentMode = clashManager.runningMode.value
                 proxyConnectionService.stop(currentMode)
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 Timber.tag(TAG).e(e, "停止代理异常")
-            } finally {
-                isOperating = false
             }
+            isOperating = false
         }
     }
 
@@ -148,19 +138,16 @@ class ProxyTileService : TileService() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startActivityAndCollapse(intent)
+            startActivity(intent)
         } else {
-            @Suppress("DEPRECATION")
-            startActivityAndCollapse(intent)
+            @Suppress("DEPRECATION") startActivityAndCollapse(intent)
         }
     }
 
     private fun startObservingState() {
         stateObserverJob = serviceScope?.launch {
             combine(
-                clashManager.isRunning,
-                clashManager.runningMode,
-                profilesStore.profiles
+                clashManager.isRunning, clashManager.runningMode, profilesStore.profiles
             ) { isRunning, runningMode, profiles ->
                 Triple(isRunning, runningMode, profiles)
             }.collect { (isRunning, _, profiles) ->
@@ -233,7 +220,7 @@ class ProxyTileService : TileService() {
     }
 
     private fun getRunningModeText(): String {
-        return when (val mode = clashManager.runningMode.value) {
+        return when (clashManager.runningMode.value) {
             is RunningMode.Tun -> "VPN 模式"
             is RunningMode.Http -> "HTTP 模式"
             is RunningMode.None -> ""
@@ -241,10 +228,6 @@ class ProxyTileService : TileService() {
     }
 
     private enum class TileState {
-        CONNECTED,
-        DISCONNECTED,
-        CONNECTING,
-        DISCONNECTING,
-        UNAVAILABLE
+        CONNECTED, DISCONNECTED, CONNECTING, DISCONNECTING, UNAVAILABLE
     }
 }

@@ -64,12 +64,11 @@ class TrafficStatisticsCollector(
             lastProfileId = trafficStatisticsStore.getLastProfileId()
 
             while (isActive && clashManager.isRunning.value) {
-                try {
+                runCatching {
                     collectTrafficData()
                     delay(COLLECTION_INTERVAL_MS)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
+                }.onFailure { e ->
+                    if (e is CancellationException) throw e
                     Timber.tag("TrafficStatisticsCollec").e(e, "流量数据收集失败")
                     delay(COLLECTION_INTERVAL_MS)
                 }
@@ -94,7 +93,6 @@ class TrafficStatisticsCollector(
         }
 
         if (currentProfileId != lastProfileId) {
-            Timber.tag("TrafficStatisticsCollec").d("检测到配置切换: $lastProfileId -> $currentProfileId")
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload
             lastProfileId = currentProfileId
@@ -103,7 +101,6 @@ class TrafficStatisticsCollector(
         }
 
         if (currentUpload < lastTotalUpload || currentDownload < lastTotalDownload) {
-            Timber.tag("TrafficStatisticsCollec").d("检测到代理重启，重置计数器")
             lastTotalUpload = currentUpload
             lastTotalDownload = currentDownload
             trafficStatisticsStore.setLastTraffic(currentUpload, currentDownload, currentProfileId)

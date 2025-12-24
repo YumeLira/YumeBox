@@ -27,8 +27,6 @@ class ImportService(private val workDir: File) {
                 val created = importedDir.mkdirs()
                 if (!created && !importedDir.exists()) {
                     Timber.e("无法创建导入目录: ${importedDir.absolutePath}")
-                } else {
-                    Timber.d("导入目录已准备: ${importedDir.absolutePath}")
                 }
             }
         } else {
@@ -63,11 +61,9 @@ class ImportService(private val workDir: File) {
             cleanupFailedImport(profile.id)
             throw e
         } catch (e: Exception) {
-            Timber.d("捕获异常类型: ${e.javaClass.simpleName}, 消息: ${e.message}")
             val importException = e.toConfigImportException()
 
             val errorMessage = importException.userFriendlyMessage
-            Timber.d("最终错误消息: $errorMessage, 异常类型: ${importException.javaClass.simpleName}")
 
             Timber.e(e, "配置导入失败: ${profile.name} - $errorMessage")
             onProgress?.invoke(ImportState.Failed(errorMessage, e))
@@ -225,9 +221,9 @@ class ImportService(private val workDir: File) {
         val targetFile = File(targetDir, CONFIG_FILE)
 
         try {
-            val isSameFile = try {
+            val isSameFile = runCatching {
                 sourceFile.canonicalPath == targetFile.canonicalPath
-            } catch (e: Exception) {
+            }.getOrElse { e ->
                 Timber.w(e, "无法比较文件路径，使用绝对路径比较")
                 sourceFile.absolutePath == targetFile.absolutePath
             }
@@ -236,7 +232,6 @@ class ImportService(private val workDir: File) {
                 sourceFile.copyTo(targetFile, overwrite = true)
                 onProgress?.invoke(ImportState.Copying(50, "复制完成"))
             } else {
-                Timber.d("源文件和目标文件相同，跳过复制: ${sourceFile.absolutePath}")
                 onProgress?.invoke(ImportState.Copying(50, "文件已就位"))
             }
 
@@ -291,20 +286,19 @@ class ImportService(private val workDir: File) {
     }
 
     private fun cleanupFailedImport(profileId: String) {
-        try {
+        runCatching {
             val importedDir = workDir.parentFile?.resolve(IMPORTED_DIR) ?: return
             val profileDir = File(importedDir, profileId)
             if (profileDir.exists()) {
                 profileDir.deleteRecursively()
-                Timber.d("已清理失败的导入: $profileId")
             }
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Timber.e(e, "清理失败的导入出错: $profileId")
         }
     }
 
     fun cleanupOrphanedConfigs(validProfileIds: Set<String>) {
-        try {
+        runCatching {
             val importedDir = workDir.parentFile?.resolve(IMPORTED_DIR)
             if (importedDir == null || !importedDir.exists()) {
                 return
@@ -313,7 +307,6 @@ class ImportService(private val workDir: File) {
             var cleanedCount = 0
             importedDir.listFiles()?.forEach { dir ->
                 if (dir.isDirectory && dir.name !in validProfileIds) {
-                    Timber.d("清理孤儿配置: ${dir.name}")
                     dir.deleteRecursively()
                     cleanedCount++
                 }
@@ -322,7 +315,7 @@ class ImportService(private val workDir: File) {
             if (cleanedCount > 0) {
                 Timber.i("已清理 $cleanedCount 个孤儿配置")
             }
-        } catch (e: Exception) {
+        }.onFailure { e ->
             Timber.e(e, "清理孤儿配置出错")
         }
     }

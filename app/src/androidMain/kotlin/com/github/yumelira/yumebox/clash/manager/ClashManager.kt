@@ -79,8 +79,6 @@ class ClashManager(
                 return@withContext Result.failure(IllegalStateException("配置目录不存在: ${profile.name}"))
             }
 
-            Timber.d("开始加载配置：${profile.name}")
-
             val loadResult = ClashCore.loadConfig(
                 configDir = configDir, options = ClashCore.LoadOptions(
                     timeoutMs = 30_000L, resetBeforeLoad = true, clearSessionOverride = true
@@ -96,7 +94,7 @@ class ClashManager(
             _currentProfile.value = profile
 
             proxyModeProvider?.let { provider ->
-                try {
+                runCatching {
                     val mode = provider()
                     val persist = ClashCore.queryOverride(Clash.OverrideSlot.Persist)
                     if (persist.mode != mode) {
@@ -106,8 +104,7 @@ class ClashManager(
                     val session = ClashCore.queryOverride(Clash.OverrideSlot.Session)
                     session.mode = mode
                     ClashCore.patchOverride(Clash.OverrideSlot.Session, session)
-                    Timber.d("应用代理模式：$mode")
-                } catch (e: Exception) {
+                }.onFailure { e ->
                     Timber.e(e, "应用代理模式失败")
                 }
             }
@@ -117,14 +114,11 @@ class ClashManager(
             scope.launch {
                 try {
 
-
                     val selections = selectionDao.getAllSelections(profile.id)
-                    Timber.d("恢复 ${selections.size} 个节点选择")
 
                     selections.forEach { (groupName, proxyName) ->
                         runCatching {
                             ClashCore.selectProxy(groupName, proxyName)
-                            Timber.d("恢复选择：$groupName -> $proxyName")
                         }.onFailure { e ->
                             Timber.e(e, "恢复选择失败：$groupName -> $proxyName")
                         }
@@ -137,10 +131,8 @@ class ClashManager(
             }
 
             scope.launch {
-                try {
-                    proxyStateRepository.syncFromCore()
-                } catch (e: Exception) {
-                }
+                runCatching { proxyStateRepository.syncFromCore() }
+                    .onFailure { Timber.w(it, "Background sync failed") }
             }
 
             Result.success(Unit)
@@ -175,7 +167,6 @@ class ClashManager(
             val profile =
                 _currentProfile.value ?: return@withContext Result.failure(IllegalStateException("请先加载配置"))
 
-            Timber.d("启动 TUN 模式")
             _proxyState.value = ProxyState.Connecting(RunningMode.Tun)
 
             ClashCore.startTun(
@@ -191,7 +182,6 @@ class ClashManager(
             _proxyState.value = ProxyState.Running(profile, RunningMode.Tun)
             startMonitor()
 
-            Timber.d("TUN 模式启动成功")
             Result.success(Unit)
         } catch (e: Exception) {
             val importException = e.toConfigImportException()
@@ -208,7 +198,6 @@ class ClashManager(
             val profile =
                 _currentProfile.value ?: return@withContext Result.failure(IllegalStateException("请先加载配置"))
 
-            Timber.d("启动 HTTP 代理模式")
             _proxyState.value = ProxyState.Connecting(RunningMode.Http(config.address))
 
             val address = ClashCore.startHttp(config.listenAddress) ?: config.address
@@ -216,7 +205,6 @@ class ClashManager(
             _proxyState.value = ProxyState.Running(profile, RunningMode.Http(address))
             startMonitor()
 
-            Timber.d("HTTP 代理模式启动成功：$address")
             Result.success(address)
         } catch (e: Exception) {
             val importException = e.toConfigImportException()
@@ -228,39 +216,29 @@ class ClashManager(
 
     fun stop() {
         runCatching {
-            _proxyState.value
             _proxyState.value = ProxyState.Stopping
+        }.onFailure {
+            Timber.w(it, "Failed to set stopping state")
+        }
 
-            try {
-                ClashCore.stopTun()
-            } catch (e: Exception) {
-            }
+        runCatching { ClashCore.stopTun() }.onFailure {
+            Timber.w(it, "Failed to stop TUN")
+        }
+        runCatching { ClashCore.stopHttp() }.onFailure {
+            Timber.w(it, "Failed to stop HTTP")
+        }
+        runCatching { SystemProxyHelper.clearSystemProxy(context) }.onFailure {
+            Timber.w(it, "Failed to clear system proxy")
+        }
 
-            try {
-                ClashCore.stopHttp()
-            } catch (e: Exception) {
-            }
-
-            try {
-                SystemProxyHelper.clearSystemProxy(context)
-            } catch (e: Exception) {
-            }
-
-            try {
-                ClashCore.reset()
-            } catch (e: Exception) {
-            }
-
+        runCatching {
             proxyStateRepository.stop()
-
             stopMonitor()
-
             resetState()
-
-        }.onFailure { _ ->
-            try {
-                ClashCore.reset()
-            } catch (_: Exception) {
+        }.onFailure { e ->
+            Timber.e(e, "Failed during stop cleanup, forcing reset")
+            runCatching { ClashCore.reset() }.onFailure {
+                Timber.w(it, "Failed to force reset")
             }
             proxyStateRepository.stop()
             stopMonitor()

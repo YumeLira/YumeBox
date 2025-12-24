@@ -4,11 +4,11 @@ package com.github.yumelira.yumebox.core.model
 
 import android.os.Parcel
 import android.os.Parcelable
+import com.github.yumelira.yumebox.core.util.DateSerializer
+import com.github.yumelira.yumebox.core.util.Parcelizer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import com.github.yumelira.yumebox.core.util.DateSerializer
-import com.github.yumelira.yumebox.core.util.Parcelizer
 import java.util.*
 
 @Serializable
