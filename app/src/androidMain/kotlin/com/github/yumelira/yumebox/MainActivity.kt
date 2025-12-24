@@ -67,6 +67,7 @@ import com.github.yumelira.yumebox.presentation.component.BottomBar
 import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.LocalPagerState
+import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.screen.HomePager
 import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
 import com.github.yumelira.yumebox.presentation.screen.ProxyPager
@@ -189,6 +190,9 @@ fun MainScreen(navigator: DestinationsNavigator) {
         tint = HazeTint(MiuixTheme.colorScheme.background.copy(0.8f)),
     )
 
+    val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
+    val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
+
     val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope) {
         { page ->
             coroutineScope.launch {
@@ -224,31 +228,27 @@ fun MainScreen(navigator: DestinationsNavigator) {
         LocalHandlePageChange provides handlePageChange,
         LocalNavigator provides navigator,
     ) {
-        val verticalScrollConnection = remember {
-            object : NestedScrollConnection {
-                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+        val bottomBarScrollBehavior = rememberBottomBarScrollBehavior(
+            autoHideEnabled = bottomBarAutoHide
+        )
 
-                    return Offset.Zero
-                }
-                
-                override suspend fun onPreFling(available: Velocity): Velocity {
-                    if (abs(available.y) > abs(available.x) * 1.5f) {
-                        return Velocity(available.x, 0f)
-                    }
-                    return Velocity.Zero
-                }
-            }
+        LaunchedEffect(bottomBarAutoHide) {
+            bottomBarScrollBehavior.isAutoHideEnabled = bottomBarAutoHide
         }
-        
+
         Scaffold(
             bottomBar = {
-                BottomBar(hazeState, hazeStyle)
+                BottomBar(
+                    hazeState = hazeState,
+                    hazeStyle = hazeStyle,
+                    isVisible = bottomBarScrollBehavior.isBottomBarVisible
+                )
             },
         ) { innerPadding ->
             HorizontalPager(
                 modifier = Modifier
                     .hazeSource(state = hazeState)
-                    .nestedScroll(verticalScrollConnection),
+                    .nestedScroll(bottomBarScrollBehavior.nestedScrollConnection),
                 state = pagerState,
                 beyondViewportPageCount = 1,
                 userScrollEnabled = true,
