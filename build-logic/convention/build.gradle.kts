@@ -37,7 +37,6 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(jvmVersionInt)
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(jvmVersionInt.toString())
     }

@@ -73,9 +73,10 @@ val appAbiList = gropify.abi.app.list.split(",").map { it.trim() }
 val localeList = gropify.locale.app.list.split(",").map { it.trim() }
 
 kotlin {
-    androidTarget()
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(jvmVersionNumber))
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.fromTarget(jvmVersion))
+        }
     }
     sourceSets {
         androidMain.dependencies {
@@ -125,10 +126,6 @@ kotlin {
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
         }
     }
-}
-
-tasks.withType<KotlinJvmCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(jvmVersion))
 }
 
 android {
