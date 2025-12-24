@@ -44,10 +44,7 @@ fun TextEditBottomSheet(
     onDismiss: () -> Unit = { show.value = false },
 ) {
     SuperBottomSheet(
-        show = show,
-        title = title,
-        insideMargin = DpSize(32.dp, 16.dp),
-        onDismissRequest = onDismiss
+        show = show, title = title, insideMargin = DpSize(32.dp, 16.dp), onDismissRequest = onDismiss
     ) {
         Column {
             TextField(
@@ -58,16 +55,13 @@ fun TextEditBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f)
+                    onClick = onDismiss, modifier = Modifier.weight(1f)
                 ) { Text(MLang.Component.Button.Cancel) }
                 Button(
                     onClick = {
                         onConfirm(textFieldValue.value.text)
                         show.value = false
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary()
+                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()
                 ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.background) }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -101,9 +95,7 @@ fun WarningBottomSheet(
                 onClick = {
                     onConfirm()
                     show.value = false
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColorsPrimary()
+                }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()
             ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.background) }
             Spacer(modifier = Modifier.height(16.dp))
         }

@@ -1,23 +1,3 @@
-/*
- * This file is part of YumeBox.
- *
- * YumeBox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- *
- * Copyright (c)  YumeLira 2025.
- *
- */
-
 package com.github.yumelira.yumebox.service
 
 import android.content.Context
@@ -42,9 +22,6 @@ import kotlinx.coroutines.launch
 class NetworkServiceManager(
     private val context: Context
 ) : DefaultLifecycleObserver {
-    companion object {
-        private const val TAG = "NetworkServiceManager"
-    }
 
     private val networkSettingsStorage = NetworkSettingsStorage(
         MMKVProvider().getMMKV("network_settings")
@@ -60,15 +37,11 @@ class NetworkServiceManager(
     private var currentServiceType: ServiceType? = null
 
     enum class ServiceState {
-        Starting,
-        Running,
-        Stopping,
-        Stopped
+        Starting, Running, Stopping, Stopped
     }
 
     enum class ServiceType {
-        VPN,
-        HTTP_PROXY
+        VPN, HTTP_PROXY
     }
 
     fun startService(proxyMode: ProxyMode) {
@@ -118,7 +91,7 @@ class NetworkServiceManager(
 
                 currentServiceType = ServiceType.VPN
                 _serviceState.value = ServiceState.Running
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _serviceState.value = ServiceState.Stopped
                 currentServiceType = null
             }
@@ -148,7 +121,7 @@ class NetworkServiceManager(
 
                 currentServiceType = ServiceType.HTTP_PROXY
                 _serviceState.value = ServiceState.Running
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _serviceState.value = ServiceState.Stopped
                 currentServiceType = null
             }
@@ -177,37 +150,21 @@ class NetworkServiceManager(
                             ServiceType.HTTP_PROXY -> ClashHttpService.ACTION_STOP
                             else -> null
                         }
-                        // 添加标志确保服务能被正确停止
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
 
-                    // 确保服务被停止
                     context.stopService(intent)
 
-                    // 给服务一些时间完成停止操作
                     delay(1000)
                 }
 
-                // 无论成功与否都重置状态
                 currentServiceType = null
                 _serviceState.value = ServiceState.Stopped
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _serviceState.value = ServiceState.Stopped
                 currentServiceType = null
             }
         }
-    }
-
-    fun getCurrentServiceConfig(): ServiceConfig {
-        return ServiceConfig(
-            bypassPrivateNetwork = networkSettingsStorage.bypassPrivateNetwork.value,
-            dnsHijacking = networkSettingsStorage.dnsHijack.value,
-            allowBypass = networkSettingsStorage.allowBypass.value,
-            allowIpv6 = networkSettingsStorage.enableIPv6.value,
-            systemProxy = networkSettingsStorage.systemProxy.value,
-            tunStackMode = networkSettingsStorage.tunStack.value.name,
-            accessControlMode = networkSettingsStorage.accessControlMode.value
-        )
     }
 
     fun updateServiceConfig(config: ServiceConfig) {

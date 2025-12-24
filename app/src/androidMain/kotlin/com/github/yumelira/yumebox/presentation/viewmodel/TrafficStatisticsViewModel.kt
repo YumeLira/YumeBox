@@ -90,12 +90,6 @@ class TrafficStatisticsViewModel(
         _selectedBarIndex.value = index
     }
 
-    fun clearStatistics() {
-        viewModelScope.launch {
-            trafficStatisticsStore.clearAll()
-        }
-    }
-
     private fun getTodayHourlyChartItems(): List<BarChartItem> {
         val hourlyData = trafficStatisticsStore.getTodayHourlyData()
         val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)

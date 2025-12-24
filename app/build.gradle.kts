@@ -2,6 +2,7 @@
 
 import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.android.build.gradle.tasks.MergeSourceSetFolders
+import org.gradle.api.provider.MapProperty
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 import java.nio.file.Files
@@ -161,8 +162,8 @@ android {
         val keystore = rootProject.file("signing.properties")
         if (keystore.exists()) {
             create("release") {
-                val prop = Properties().apply {
-                    keystore.inputStream().use(this::load)
+                val prop = Properties().also { props ->
+                    keystore.inputStream().use { stream -> props.load(stream) }
                 }
 
                 storeFile = rootProject.file("release.keystore")

@@ -22,26 +22,18 @@ package com.github.yumelira.yumebox.presentation.webview
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
-import com.github.yumelira.yumebox.presentation.component.LocalWebView
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
 import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
-import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.Text
 
 
 @Composable
 fun WebViewScreen(
     initialUrl: String,
-    modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -50,8 +42,6 @@ fun WebViewScreen(
     val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
     val colorTheme = appSettingsViewModel.colorTheme.state.collectAsState().value
 
-    var webViewError by remember { mutableStateOf<String?>(null) }
-
     BackHandler {
         onBack?.invoke() ?: activity?.finish()
     }
@@ -59,36 +49,9 @@ fun WebViewScreen(
     ProvideAndroidPlatformTheme {
         YumeTheme(
             themeMode = themeMode,
-            colorTheme = colorTheme,
+            colorTheme = colorTheme
         ) {
-            Box(modifier = modifier) {
-                if (webViewError != null) {
-                    Text(
-                        text = webViewError!!,
-                        modifier = Modifier.align(Alignment.Center),
-                        textAlign = TextAlign.Center,
-                    )
-                } else if (initialUrl.isNotEmpty()) {
-                    LocalWebView(
-                        initialUrl = initialUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        enableDebug = true,
-                        onPageFinished = { url: String ->
-                        },
-                        onPageError = { url: String, error: String ->
-                            if (url.endsWith("index.html") && (error.contains("404") || error.contains("Not Found"))) {
-                                webViewError = MLang.Component.WebView.LoadFailed
-                            }
-                        },
-                    )
-                } else {
-                    Text(
-                        text = MLang.Component.WebView.InvalidUrl,
-                        modifier = Modifier.align(Alignment.Center),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
+            LocalWebView(initialUrl = initialUrl)
         }
     }
 }

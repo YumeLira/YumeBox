@@ -35,7 +35,6 @@ internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> 
 fun YumeTheme(
     themeMode: ThemeMode? = null,
     colorTheme: AppColorTheme = AppColorTheme.ClassicMonochrome,
-    dynamicColor: Boolean = false,
     spacing: Spacing = Spacing(),
     radii: Radii = Radii(),
     content: @Composable () -> Unit,

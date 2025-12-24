@@ -117,8 +117,7 @@ fun StringListEditorScreen(
     DisposableEffect(Unit) {
         onDispose {
             EditorDataHolder.listEditorCallback?.invoke(
-                editableItems.takeIf { it.isNotEmpty() }
-            )
+                editableItems.takeIf { it.isNotEmpty() })
             EditorDataHolder.clearListEditor()
         }
     }
@@ -131,8 +130,7 @@ fun StringListEditorScreen(
                 navigationIcon = { NavigationBackIcon(navigator) },
                 actions = {
                     IconButton(
-                        onClick = { showResetDialog = true },
-                        modifier = Modifier.padding(end = 16.dp)
+                        onClick = { showResetDialog = true }, modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Useful.Restore,
@@ -141,8 +139,7 @@ fun StringListEditorScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
-                        onClick = { showAddDialog = true },
-                        modifier = Modifier.padding(end = 24.dp)
+                        onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Useful.New,
@@ -254,8 +251,7 @@ fun KeyValueEditorScreen(
     DisposableEffect(Unit) {
         onDispose {
             EditorDataHolder.mapEditorCallback?.invoke(
-                editableItems.takeIf { it.isNotEmpty() }
-            )
+                editableItems.takeIf { it.isNotEmpty() })
             EditorDataHolder.clearMapEditor()
         }
     }
@@ -268,8 +264,7 @@ fun KeyValueEditorScreen(
                 navigationIcon = { NavigationBackIcon(navigator) },
                 actions = {
                     IconButton(
-                        onClick = { showResetDialog = true },
-                        modifier = Modifier.padding(end = 16.dp)
+                        onClick = { showResetDialog = true }, modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Useful.Restore,
@@ -278,8 +273,7 @@ fun KeyValueEditorScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
-                        onClick = { showAddDialog = true },
-                        modifier = Modifier.padding(end = 24.dp)
+                        onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Useful.New,
@@ -575,8 +569,8 @@ private fun KeyValueInputDialog(
 
                     when {
                         trimmedKey.isBlank() -> keyError = MLang.Component.Editor.Error.KeyEmpty
-                        trimmedKey != currentEditingKey && existingKeys.contains(trimmedKey) ->
-                            keyError = MLang.Component.Editor.Error.KeyExists
+                        trimmedKey != currentEditingKey && existingKeys.contains(trimmedKey) -> keyError =
+                            MLang.Component.Editor.Error.KeyExists
 
                         else -> onConfirm(trimmedKey, trimmedValue)
                     }

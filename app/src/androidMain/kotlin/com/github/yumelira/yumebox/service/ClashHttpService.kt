@@ -106,8 +106,6 @@ class ClashHttpService : Service() {
         serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         serviceScope?.launch {
             try {
-                System.currentTimeMillis()
-
                 // 1. 获取配置
                 val profile = profilesStore.getAllProfiles().find { it.id == profileId }
                 if (profile == null) {

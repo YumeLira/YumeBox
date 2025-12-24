@@ -147,7 +147,7 @@ class ClashManager(
         return when (profile.type) {
             ProfileType.FILE -> {
                 val configFile = File(profile.config)
-                configFile.parentFile ?: configFile.parentFile!!
+                configFile.parentFile ?: workDir
             }
 
             ProfileType.URL -> {

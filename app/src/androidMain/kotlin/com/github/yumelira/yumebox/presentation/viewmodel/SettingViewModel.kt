@@ -35,7 +35,6 @@ class SettingViewModel(
     val allowLanAccess = featureStore.allowLanAccess
     val backendPort = featureStore.backendPort
     val frontendPort = featureStore.frontendPort
-    val selectedPanelType = featureStore.selectedPanelType
 
     private val _events = MutableSharedFlow<SettingEvent>()
     val events: SharedFlow<SettingEvent> = _events.asSharedFlow()

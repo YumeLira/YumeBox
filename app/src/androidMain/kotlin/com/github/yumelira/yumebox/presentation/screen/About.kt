@@ -56,10 +56,10 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     LocalContext.current
 
     LaunchedEffect(Unit) {
-        try {
-            coreVersion = Bridge.nativeCoreVersion()
-        } catch (e: Exception) {
-            coreVersion = MLang.About.App.VersionFailed
+        coreVersion = try {
+            Bridge.nativeCoreVersion()
+        } catch (_: Exception) {
+            MLang.About.App.VersionFailed
         }
     }
 

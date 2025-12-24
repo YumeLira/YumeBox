@@ -172,9 +172,7 @@ private fun LogFileItem(
         )
     ) {
         SuperArrow(
-            title = fileInfo.name,
-            summary = summary,
-            onClick = onClick,
+            title = fileInfo.name, summary = summary, onClick = onClick,
             rightActions = {
                 if (fileInfo.isRecording) {
                     Text(
@@ -182,7 +180,7 @@ private fun LogFileItem(
                         modifier = Modifier.padding(end = 16.dp),
                         style = MiuixTheme.textStyles.body2,
                     )
-                } else null
+                }
             }
         )
     }

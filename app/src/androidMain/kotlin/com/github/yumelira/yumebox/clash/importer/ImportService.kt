@@ -319,11 +319,4 @@ class ImportService(private val workDir: File) {
             Timber.e(e, "清理孤儿配置出错")
         }
     }
-
-    private fun toConfigImportException(message: String, cause: Throwable?): ConfigImportException {
-        return when (cause) {
-            is ConfigImportException -> cause
-            else -> UnknownException(message, cause)
-        }
-    }
 }

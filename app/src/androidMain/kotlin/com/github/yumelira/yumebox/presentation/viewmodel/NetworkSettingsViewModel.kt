@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 
 class NetworkSettingsViewModel(
     application: Application,
-    private val storage: NetworkSettingsStorage,
+    storage: NetworkSettingsStorage,
 ) : AndroidViewModel(application) {
 
 
@@ -52,7 +52,6 @@ class NetworkSettingsViewModel(
     val systemProxy: Preference<Boolean> = storage.systemProxy
     val tunStack: Preference<TunStack> = storage.tunStack
     val accessControlMode: Preference<AccessControlMode> = storage.accessControlMode
-    val accessControlPackages: Preference<Set<String>> = storage.accessControlPackages
 
 
     val serviceState = serviceManager.serviceState
@@ -117,10 +116,6 @@ class NetworkSettingsViewModel(
 
     fun startService(proxyMode: ProxyMode) {
         serviceManager.startService(proxyMode)
-    }
-
-    fun stopService() {
-        serviceManager.stopService()
     }
 
     fun restartService() {

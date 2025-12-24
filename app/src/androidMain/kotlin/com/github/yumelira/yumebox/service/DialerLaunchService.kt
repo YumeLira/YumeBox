@@ -48,14 +48,14 @@ class DialerLaunchService : Service() {
 
             startActivity(launchIntent)
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             try {
                 val fallbackIntent = packageManager.getLaunchIntentForPackage(packageName)
                 if (fallbackIntent != null) {
                     fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(fallbackIntent)
                 }
-            } catch (e2: Exception) {
+            } catch (_: Exception) {
             }
         }
 

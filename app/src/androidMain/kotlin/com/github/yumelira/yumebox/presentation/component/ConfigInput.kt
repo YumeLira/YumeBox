@@ -50,7 +50,7 @@ fun PortInput(
 
     if (showDialog) {
         SuperBottomSheet(
-            show = remember { mutableStateOf(true) },
+            show = remember(showDialog) { mutableStateOf(true) },
             title = title,
             onDismissRequest = { showDialog = false },
         ) {
@@ -99,7 +99,7 @@ fun StringInput(
 
     if (showDialog) {
         SuperBottomSheet(
-            show = remember { mutableStateOf(true) },
+            show = remember(showDialog) { mutableStateOf(true) },
             title = title,
             onDismissRequest = { showDialog = false },
         ) {
