@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 
 class ProfilesStore(
     mmkv: MMKV,
-    private val scope: CoroutineScope
+    scope: CoroutineScope
 ) : MMKVPreference(externalMmkv = mmkv) {
 
     private val _profiles: Preference<List<Profile>> by jsonListFlow(
@@ -43,25 +43,21 @@ class ProfilesStore(
 
     val profiles: StateFlow<List<Profile>> = _profiles.state
 
-    val enabledProfile: StateFlow<Profile?> = _profiles.state
-        .map { list -> list.firstOrNull { it.enabled } }
-        .stateIn(scope, SharingStarted.WhileSubscribed(5000), getEnabledProfile())
-
     val recommendedProfile: StateFlow<Profile?> = _profiles.state
         .map { list -> list.firstOrNull { it.enabled } ?: list.firstOrNull() }
         .stateIn(scope, SharingStarted.WhileSubscribed(5000), getRecommendedProfile())
 
     fun getAllProfiles(): List<Profile> = _profiles.value
 
-    suspend fun addProfile(profile: Profile) {
+     fun addProfile(profile: Profile) {
         _profiles.add(profile)
     }
 
-    suspend fun removeProfile(id: String) {
+     fun removeProfile(id: String) {
         _profiles.remove { it.id == id }
     }
 
-    suspend fun updateProfile(profile: Profile) {
+     fun updateProfile(profile: Profile) {
         _profiles.update({ it.id == profile.id }) { profile }
     }
 
@@ -72,6 +68,4 @@ class ProfilesStore(
     fun getEnabledProfile(): Profile? = _profiles.value.firstOrNull { it.enabled }
 
     fun getRecommendedProfile(): Profile? = getEnabledProfile() ?: _profiles.value.firstOrNull()
-
-    fun hasEnabledProfile(): Boolean = _profiles.value.any { it.enabled }
 }

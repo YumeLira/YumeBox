@@ -14,9 +14,5 @@ object Global : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     fun init(application: Application) {
         _application = application
     }
-
-    fun destroy() {
-        cancel()
-    }
 }
 
