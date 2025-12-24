@@ -364,6 +364,24 @@ private fun ProxyGroupPage(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        } else if (group.now.isBlank()) {
+            item(key = "direct_${groupName}") {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = MLang.Proxy.Mode.Direct,
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         }
 
         item(key = "spacer_${groupName}") {

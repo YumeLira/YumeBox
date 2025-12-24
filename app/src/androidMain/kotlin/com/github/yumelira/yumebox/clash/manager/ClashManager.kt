@@ -317,6 +317,28 @@ class ClashManager(
         _tunnelState.value = null
     }
 
+    suspend fun reloadCurrentProfile(): Result<Unit> = withContext(Dispatchers.IO) {
+        val profile = _currentProfile.value
+            ?: return@withContext Result.failure(IllegalStateException("没有加载的配置"))
+        loadProfile(profile)
+    }
+
+    suspend fun refreshProxyGroups(): Result<Unit> {
+        return proxyStateRepository.syncFromCore()
+    }
+
+    suspend fun selectProxy(groupName: String, proxyName: String): Boolean {
+        return proxyStateRepository.selectProxy(groupName, proxyName).getOrDefault(false)
+    }
+
+    suspend fun healthCheck(groupName: String): Result<Unit> {
+        return proxyStateRepository.testGroupDelay(groupName)
+    }
+
+    suspend fun healthCheckAll(): Result<Unit> {
+        return proxyStateRepository.testAllDelay()
+    }
+
     override fun close() {
         logJob?.cancel()
         monitorJob?.cancel()

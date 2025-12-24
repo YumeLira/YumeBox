@@ -1,92 +1,91 @@
-/*
- * This file is part of YumeBox.
- *
- * YumeBox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- *
- * Copyright (c)  YumeLira 2025.
- *
- */
-
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumelira.yumebox.clash.manager.ClashManager
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
-import com.github.yumelira.yumebox.domain.facade.ProxyFacade
 import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import com.github.yumelira.yumebox.domain.model.ProxySortMode
+import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * 代理视图模型
+ * Represents the view model for proxy-related UI interactions.
  *
- * 重构原则：
- * 1. 完全基于状态观察，不主动拉取数据
- * 2. 所有操作都是"设置"而非"刷新"
- * 3. UI 只负责显示和触发操作
- * 4. 数据同步由 ProxyStateRepository 自动完成
+ * This class exposes various states and actions related to proxy management, including
+ * current mode, display mode, sort mode, selected group index, and proxy groups. It also
+ * provides methods for patching mode, testing delay, setting display and sort modes,
+ * selecting a proxy, and sorting proxies.
  */
 class ProxyViewModel(
-    private val proxyFacade: ProxyFacade,
+    private val clashManager: ClashManager,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore
 ) : ViewModel() {
 
-    // ========== UI 状态 ==========
-
+    /**
+     * Internal UI state object, maintaining the state of the UI.
+     *
+     * This object represents the current state of the user interface, including
+     * loading progress, messages, and error states.
+     */
     private val _uiState = MutableStateFlow(ProxyUiState())
+    /**
+     * The state of the user interface, exposing loading status, error message and a success message.
+     */
     val uiState: StateFlow<ProxyUiState> = _uiState.asStateFlow()
 
-    // ========== 代理状态（来自核心） ==========
-
     /**
-     * 当前代理模式
+     * Current state of the tunnel mode. This flow is initialized with a default initial state and
+     * shares all new state with other subscribers.
      */
     val currentMode: StateFlow<TunnelState.Mode> = proxyDisplaySettingsStore.proxyMode.state
         .stateIn(viewModelScope, SharingStarted.Eagerly, TunnelState.Mode.Rule)
 
     /**
-     * 显示模式
+     * The current display mode for the proxy display settings.
+     * This field is a state flow that reflects the current mode.
      */
     val displayMode: StateFlow<ProxyDisplayMode> = proxyDisplaySettingsStore.displayMode.state
         .stateIn(viewModelScope, SharingStarted.Eagerly, ProxyDisplayMode.DOUBLE_SIMPLE)
 
     /**
-     * 排序模式
+     * The current sorting mode of proxies.
      */
     val sortMode: StateFlow<ProxySortMode> = proxyDisplaySettingsStore.sortMode.state
         .stateIn(viewModelScope, SharingStarted.Eagerly, ProxySortMode.DEFAULT)
 
     /**
-     * 选中的代理组索引
+     * Index of the currently selected group.
+     *
+     * This value is used to store the currently selected group index.
+     * It is a mutable state flow, allowing it to be updated from anywhere in the application.
      */
     private val _selectedGroupIndex = MutableStateFlow(0)
+    /**
+     * The index of the selected group.
+     *
+     * This property exposes the current selected group index as a StateFlow, allowing subscribers to observe and react to changes.
+     */
     val selectedGroupIndex: StateFlow<Int> = _selectedGroupIndex.asStateFlow()
 
     /**
-     * 代理组列表（来自 ProxyStateRepository，自动同步）
+     *
      */
-    val proxyGroups: StateFlow<List<ProxyGroupInfo>> = proxyFacade.proxyGroups
+    val proxyGroups: StateFlow<List<ProxyGroupInfo>> = clashManager.proxyGroups
 
 
     /**
-     * 排序后的代理组列表
+     * A StateFlow containing a list of sorted proxy group information.
+     * It is updated dynamically based on the current sort mode.
+     *
+     * @property value The list of sorted proxy group information.
      */
     val sortedProxyGroups: StateFlow<List<ProxyGroupInfo>> =
         combine(proxyGroups, sortMode) { groups, mode ->
@@ -99,20 +98,18 @@ class ProxyViewModel(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ========== 操作：代理模式切换 ==========
-
     /**
-     * 切换代理模式
+     * Switches the current proxy mode to the specified mode.
      *
-     * @param mode 新的代理模式
+     * After switching the mode, the current profile is reloaded, and the proxy groups are refreshed.
+     * If an error occurs during the switching process, an error message is shown to the user.
+     *
+     * @param mode The new proxy mode to switch to.
      */
     fun patchMode(mode: TunnelState.Mode) {
-        // 保存到设置
         proxyDisplaySettingsStore.proxyMode.set(mode)
-
         viewModelScope.launch {
             runCatching {
-                // 写入持久化和会话 override
                 val persistOverride = Clash.queryOverride(Clash.OverrideSlot.Persist)
                 persistOverride.mode = mode
                 Clash.patchOverride(Clash.OverrideSlot.Persist, persistOverride)
@@ -121,29 +118,32 @@ class ProxyViewModel(
                 sessionOverride.mode = mode
                 Clash.patchOverride(Clash.OverrideSlot.Session, sessionOverride)
 
+                clashManager.reloadCurrentProfile()
+                delay(100)
                 val modeName = when (mode) {
-                    TunnelState.Mode.Direct -> "直连"
-                    TunnelState.Mode.Global -> "全局"
-                    TunnelState.Mode.Rule -> "规则"
-                    else -> "未知"
+                    TunnelState.Mode.Direct -> MLang.Proxy.Mode.Direct
+                    TunnelState.Mode.Global -> MLang.Proxy.Mode.Global
+                    TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
+                    else -> MLang.Proxy.Mode.Unknown
                 }
-                showMessage("已切换到: $modeName 模式")
+                showMessage(MLang.Proxy.Mode.Switched.format(modeName))
+                clashManager.refreshProxyGroups()
             }.onFailure { e ->
                 Timber.e(e, "代理模式切换失败：$mode")
-                showError("切换模式失败: ${e.message}")
+                showError(MLang.Proxy.Mode.SwitchFailed.format(e.message))
             }
         }
     }
 
-    // ========== 操作：测试延迟 ==========
-
     /**
-     * 测试延迟
+     * Begins an asynchronous delay test.
      *
-     * 触发延迟测试（健康检查），测试完成后会自动同步状态
-     * 用于下拉刷新和测试按钮
+     * This method checks the delay of proxies in the specified [groupName] or all groups if no group name is provided.
      *
-     * @param groupName 代理组名称，null 表示测试所有组
+     * If the test is successful, a message is shown in the UI indicating that the request was sent.
+     * If the test fails, an error message is shown in the UI indicating the reason for the failure.
+     *
+     * @param groupName The name of the group to test, or null to test all groups.
      */
     fun testDelay(groupName: String? = null) {
         viewModelScope.launch {
@@ -152,199 +152,130 @@ class ProxyViewModel(
                 clearError()
 
                 if (groupName != null) {
-                    // 测试指定组
-                    showMessage("正在测试代理组: $groupName")
-
-                    val result = proxyFacade.testDelay(groupName)
+                    showMessage(MLang.Proxy.Testing.Group.format(groupName))
+                    val result = clashManager.healthCheck(groupName)
                     if (result.isSuccess) {
-                        showMessage("刷新延迟成功")
+                        showMessage(MLang.Proxy.Testing.RequestSent)
                     } else {
-                        val error = result.exceptionOrNull()?.message ?: "未知错误"
-                        Timber.e("代理组延迟测试失败：$groupName - $error")
-                        showError("测试失败: $error")
+                        showError(MLang.Proxy.Testing.Failed.format(result.exceptionOrNull()?.message))
                     }
                 } else {
-                    // 测试所有组
-                    showMessage("正在测试所有代理组...")
-
-                    val result = proxyFacade.testAllDelay()
-                    if (result.isSuccess) {
-                        showMessage("刷新延迟成功")
-                    } else {
-                        val error = result.exceptionOrNull()?.message ?: "未知错误"
-                        Timber.e("所有代理组延迟测试失败：$error")
-                        showError("测试失败: $error")
+                    showMessage(MLang.Proxy.Testing.All)
+                    val result = clashManager.healthCheckAll()
+                    if (result.isFailure) {
+                        showError(MLang.Proxy.Testing.Failed.format(result.exceptionOrNull()?.message))
                     }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "延迟测试异常")
-                showError("测试失败: ${e.message}")
+                showError(MLang.Proxy.Testing.Failed.format(e.message))
             } finally {
                 setLoading(false)
             }
         }
     }
 
-    // ========== 操作：选择代理节点 ==========
 
     /**
-     * 选择代理节点
+     * Selects a group by the given [index].
+     * Ensures the [index] is within the bounds of [proxyGroups] list.
+     * Updates the current selected group's index accordingly.
      *
-     * 注意：只有 Selector 类型的代理组才能选择节点
-     * 选择后会自动同步状态
-     *
-     * @param groupName 代理组名称
-     * @param proxyName 代理节点名称
-     */
-    fun selectProxy(groupName: String, proxyName: String) {
-        viewModelScope.launch {
-            try {
-                val result = proxyFacade.selectProxy(groupName, proxyName)
-
-                if (result.isSuccess && result.getOrNull() == true) {
-                    showMessage("已切换到: $proxyName")
-                } else {
-                    val error = result.exceptionOrNull()
-                    if (error?.message?.contains("只有 Selector") == true) {
-                        Timber.w("代理组类型不支持选择: $groupName")
-                        showError("该代理组不支持手动选择节点")
-                    } else {
-                        Timber.w("代理节点选择失败: $groupName -> $proxyName")
-                        showError("切换失败")
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "代理节点选择异常: $groupName -> $proxyName")
-                showError("切换失败: ${e.message}")
-            }
-        }
-    }
-
-    // ========== 操作：代理组选择 ==========
-
-    /**
-     * 设置选中的代理组
-     *
-     * @param index 代理组索引
+     * @param index The index of the group to select
      */
     fun setSelectedGroup(index: Int) {
         val groups = proxyGroups.value
-        val newIndex = index.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
-
-        if (newIndex != _selectedGroupIndex.value) {
-            _selectedGroupIndex.value = newIndex
-        }
+        _selectedGroupIndex.value = index.coerceIn(0, groups.size - 1)
     }
 
-    // ========== 操作：显示设置 ==========
 
     /**
-     * 切换显示模式
-     */
-    fun toggleDisplayMode() {
-        val current = displayMode.value
-        val newMode = when (current) {
-            ProxyDisplayMode.SINGLE_DETAILED -> ProxyDisplayMode.SINGLE_SIMPLE
-            ProxyDisplayMode.SINGLE_SIMPLE -> ProxyDisplayMode.DOUBLE_DETAILED
-            ProxyDisplayMode.DOUBLE_DETAILED -> ProxyDisplayMode.DOUBLE_SIMPLE
-            ProxyDisplayMode.DOUBLE_SIMPLE -> ProxyDisplayMode.SINGLE_DETAILED
-        }
-        setDisplayMode(newMode)
-    }
-
-    /**
-     * 设置显示模式
+     * Sets the display mode for the proxy display settings.
      *
-     * @param mode 显示模式
+     * @param mode The display mode to be set. One of ProxyDisplayMode enum values.
      */
     fun setDisplayMode(mode: ProxyDisplayMode) {
         proxyDisplaySettingsStore.displayMode.set(mode)
     }
 
     /**
-     * 切换排序模式
-     */
-    fun toggleSortMode() {
-        val current = sortMode.value
-        val newMode = when (current) {
-            ProxySortMode.DEFAULT -> ProxySortMode.BY_NAME
-            ProxySortMode.BY_NAME -> ProxySortMode.BY_LATENCY
-            ProxySortMode.BY_LATENCY -> ProxySortMode.DEFAULT
-        }
-        setSortMode(newMode)
-    }
-
-    /**
-     * 设置排序模式
      *
-     * @param mode 排序模式
      */
     fun setSortMode(mode: ProxySortMode) {
         proxyDisplaySettingsStore.sortMode.set(mode)
     }
 
-    // ========== 工具方法 ==========
+    /**
+     * Select a proxy node in the specified group.
+     *
+     * @param groupName the name of the group to select from
+     * @param proxyName the name of the proxy node to select
+     */
+    fun selectProxy(groupName: String, proxyName: String) {
+        viewModelScope.launch {
+            try {
+                val success = clashManager.selectProxy(groupName, proxyName)
+                if (success) {
+                    showMessage(MLang.Proxy.Selection.Switched.format(proxyName))
+                } else {
+                    showError(MLang.Proxy.Selection.Failed)
+                }
+            } catch (e: Exception) {
+                showError(MLang.Proxy.Selection.Error.format(e.message))
+            }
+        }
+    }
 
     /**
-     * 排序代理列表
+     * Sorts the given list of proxies based on the specified sort mode.
+     *
+     * @param proxies The list of proxies to sort.
+     * @param sortMode The mode to sort the proxies by. Can be one of [ProxySortMode.DEFAULT], [ProxySortMode.BY_NAME] or [ProxySortMode.BY_LATENCY].
+     * @return The sorted list of proxies.
      */
     private fun sortProxies(proxies: List<Proxy>, sortMode: ProxySortMode): List<Proxy> = when (sortMode) {
         ProxySortMode.DEFAULT -> proxies
         ProxySortMode.BY_NAME -> proxies.sortedBy { it.name }
-        ProxySortMode.BY_LATENCY -> proxies.sortedWith(
-            compareBy { proxy ->
-                when {
-                    proxy.delay < 0 -> Int.MAX_VALUE - 1  // TIMEOUT 排在最后
-                    proxy.delay == 0 -> Int.MAX_VALUE     // N/A 排在最后
-                    else -> proxy.delay
-                }
-            }
-        )
+        ProxySortMode.BY_LATENCY -> proxies.sortedWith(compareBy { if (it.delay > 0) it.delay else Int.MAX_VALUE })
     }
 
     /**
-     * 设置加载状态
-     */
+     * Sets the loading state of the UI.
+     *
+     * This function updates the current UI state to reflect the new loading state.
+     *
+     * @param loading True to set the UI to a loading state, false to clear the loading state.*/
     private fun setLoading(loading: Boolean) {
         _uiState.update { it.copy(isLoading = loading) }
     }
 
     /**
-     * 显示消息
+     * Displays a message in the UI.
+     *
+     * @param message The message to be displayed.
      */
     private fun showMessage(message: String) {
         _uiState.update { it.copy(message = message) }
     }
 
     /**
-     * 显示错误
+     * Displays an error message to the user.
+     *
+     * @param error The error message to be displayed.
      */
     private fun showError(error: String) {
         _uiState.update { it.copy(error = error) }
     }
 
     /**
-     * 清除错误
+     * Clears the error message in the UI state.
      */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
 
     /**
-     * 清除消息
-     */
-    fun clearMessage() {
-        _uiState.update { it.copy(message = null) }
-    }
-
-    // ========== 数据类 ==========
-
-    /**
-     * UI 状态
-     *
-     * @property isLoading 是否正在加载
-     * @property message 消息
-     * @property error 错误消息
+     * Represents the state of the UI, including loading status, messages, and errors.
      */
     data class ProxyUiState(
         val isLoading: Boolean = false,
