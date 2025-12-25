@@ -23,6 +23,7 @@ package com.github.yumelira.yumebox.presentation.webview
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -146,7 +147,9 @@ private fun createWebView(
 
             cacheMode = WebSettings.LOAD_DEFAULT
 
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            }
         }
 
         webViewClient = object : WebViewClient() {
@@ -197,7 +200,9 @@ private fun createWebView(
                 failingUrl: String?,
             ) {
                 @Suppress("DEPRECATION") super.onReceivedError(view, errorCode, description, failingUrl)
-                onPageError(failingUrl ?: "unknown", "Error $errorCode: $description")
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                    onPageError(failingUrl ?: "unknown", "Error $errorCode: $description")
+                }
             }
         }
 

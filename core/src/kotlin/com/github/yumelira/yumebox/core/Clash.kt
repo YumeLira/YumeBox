@@ -27,6 +27,9 @@ object Clash {
         Bridge.nativeReset()
     }
 
+    fun forceGc() {
+        Bridge.nativeForceGc()
+    }
 
     fun suspendCore(suspended: Boolean) {
         Bridge.nativeSuspend(suspended)
@@ -43,7 +46,19 @@ object Clash {
 
     fun queryTrafficTotal(): Traffic {
         return Bridge.nativeQueryTrafficTotal()
+    }
 
+    fun notifyDnsChanged(dns: List<String>) {
+        Bridge.nativeNotifyDnsChanged(dns.toSet().joinToString(separator = ","))
+    }
+
+    fun notifyTimeZoneChanged(name: String, offset: Int) {
+        Bridge.nativeNotifyTimeZoneChanged(name, offset)
+    }
+
+    fun notifyInstalledAppsChanged(uids: List<Pair<Int, String>>) {
+        val uidList = uids.joinToString(separator = ",") { "${it.first}:${it.second}" }
+        Bridge.nativeNotifyInstalledAppChanged(uidList)
     }
 
     fun startTun(

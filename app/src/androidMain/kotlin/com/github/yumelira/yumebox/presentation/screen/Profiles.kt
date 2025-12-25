@@ -70,6 +70,7 @@ import top.yukonga.miuix.kmp.icon.icons.useful.New
 import top.yukonga.miuix.kmp.icon.icons.useful.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
@@ -907,8 +908,25 @@ private fun AddProfileSheet(
                                                         show.value = false
                                                     } else {
                                                         scope.launch {
-                                                            isDownloading = false
-                                                           profilesViewModel.clearDownloadProgress()
+                                                            val profile = Profile(
+                                                                id = UUID.randomUUID().toString(),
+                                                                name = name.ifBlank { "新配置" },
+                                                                config = "",
+                                                                remoteUrl = url,
+                                                                type = ProfileType.URL,
+                                                                createdAt = System.currentTimeMillis(),
+                                                                updatedAt = System.currentTimeMillis()
+                                                            )
+
+                                                            val downloadedProfile =
+                                                                profilesViewModel.downloadProfile(
+                                                                    profile, saveToDb = true
+                                                                )
+                                                            if (downloadedProfile != null && downloadedProfile.config.isNotBlank()) {
+                                                            } else {
+                                                                isDownloading = false
+                                                                profilesViewModel.clearDownloadProgress()
+                                                            }
                                                         }
                                                     }
                                                 } else {

@@ -22,8 +22,8 @@ package com.github.yumelira.yumebox.presentation.webview
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
@@ -48,7 +48,8 @@ fun WebViewScreen(
 
     ProvideAndroidPlatformTheme {
         YumeTheme(
-            themeMode = themeMode, colorTheme = colorTheme
+            themeMode = themeMode,
+            colorTheme = colorTheme
         ) {
             LocalWebView(initialUrl = initialUrl)
         }

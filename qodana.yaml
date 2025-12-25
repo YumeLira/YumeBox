@@ -1,26 +1,10 @@
 ####################################################################################################################
 # WARNING: Do not store sensitive information in this file, as its contents will be included in the Qodana report. #
 ####################################################################################################################
+
 version: "1.0"
 linter: jetbrains/qodana-jvm-android:2025.2
 profile:
   name: qodana.recommended
 include:
   - name: CheckDependencyLicenses
-exclude:
-  - name: All
-    paths:
-      - app\src\androidMain\kotlin\com\github\yumelira\yumebox\presentation\icon\yume
-      - app\src\androidMain\res\drawable
-      - app\src\androidMain\res
-      - core
-      - build-logic
-      - app/src/androidMain/res
-      - app\src\androidMain\kotlin\com\github\yumelira\yumebox\presentation\icon
-  - name: AndroidLintVectorRaster
-  - name: AndroidLintVectorPath
-  - name: AndroidLintUseKtx
-  - name: AndroidLintIconLocation
-  - name: AndroidLintMonochromeLauncherIcon
-    paths:
-      - .idea\modules\app

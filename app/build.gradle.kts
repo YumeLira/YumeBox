@@ -174,8 +174,6 @@ android {
         }
     }
 
-    val releaseSigningConfig = signingConfigs.findByName("release")
-
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -189,7 +187,7 @@ android {
             isShrinkResources = true
             isDebuggable = false
             isJniDebuggable = false
-            signingConfig = releaseSigningConfig
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

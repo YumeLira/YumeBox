@@ -65,7 +65,7 @@ class ProxyConnectionService(
         }
     }
 
-    fun startDirect(
+    suspend fun startDirect(
         profileId: String,
         mode: ProxyMode
     ): Result<Unit> {
@@ -116,7 +116,7 @@ class ProxyConnectionService(
         }
     }
 
-    private fun startProxyInternal(profileId: String, proxyMode: ProxyMode) {
+    private suspend fun startProxyInternal(profileId: String, proxyMode: ProxyMode) {
         val result = startDirect(
             profileId = profileId,
             mode = proxyMode

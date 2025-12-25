@@ -1,6 +1,6 @@
 package com.github.yumelira.yumebox.core.bridge
 
-import android.net.Uri.parse
+import android.net.Uri
 import androidx.annotation.Keep
 import com.github.yumelira.yumebox.core.Global
 import java.io.FileNotFoundException
@@ -9,7 +9,7 @@ import java.io.FileNotFoundException
 object Content {
     @JvmStatic
     fun open(url: String): Int {
-        val uri = parse(url)
+        val uri = Uri.parse(url)
 
         if (uri.scheme != "content") {
             throw UnsupportedOperationException("Unsupported scheme ${uri.scheme}")

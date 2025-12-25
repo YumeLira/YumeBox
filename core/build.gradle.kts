@@ -69,18 +69,18 @@ abstract class GitCommandValueSource : ValueSource<String, GitCommandValueSource
     }
 }
 
-val mimeDir: Directory? = layout.projectDirectory.dir("src/foss/golang/mihomo")
+val mihomoDir = layout.projectDirectory.dir("src/foss/golang/mihomo")
 
 val gitCommitProvider: Provider<String> = providers.of(GitCommandValueSource::class) {
     parameters {
-        workingDir.set(mimeDir)
+        workingDir.set(mihomoDir)
         args.set(listOf("rev-parse", "--short", "HEAD"))
     }
 }
 
 val gitBranchProvider: Provider<String> = providers.of(GitCommandValueSource::class) {
     parameters {
-        workingDir.set(mimeDir)
+        workingDir.set(mihomoDir)
         args.set(listOf("branch", "--show-current"))
     }
 }

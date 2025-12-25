@@ -196,7 +196,7 @@ fun AppSettingsScreen(
                 Card {
                     BasicComponent(
                         title = "自定义 User-Agent",
-                        summary = customUserAgent.ifEmpty { "未设置，使用默认值" },
+                        summary = if (customUserAgent.isEmpty()) "未设置，使用默认值" else customUserAgent,
                         onClick = {
                             customUserAgentTextFieldState.value = TextFieldValue(customUserAgent)
                             showEditCustomUserAgentDialog.value = true
