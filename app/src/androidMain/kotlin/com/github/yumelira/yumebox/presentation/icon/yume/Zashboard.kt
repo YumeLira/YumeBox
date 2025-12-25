@@ -1,23 +1,3 @@
-/*
- * This file is part of YumeBox.
- *
- * YumeBox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- *
- * Copyright (c)  YumeLira 2025.
- *
- */
-
 package com.github.yumelira.yumebox.presentation.icon.yume
 
 import androidx.compose.ui.graphics.Color
@@ -31,20 +11,16 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.icon.Yume
 
-val Yume.Zashboard: ImageVector
+public val Yume.Zashboard: ImageVector
     get() {
         if (_zashboard != null) {
             return _zashboard!!
         }
-        _zashboard = Builder(
-            name = "Zashboard", defaultWidth = 24.0.dp, defaultHeight = 24.0.dp,
-            viewportWidth = 24.0f, viewportHeight = 24.0f
-        ).apply {
-            path(
-                fill = SolidColor(Color(0xFF000000)), stroke = SolidColor(Color(0xFF000000)),
-                strokeLineWidth = 0.5f, strokeLineCap = Round, strokeLineJoin =
-                    StrokeJoin.Round, strokeLineMiter = 4.0f, pathFillType = EvenOdd
-            ) {
+        _zashboard = Builder(name = "Zashboard", defaultWidth = 24.0.dp, defaultHeight = 24.0.dp,
+                viewportWidth = 24.0f, viewportHeight = 24.0f).apply {
+            path(fill = SolidColor(Color(0xFF000000)), stroke = SolidColor(Color(0xFF000000)),
+                    strokeLineWidth = 0.5f, strokeLineCap = Round, strokeLineJoin =
+                    StrokeJoin.Companion.Round, strokeLineMiter = 4.0f, pathFillType = EvenOdd) {
                 moveTo(11.622f, 1.602f)
                 arcToRelative(0.75f, 0.75f, 0.0f, false, true, 0.756f, 0.0f)
                 lineToRelative(2.25f, 1.313f)
@@ -127,7 +103,7 @@ val Yume.Zashboard: ImageVector
                 close()
             }
         }
-            .build()
+        .build()
         return _zashboard!!
     }
 

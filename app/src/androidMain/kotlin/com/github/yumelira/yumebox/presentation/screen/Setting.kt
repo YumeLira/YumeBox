@@ -1,36 +1,23 @@
-/*
- * This file is part of YumeBox.
- *
- * YumeBox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- *
- * Copyright (c)  YumeLira 2025.
- *
- */
-
 package com.github.yumelira.yumebox.presentation.screen
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.BuildConfig
 import com.github.yumelira.yumebox.common.util.DeviceUtil.is32BitDevice
 import com.github.yumelira.yumebox.common.util.toast
@@ -47,11 +34,58 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.icons.other.GitHub
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+@Composable
+private fun CircularIcon(
+    imageVector: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    iconSize: Float = 1f,
+) {
+    Box(
+        modifier = modifier
+            .padding(start = 4.dp, end = 16.dp)
+            .requiredSize(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(modifier = Modifier
+            .layout { measurable, _ ->
+                val containerSize = 32.dp.roundToPx()
+                val parentSize = 24.dp.roundToPx()
+                val offset = (containerSize - parentSize) / 2
+
+                val placeable = measurable.measure(
+                    androidx.compose.ui.unit.Constraints.fixed(containerSize, containerSize)
+                )
+                layout(parentSize, parentSize) {
+                    placeable.place(-offset, -offset)
+                }
+            }
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(MiuixTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = MiuixTheme.colorScheme.background,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer(
+                        scaleX = iconSize,
+                        scaleY = iconSize,
+                        transformOrigin = TransformOrigin.Center,
+                    )
+            )
+        }
+    }
+}
 
 @SuppressLint("LocalContextResourcesRead")
 @Composable
@@ -94,10 +128,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         title = MLang.Settings.UiSettings.App,
                         onClick = { navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true } },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.`Settings-2`,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.`Settings-2`, contentDescription = null
                             )
                         },
                     )
@@ -105,10 +137,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         title = MLang.Settings.UiSettings.Network,
                         onClick = { navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true } },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.`Wifi-cog`,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.`Wifi-cog`, contentDescription = null
                             )
                         },
                     )
@@ -116,10 +146,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         title = MLang.Settings.UiSettings.Override,
                         onClick = { navigator.navigate(OverrideScreenDestination) { launchSingleTop = true } },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.`Redo-dot`,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.`Git-merge`, contentDescription = null
                             )
                         },
                     )
@@ -131,10 +159,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                             }
                         },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.Meta,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.Meta, contentDescription = null
                             )
                         },
                     )
@@ -148,17 +174,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         onClick = { viewModel.onSubStoreCardClicked(isAllowed = SubStoreService.isRunning) },
                         enabled = !is32BitDevice() && SubStoreService.isRunning,
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.Substore,
-                                tint = MiuixTheme.colorScheme.onBackground,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .graphicsLayer(
-                                        scaleX = 1.3f,
-                                        scaleY = 1.3f,
-                                        transformOrigin = TransformOrigin.Center,
-                                    ),
+                            CircularIcon(
+                                imageVector = Yume.Atom, contentDescription = null
                             )
                         },
                     )
@@ -168,11 +185,8 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                             navigator.navigate(FeatureScreenDestination) { launchSingleTop = true }
                         },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.Rocket,
-                                tint = MiuixTheme.colorScheme.onBackground,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.Rocket, contentDescription = null
                             )
                         },
                     )
@@ -184,26 +198,11 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
 
                 Card {
                     SuperArrow(
-                        title = MLang.Settings.More.TrafficStatistics,
-                        onClick = { navigator.navigate(TrafficStatisticsScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
-                            Icon(
-                                imageVector = Yume.`Arrow-down-up`,
-                                tint = MiuixTheme.colorScheme.onBackground,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
-                            )
-                        },
-                    )
-                    SuperArrow(
                         title = MLang.Settings.More.Logs,
                         onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
                         leftAction = {
-                            Icon(
-                                imageVector = Yume.`Scroll-text`,
-                                tint = MiuixTheme.colorScheme.onBackground,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = Yume.`Chart-column`, contentDescription = null
                             )
                         },
                     )
@@ -211,23 +210,41 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         title = MLang.Settings.More.About,
                         onClick = { navigator.navigate(AboutScreenDestination) { launchSingleTop = true } },
                         leftAction = {
-                            Icon(
-                                imageVector = MiuixIcons.Other.GitHub,
-                                tint = MiuixTheme.colorScheme.onBackground,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 16.dp),
+                            CircularIcon(
+                                imageVector = MiuixIcons.Other.GitHub, contentDescription = null
                             )
                         },
                         rightActions = {
-                            Text(
-                                versionInfo,
-                                modifier = Modifier.padding(end = 16.dp),
-                                style = MiuixTheme.textStyles.body2,
-                            )
+                            VersionBadge(versionInfo)
                         },
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VersionBadge(
+    versionInfo: String?
+) {
+    Surface(
+        color = MiuixTheme.colorScheme.primary.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(50),
+        modifier = Modifier
+            .height(22.dp)
+            .padding(end = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = versionInfo ?: "Unknown", style = MiuixTheme.textStyles.footnote1.copy(
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold
+                ), color = MiuixTheme.colorScheme.primary
+            )
         }
     }
 }
