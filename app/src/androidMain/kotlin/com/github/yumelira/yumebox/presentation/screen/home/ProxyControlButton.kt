@@ -54,7 +54,6 @@ fun ProxyControlButton(
         label = "CornerRadius"
     )
 
-    // ⭐ 主题感知颜色
     MiuixTheme.colorScheme.surface
     MiuixTheme.colorScheme.onSurface
 
