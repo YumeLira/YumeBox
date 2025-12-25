@@ -25,6 +25,7 @@ object RouteConfig {
 
     const val TUN_GATEWAY6 = "fdfe:dcba:9876::1"
     const val TUN_SUBNET_PREFIX6 = 126
+    const val TUN_PORTAL6 = "fdfe:dcba:9876::2"
     const val TUN_DNS6 = "fdfe:dcba:9876::2"
 
     val BYPASS_PRIVATE_ROUTES = listOf(
@@ -39,7 +40,10 @@ object RouteConfig {
     )
 
 
-    val BYPASS_PRIVATE_ROUTES_V6 = listOf("2000::/3")
+    val BYPASS_PRIVATE_ROUTES_V6 = listOf(
+        "::/1", "8000::/2", "c000::/3", "e000::/4",
+        "f000::/5", "f800::/6", "fe00::/9", "fec0::/10"
+    )
 
 
     val HTTP_PROXY_LOCAL_LIST = listOf(

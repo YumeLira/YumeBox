@@ -2,6 +2,7 @@ package com.github.yumelira.yumebox.clash.manager
 
 import android.content.Context
 import com.github.yumelira.yumebox.clash.config.Configuration
+import com.github.yumelira.yumebox.clash.config.RouteConfig
 import com.github.yumelira.yumebox.clash.core.ClashCore
 import com.github.yumelira.yumebox.clash.exception.toConfigImportException
 import com.github.yumelira.yumebox.common.util.SystemProxyHelper
@@ -160,6 +161,7 @@ class ClashManager(
     suspend fun startTun(
         fd: Int,
         config: Configuration.TunConfig = Configuration.TunConfig(),
+        enableIPv6: Boolean = false,
         markSocket: (Int) -> Boolean,
         querySocketUid: (protocol: Int, source: InetSocketAddress, target: InetSocketAddress) -> Int = { _, _, _ -> -1 }
     ): Result<Unit> = withContext(Dispatchers.IO) {
@@ -169,12 +171,42 @@ class ClashManager(
 
             _proxyState.value = ProxyState.Connecting(RunningMode.Tun)
 
+            val gateway = buildString {
+                append("${config.gateway}/30")
+                if (enableIPv6) {
+                    append(",${RouteConfig.TUN_GATEWAY6}/${RouteConfig.TUN_SUBNET_PREFIX6}")
+                }
+            }
+
+            val portal = buildString {
+                append(config.portal)
+                if (enableIPv6) {
+                    append(",${RouteConfig.TUN_PORTAL6}")
+                }
+            }
+
+            val dns = buildString {
+                if (config.dnsHijacking) {
+                    if (enableIPv6) {
+                        append("0.0.0.0")
+                    } else {
+                        // IPv6 关闭时，不劫持 DNS，让系统 DNS 处理（避免 AAAA 查询问题）
+                        append(config.dns)
+                    }
+                } else {
+                    append(config.dns)
+                    if (enableIPv6) {
+                        append(",${RouteConfig.TUN_DNS6}")
+                    }
+                }
+            }
+
             ClashCore.startTun(
                 fd = fd,
                 stack = config.stack,
-                gateway = "${config.gateway}/30",
-                portal = "${config.portal}/30",
-                dns = config.dns,
+                gateway = gateway,
+                portal = portal,
+                dns = dns,
                 markSocket = markSocket,
                 querySocketUid = querySocketUid
             )

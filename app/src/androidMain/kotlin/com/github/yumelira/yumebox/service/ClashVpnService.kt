@@ -27,7 +27,7 @@ class ClashVpnService : VpnService() {
     companion object {
         const val ACTION_START = "START"
         const val ACTION_STOP = "STOP"
-        private const val EXTRA_PROFILE_ID = "profile_id"
+        const val EXTRA_PROFILE_ID = "profile_id"
 
         private val random = SecureRandom()
 
@@ -128,16 +128,15 @@ class ClashVpnService : VpnService() {
                 vpnInterface = null
 
                 val config = Configuration.TunConfig()
-                val tunDns = if (networkSettings.dnsHijack.value) config.dns else "0.0.0.0"
                 val tunConfig = config.copy(
                     stack = networkSettings.tunStack.value.name.lowercase(),
-                    dns = tunDns,
                     dnsHijacking = networkSettings.dnsHijack.value
                 )
 
                 clashManager.startTun(
                     fd = rawFd,
                     config = tunConfig,
+                    enableIPv6 = networkSettings.enableIPv6.value,
                     markSocket = { protect(it) }
                 )
 

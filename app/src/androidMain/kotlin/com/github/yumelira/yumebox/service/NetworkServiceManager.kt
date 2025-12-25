@@ -11,6 +11,7 @@ import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.data.store.MMKVProvider
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
+import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -78,8 +79,18 @@ class NetworkServiceManager(
                     return@launch
                 }
 
+                val profileId = TrafficStatisticsStore(
+                    MMKVProvider().getMMKV("traffic_statistics")
+                ).getLastProfileId()
+
+                if (profileId == null) {
+                    _serviceState.value = ServiceState.Stopped
+                    return@launch
+                }
+
                 val intent = Intent(context, ClashVpnService::class.java).apply {
                     action = ClashVpnService.ACTION_START
+                    putExtra(ClashVpnService.EXTRA_PROFILE_ID, profileId)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
 
