@@ -27,12 +27,11 @@ plugins {
     id("yumebox.base.android")
 }
 
+val extensionAbiList = gropify.abi.extension.list.split(",").map { it.trim() }
+
 dependencies {
     implementation("com.caoccao.javet:javet-node-android:5.0.2")
 }
-
-val extensionJvmTarget = gropify.project.jvm.toString()
-val extensionAbiList = gropify.abi.extension.list.split(",").map { it.trim() }
 
 android {
     namespace = gropify.project.namespace.extension
@@ -46,9 +45,6 @@ android {
         versionName = gropify.project.version.name
     }
 
-    tasks.withType<PackageAndroidArtifact> {
-        doFirst { appMetadata.asFile.orNull?.writeText("") }
-    }
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -82,4 +78,8 @@ android {
             isUniversalApk = false
         }
     }
+}
+
+tasks.withType<PackageAndroidArtifact>().configureEach {
+    doFirst { appMetadata.asFile.orNull?.writeText("") }
 }

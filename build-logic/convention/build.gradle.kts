@@ -28,6 +28,11 @@ val jvmVersionInt = providers.gradleProperty("project.jvm").orNull?.toIntOrNull(
 val buildLogicGroup = providers.gradleProperty("project.namespace.buildlogic").orNull
     ?: "com.github.yumelira.yumebox.buildlogic"
 
+val agpVersion = "9.0.0"
+val kotlinVersion = "2.3.0"
+val composePluginVersion = "1.9.3"
+val kspVersion = "2.3.3"
+
 group = buildLogicGroup
 
 repositories {
@@ -43,10 +48,10 @@ kotlin {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:8.12.3")
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.21")
-    compileOnly("org.jetbrains.compose:compose-gradle-plugin:1.9.3")
-    compileOnly("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.3.3")
+    compileOnly("com.android.tools.build:gradle:$agpVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    compileOnly("org.jetbrains.compose:compose-gradle-plugin:$composePluginVersion")
+    compileOnly("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:$kspVersion")
 }
 
 gradlePlugin {
@@ -62,6 +67,10 @@ gradlePlugin {
         register("golangTasks") {
             id = "yumebox.golang.tasks"
             implementationClass = "plugins.GolangTasksPlugin"
+        }
+        register("geoAssets") {
+            id = "yumebox.geo.assets"
+            implementationClass = "plugins.GeoAssetsPlugin"
         }
     }
 }

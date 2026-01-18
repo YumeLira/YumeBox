@@ -4,7 +4,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Properties
 
 plugins {
     id("com.android.library")
@@ -21,16 +22,16 @@ dependencies {
     implementation("androidx.annotation:annotation-jvm:1.9.1")
 }
 
+val golangSourceDir = layout.projectDirectory.dir("src/golang/native")
+val golangOutputDir = layout.buildDirectory.dir("golang")
+val golangAbiFolders = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
 val sixteenKbPageLinkerFlags = listOf("-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384")
 val cmakePageLinkerArgument = "-DYUMEBOX_LINKER_FLAGS:STRING=${sixteenKbPageLinkerFlags.joinToString(" ")}"
-val golangSourceDir = file("src/golang/native")
-val golangOutputDir = layout.buildDirectory.dir("golang")
 
 val pruneStaleGolangOutputs = tasks.register("pruneStaleGolangOutputs") {
     group = "golang"
     description = "Remove stale golang outputs"
     val outputRoot = golangOutputDir.get().asFile
-    val golangAbiFolders = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
 
     inputs.dir(outputRoot)
         .skipWhenEmpty()
@@ -89,7 +90,7 @@ val kernelFile = rootProject.file("kernel.properties")
 if (kernelFile.exists()) {
     kernelFile.inputStream().use { kernelProps.load(it) }
 }
-val mihomoSuffix = kernelProps.getProperty("external.mihomo.suffix", "")!!
+val mihomoSuffix = kernelProps.getProperty("external.mihomo.suffix", "")
 val includeTimestamp = kernelProps.getProperty("external.mihomo.includeTimestamp", "false").toBoolean()
 val buildTimestampProvider: Provider<String> = providers.provider {
     if (includeTimestamp) SimpleDateFormat("yyMMdd").format(Date()) else ""
@@ -148,7 +149,7 @@ android {
         externalNativeBuild {
             cmake {
                 arguments(
-                    "-DGO_SOURCE:STRING=${golangSourceDir.absolutePath}",
+                    "-DGO_SOURCE:STRING=${golangSourceDir.asFile.absolutePath}",
                     "-DGO_OUTPUT:STRING=${golangOutputDir.get().asFile.absolutePath}",
                     cmakePageLinkerArgument,
                     "-DGIT_COMMIT_HASH:STRING=${gitCommitProvider.get()}",
