@@ -1,6 +1,5 @@
 package plugins
 
-import com.android.build.gradle.LibraryExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -11,13 +10,36 @@ import java.io.File
 
 class GolangTasksPlugin : Plugin<Project> {
     override fun apply(target: Project) {
+        target.pluginManager.withPlugin("com.android.library") {
+            target.afterEvaluate {
+                configureTasks(target)
+            }
+        }
+    }
+
+    private fun configureTasks(target: Project) {
         val golang = target.extensions.findByType(GolangExtension::class.java) ?: return
 
-        val androidExtension = target.extensions.findByType(LibraryExtension::class.java)
-            ?: throw GradleException("Android library plugin not applied to ${target.path}")
-        val ndkDir = androidExtension.ndkDirectory
+        // Get Android SDK directory
+        val localProperties = target.rootProject.file("local.properties")
+        val sdkDir = if (localProperties.exists()) {
+            val props = java.util.Properties()
+            props.load(localProperties.inputStream())
+            target.file(
+                props.getProperty("sdk.dir") ?: System.getenv("ANDROID_HOME")
+                ?: throw GradleException("Android SDK not found")
+            )
+        } else {
+            target.file(
+                System.getenv("ANDROID_HOME") ?: throw GradleException("Android SDK not found")
+            )
+        }
+
+        val ndkDir = sdkDir.resolve("ndk").listFiles()?.maxByOrNull { it.name }
+            ?: throw GradleException("NDK is not installed. Please install NDK via Android SDK Manager.")
+
         if (!ndkDir.exists()) {
-            throw GradleException("NDK is not installed at '${ndkDir.absolutePath}'. Please install NDK via Android SDK Manager or set ndk.dir in local.properties.")
+            throw GradleException("NDK is not installed at '${ndkDir.absolutePath}'. Please install NDK via Android SDK Manager.")
         }
         val ndkPath = ndkDir.absolutePath
 
@@ -41,10 +63,12 @@ class GolangTasksPlugin : Plugin<Project> {
                 workingDir = sourceDir
 
                 doFirst {
-                    val goArch = golang.architectures.get()[abi] ?: throw GradleException("Unsupported ABI: $abi")
+                    val goArch = golang.architectures.get()[abi]
+                        ?: throw GradleException("Unsupported ABI: $abi")
                     val clangPath = GolangUtils.getClangPath(ndkPath, abi)
 
-                    val sixteenKbPageLinkerFlags = listOf("-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384")
+                    val sixteenKbPageLinkerFlags =
+                        listOf("-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384")
                     val linkerFlags = sixteenKbPageLinkerFlags.joinToString(" ")
 
                     environment("CGO_ENABLED", "1")
@@ -77,7 +101,10 @@ class GolangTasksPlugin : Plugin<Project> {
                 inputs.property("abi", abi)
                 inputs.property("ndkPath", ndkPath)
                 inputs.property("buildTags", golang.buildTags.get())
-                inputs.property("buildFlags", golang.buildFlags.orNull ?: GolangExtension.DEFAULT_BUILD_FLAGS)
+                inputs.property(
+                    "buildFlags",
+                    golang.buildFlags.orNull ?: GolangExtension.DEFAULT_BUILD_FLAGS
+                )
                 outputs.file(outputFile)
                 outputs.file(target.file(outputDir).resolve("libclash.h"))
             }

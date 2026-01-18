@@ -8,7 +8,6 @@ import java.util.*
 
 plugins {
     id("com.android.library")
-    kotlin("android")
     kotlin("plugin.serialization")
     id("yumebox.base.android")
     id("yumebox.golang.config")
