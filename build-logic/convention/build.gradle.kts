@@ -24,6 +24,8 @@ plugins {
     `kotlin-dsl`
 }
 
+data class PluginSpec(val name: String, val id: String, val implementationClass: String)
+
 val jvmVersionInt = providers.gradleProperty("project.jvm").orNull?.toIntOrNull() ?: 17
 val buildLogicGroup = providers.gradleProperty("project.namespace.buildlogic").orNull
     ?: "com.github.yumelira.yumebox.buildlogic"
@@ -56,21 +58,17 @@ dependencies {
 
 gradlePlugin {
     plugins {
-        register("baseAndroid") {
-            id = "yumebox.base.android"
-            implementationClass = "plugins.BaseAndroidPlugin"
-        }
-        register("golangConfig") {
-            id = "yumebox.golang.config"
-            implementationClass = "plugins.GolangConfigPlugin"
-        }
-        register("golangTasks") {
-            id = "yumebox.golang.tasks"
-            implementationClass = "plugins.GolangTasksPlugin"
-        }
-        register("geoAssets") {
-            id = "yumebox.geo.assets"
-            implementationClass = "plugins.GeoAssetsPlugin"
+        val pluginSpecs = listOf(
+            PluginSpec("baseAndroid", "yumebox.base.android", "plugins.BaseAndroidPlugin"),
+            PluginSpec("golangConfig", "yumebox.golang.config", "plugins.GolangConfigPlugin"),
+            PluginSpec("golangTasks", "yumebox.golang.tasks", "plugins.GolangTasksPlugin"),
+            PluginSpec("geoAssets", "yumebox.geo.assets", "plugins.GeoAssetsPlugin"),
+        )
+        pluginSpecs.forEach { spec ->
+            register(spec.name) {
+                id = spec.id
+                implementationClass = spec.implementationClass
+            }
         }
     }
 }

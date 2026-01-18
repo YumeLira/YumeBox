@@ -1,26 +1,40 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.PackageAndroidArtifact
+import com.android.build.api.dsl.ApplicationExtension
 
-/*
- * This file is part of YumeBox.
- *
- * YumeBox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- *
- * Copyright (c) YumeYuka & YumeLira 2025.
- *
- */
+fun ApplicationExtension.configureExtensionBuildTypes() {
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            vcsInfo.include = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+}
+
+fun ApplicationExtension.configureExtensionPackaging() {
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+        resources { excludes += listOf("META-INF/**") }
+    }
+}
+
+fun ApplicationExtension.configureExtensionSplits(abiList: List<String>) {
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            //noinspection ChromeOsAbiSupport
+            include(*abiList.toTypedArray())
+            isUniversalApk = false
+        }
+    }
+}
 
 plugins {
     id("com.android.application")
@@ -45,39 +59,13 @@ android {
         versionName = gropify.project.version.name
     }
 
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-        resources {
-            excludes += listOf("META-INF/**")
-        }
-    }
+    configureExtensionPackaging()
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
     }
-    buildTypes {
-        debug {
-            isMinifyEnabled = false
-        }
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            vcsInfo.include = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
-
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            //noinspection ChromeOsAbiSupport
-            include(*extensionAbiList.toTypedArray())
-            isUniversalApk = false
-        }
-    }
+    configureExtensionBuildTypes()
+    configureExtensionSplits(extensionAbiList)
 }
 
 tasks.withType<PackageAndroidArtifact>().configureEach {
