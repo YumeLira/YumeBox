@@ -1,9 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.api.dsl.ApplicationExtension
-import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import java.util.Properties
 
 data class AndroidMainPaths(val root: String) {
@@ -21,18 +19,10 @@ fun DependencyHandler.addAll(configuration: String, dependencies: Iterable<Any>)
 fun ApplicationExtension.configureAndroidMain(paths: AndroidMainPaths) {
     sourceSets {
         named("main") {
-            java.srcDirs(paths.kotlin)
-            res.setSrcDirs(listOf(paths.res))
-            assets.setSrcDirs(listOf(paths.assets))
+            kotlin.srcDirs(paths.kotlin)
+            res.srcDirs(paths.res)
+            assets.srcDirs(paths.assets)
             manifest.srcFile(paths.manifest)
-        }
-    }
-}
-
-fun Project.configureKotlinSources(paths: AndroidMainPaths) {
-    extensions.configure(KotlinAndroidProjectExtension::class.java) {
-        sourceSets.named("main") {
-            kotlin.srcDir(paths.kotlin)
         }
     }
 }
@@ -120,8 +110,6 @@ plugins {
 }
 
 val androidMainPaths = AndroidMainPaths("src/androidMain")
-
-configureKotlinSources(androidMainPaths)
 
 fytxt {
     langSrcs = mapOf("lang" to layout.projectDirectory.dir("../lang"))
