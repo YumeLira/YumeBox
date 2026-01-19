@@ -185,13 +185,19 @@ fun MainScreen(navigator: DestinationsNavigator) {
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
 
-    val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope) {
+    val pagerSnapAnimationSpec = remember {
+        spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    }
+
+    val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope, pagerSnapAnimationSpec) {
         { page ->
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = page, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
+                    page = page,
+                    animationSpec = pagerSnapAnimationSpec
                 )
             }
         }
@@ -201,9 +207,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
         if (pagerState.currentPage != 0) {
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = 0, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
+                    page = 0,
+                    animationSpec = pagerSnapAnimationSpec
                 )
             }
         } else {
@@ -236,15 +241,14 @@ fun MainScreen(navigator: DestinationsNavigator) {
                     .hazeSource(state = hazeState)
                     .nestedScroll(bottomBarScrollBehavior.nestedScrollConnection),
                 state = pagerState,
-                beyondViewportPageCount = 1,
+                beyondViewportPageCount = 2,
                 userScrollEnabled = true,
                 pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
                     state = pagerState, orientation = androidx.compose.foundation.gestures.Orientation.Horizontal
                 ),
                 flingBehavior = PagerDefaults.flingBehavior(
-                    state = pagerState, snapAnimationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
+                    state = pagerState,
+                    snapAnimationSpec = pagerSnapAnimationSpec
                 ),
             ) { page ->
                 when (page) {
