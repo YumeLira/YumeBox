@@ -1,6 +1,6 @@
 package plugins
 
-import com.android.build.gradle.LibraryExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -11,18 +11,39 @@ import java.io.File
 
 class GolangTasksPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        val golang = target.extensions.findByType(GolangExtension::class.java) ?: return
+        target.afterEvaluate {
+            val androidExtension = try {
+                target.extensions.getByType(LibraryExtension::class.java)
+            } catch (e: Exception) {
+                target.logger.warn("[GolangTasksPlugin] Android library extension not found in ${target.path}, skipping")
+                return@afterEvaluate
+            }
+            
+            val golang = target.extensions.findByType(GolangExtension::class.java) ?: return@afterEvaluate
 
-        val androidExtension = target.extensions.findByType(LibraryExtension::class.java)
-            ?: throw GradleException("Android library plugin not applied to ${target.path}")
-        val ndkDir = androidExtension.ndkDirectory
-        if (!ndkDir.exists()) {
-            throw GradleException("NDK is not installed at '${ndkDir.absolutePath}'. Please install NDK via Android SDK Manager or set ndk.dir in local.properties.")
-        }
-        val ndkPath = ndkDir.absolutePath
+            // Get NDK directory from local.properties or environment
+            val localProps = java.util.Properties()
+            val localPropsFile = target.rootProject.file("local.properties")
+            if (localPropsFile.exists()) {
+                localPropsFile.inputStream().use { localProps.load(it) }
+            }
+            
+            val ndkDir = if (localProps.containsKey("ndk.dir")) {
+                java.io.File(localProps.getProperty("ndk.dir"))
+            } else {
+                val sdkDir = localProps.getProperty("sdk.dir") ?: System.getenv("ANDROID_HOME") 
+                    ?: throw GradleException("Android SDK not found. Please set sdk.dir in local.properties or ANDROID_HOME environment variable.")
+                val ndkVersion = androidExtension.ndkVersion ?: throw GradleException("NDK version not specified in build.gradle")
+                java.io.File(sdkDir).resolve("ndk").resolve(ndkVersion)
+            }
+            
+            if (!ndkDir.exists()) {
+                throw GradleException("NDK is not installed at '${ndkDir.absolutePath}'. Please install NDK ${androidExtension.ndkVersion} via Android SDK Manager.")
+            }
+            val ndkPath = ndkDir.absolutePath
 
-        val abis = golang.architectures.get().keys
-        abis.forEach { abi ->
+            val abis = golang.architectures.get().keys
+            abis.forEach { abi ->
             val abiNormalized = abi.replace("-", "")
             val buildTask = target.tasks.register<Exec>("buildGolang${abiNormalized}") {
                 group = "golang"
@@ -96,18 +117,19 @@ class GolangTasksPlugin : Plugin<Project> {
                     sourceFile.copyTo(targetFile, overwrite = true)
                 }
             }
-        }
-        target.tasks.register<Delete>("cleanGolangLibs") {
-            group = "golang"
-            description = "Clean Go libraries"
-            delete(target.fileTree("src/jniLibs") {
-                include("**/libclash.so")
-            })
-        }
-        target.tasks.register<Delete>("cleanGolangCache") {
-            group = "golang"
-            description = "Clean Go build cache"
-            delete(golang.outputDir)
+            }
+            target.tasks.register<Delete>("cleanGolangLibs") {
+                group = "golang"
+                description = "Clean Go libraries"
+                delete(target.fileTree("src/jniLibs") {
+                    include("**/libclash.so")
+                })
+            }
+            target.tasks.register<Delete>("cleanGolangCache") {
+                group = "golang"
+                description = "Clean Go build cache"
+                delete(golang.outputDir)
+            }
         }
     }
 }

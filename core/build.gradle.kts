@@ -8,7 +8,6 @@ import java.util.*
 
 plugins {
     id("com.android.library")
-    kotlin("android")
     kotlin("plugin.serialization")
     id("yumebox.base.android")
     id("yumebox.golang.config")
@@ -163,7 +162,7 @@ android {
 
     sourceSets {
         named("main") {
-            java.srcDirs("src/kotlin")
+            kotlin.srcDirs("src/kotlin")
             jniLibs.srcDirs("src/jniLibs")
         }
     }
