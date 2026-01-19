@@ -37,9 +37,9 @@ class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = ext
     val showDivider by boolFlow(true)
     val bottomBarAutoHide by boolFlow(true)
 
-    val oneWord by strFlow("So 愛のために泣けるのは，君がそこにいるから")
+    val oneWord by strFlow("古が遺す呪われた種が、もう一度僕らを苦しめても")
 
-    val oneWordAuthor by strFlow("THERE IS A REASON")
+    val oneWordAuthor by strFlow("イノチの灯し方")
 
     val customUserAgent by strFlow("")
 }

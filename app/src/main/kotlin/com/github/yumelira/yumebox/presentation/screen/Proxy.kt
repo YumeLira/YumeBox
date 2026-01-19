@@ -186,11 +186,10 @@ private fun PagerGroupSync(
         }
     }
 
-    // 自定义页面切换动画规格
     val pagerAnimationSpec = remember {
         tween<Float>(
-            durationMillis = 350,
-            easing = FastOutSlowInEasing
+            durationMillis = 380,
+            easing = com.github.yumelira.yumebox.presentation.theme.AnimationSpecs.EmphasizedDecelerate
         )
     }
 

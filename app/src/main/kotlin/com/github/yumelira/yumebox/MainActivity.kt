@@ -30,6 +30,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
@@ -187,15 +188,15 @@ fun MainScreen(navigator: DestinationsNavigator) {
 
     val pagerFlingAnimationSpec = remember {
         spring<Float>(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            dampingRatio = 0.85f,
+            stiffness = 380f
         )
     }
 
     val pagerClickAnimationSpec = remember {
-        spring<Float>(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
+        tween<Float>(
+            durationMillis = 380,
+            easing = com.github.yumelira.yumebox.presentation.theme.AnimationSpecs.EmphasizedDecelerate
         )
     }
 

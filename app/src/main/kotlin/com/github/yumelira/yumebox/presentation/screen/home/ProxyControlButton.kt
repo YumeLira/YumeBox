@@ -1,10 +1,37 @@
+/*
+ * This file is part of YumeBox.
+ *
+ * YumeBox is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (c)  YumeLira 2025.
+ *
+ */
+
 package com.github.yumelira.yumebox.presentation.screen.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +48,7 @@ import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Play
 import com.github.yumelira.yumebox.presentation.icon.yume.Square
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -60,17 +88,18 @@ fun ProxyControlButton(
             onClick = {
                 coroutineScope.launch {
                     scaleAnim.animateTo(
-                        targetValue = 0.92f,
-                        animationSpec = tween(
-                            durationMillis = 90,
-                            easing = FastOutSlowInEasing
-                        )
+                        targetValue = 0.90f,
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
+                    )
+                    scaleAnim.animateTo(
+                        targetValue = 1.02f,
+                        animationSpec = AnimationSpecs.ButtonPressSpring
                     )
                     scaleAnim.animateTo(
                         targetValue = 1f,
                         animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
+                            dampingRatio = 1f,
+                            stiffness = 500f
                         )
                     )
                 }
@@ -94,17 +123,42 @@ fun ProxyControlButton(
             cornerRadius = cornerRadius,
             minHeight = 36.dp
         ) {
-            Icon(
-                imageVector = if (isRunning) Yume.Square else Yume.Play,
-                contentDescription = null,
-                tint = MiuixTheme.colorScheme.onSurface
-            )
+            AnimatedContent(
+                targetState = isRunning,
+                transitionSpec = {
+                    val enterTransition = slideInVertically(
+                        initialOffsetY = { it / 5 },
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT + 40, easing = AnimationSpecs.EnterEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT + 40, easing = AnimationSpecs.EnterEasing)
+                    ) + scaleIn(
+                        initialScale = 0.8f,
+                        animationSpec = AnimationSpecs.IconTransition as FiniteAnimationSpec<Float>
+                    )
+
+                    val exitTransition = slideOutVertically(
+                        targetOffsetY = { -it / 5 },
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT + 20, easing = AnimationSpecs.ExitEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT + 20, easing = AnimationSpecs.ExitEasing)
+                    ) + scaleOut(
+                        targetScale = 0.8f,
+                        animationSpec = AnimationSpecs.IconTransition
+                    )
+
+                    enterTransition.togetherWith(exitTransition)
+                },
+                label = "IconTransition"
+            ) { running ->
+                Icon(
+                    imageVector = if (running) Yume.Square else Yume.Play,
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onSurface
+                )
+            }
         }
-
-
     }
 }
-
 
 @Composable
 private fun HintText(text: String) {

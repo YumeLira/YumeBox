@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.common.util.formatBytes
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -63,7 +65,10 @@ fun TrafficBarChart(
 
     val animatedMaxValue by animateFloatAsState(
         targetValue = safeMaxValue.toFloat(),
-        animationSpec = tween(durationMillis = 400),
+        animationSpec = spring(
+            dampingRatio = 0.85f,
+            stiffness = 380f
+        ),
         label = "maxValue"
     )
 
@@ -104,14 +109,17 @@ fun TrafficBarChart(
                 val isValidItem = item.label.isNotEmpty()
 
                 val targetHeight = if (animatedMaxValue > 0 && item.value > 0) {
-                    (item.value.toFloat() / animatedMaxValue).coerceIn(0.03f, 1f)
+                    (item.value.toFloat() / animatedMaxValue).coerceIn(0.04f, 1f)
                 } else {
-                    0.03f
+                    0.04f
                 }
 
                 val animatedHeight by animateFloatAsState(
                     targetValue = if (isValidItem) targetHeight else 0f,
-                    animationSpec = tween(durationMillis = 400),
+                    animationSpec = spring(
+                        dampingRatio = 0.82f,
+                        stiffness = 400f
+                    ),
                     label = "barHeight_$index"
                 )
 

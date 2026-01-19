@@ -21,10 +21,6 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
@@ -43,6 +39,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Arrow-down-up`
 import com.github.yumelira.yumebox.presentation.icon.yume.Bolt
 import com.github.yumelira.yumebox.presentation.icon.yume.House
 import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.chrisbanes.haze.HazeState
@@ -88,69 +85,49 @@ fun BottomBar(
     AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(
-            animationSpec = tween(durationMillis = 160, easing = LinearOutSlowInEasing),
+            animationSpec = tween(200, easing = AnimationSpecs.EnterEasing),
         ) + slideInVertically(
-            initialOffsetY = { kotlin.math.max(it / 2, 24) },
-            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            initialOffsetY = { (it / 6).toInt() },
+            animationSpec = tween(240, easing = AnimationSpecs.EmphasizedDecelerate),
         ) + scaleIn(
-            initialScale = 0.98f,
-            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            initialScale = 0.97f,
+            animationSpec = tween(240, easing = AnimationSpecs.EmphasizedDecelerate),
         ),
         exit = fadeOut(
-            animationSpec = tween(durationMillis = 140, easing = FastOutLinearInEasing),
+            animationSpec = tween(160, easing = AnimationSpecs.ExitEasing),
         ) + slideOutVertically(
-            targetOffsetY = { kotlin.math.max(it / 2, 24) },
-            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
+            targetOffsetY = { (it / 8).toInt() },
+            animationSpec = tween(180, easing = AnimationSpecs.EmphasizedAccelerate),
         ) + scaleOut(
             targetScale = 0.98f,
-            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
+            animationSpec = tween(180, easing = AnimationSpecs.ExitEasing),
         ),
         label = "BottomBarVisibility"
     ) {
-        AnimatedContent(
-            targetState = bottomBarFloating,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing)) +
-                        scaleIn(
-                            initialScale = 0.98f,
-                            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-                        )).togetherWith(
-                    fadeOut(animationSpec = tween(durationMillis = 160, easing = FastOutLinearInEasing)) +
-                            scaleOut(
-                                targetScale = 1.02f,
-                                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                            ),
-                ).using(SizeTransform(clip = false))
-            },
-            label = "BottomBarStyleTransition",
-        ) { isFloating ->
-            if (isFloating) {
-                FloatingNavigationBar(
-                    modifier = Modifier.hazeEffect(hazeState) {
-                        style = hazeStyle
-                        blurRadius = 30.dp
-                        noiseFactor = 0f
-                    },
-                    color = Color.Transparent,
-                    items = items,
-                    selected = page,
-                    onClick = onItemClick,
-                    showDivider = showDivider,
-                )
-            } else {
-                NavigationBar(
-                    modifier = Modifier.hazeEffect(hazeState) {
-                        style = hazeStyle
-                        blurRadius = 30.dp
-                        noiseFactor = 0f
-                    },
-                    color = Color.Transparent,
-                    items = items,
-                    selected = page,
-                    onClick = onItemClick,
-                    showDivider = showDivider,
-                )
-            }
+        val modifier = Modifier.hazeEffect(hazeState) {
+            style = hazeStyle
+            blurRadius = 30.dp
+            noiseFactor = 0f
+        }
+
+        if (bottomBarFloating) {
+            FloatingNavigationBar(
+                modifier = modifier,
+                color = Color.Transparent,
+                items = items,
+                selected = page,
+                onClick = onItemClick,
+                showDivider = showDivider,
+            )
+        } else {
+            NavigationBar(
+                modifier = modifier,
+                color = Color.Transparent,
+                items = items,
+                selected = page,
+                onClick = onItemClick,
+                showDivider = showDivider,
+            )
         }
     }
 }

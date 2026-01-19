@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -60,66 +61,56 @@ fun PulseRippleLoadingAnimation(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearOutSlowInEasing, delayMillis = 666),
+            animation = tween(2000, easing = LinearOutSlowInEasing, delayMillis = 1000),
             repeatMode = RepeatMode.Restart
         ),
         label = "ripple2"
     )
 
-    val ripple3 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearOutSlowInEasing, delayMillis = 1333),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ripple3"
-    )
-
     val breathe by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
+        initialValue = 0.5f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathe"
     )
 
-    Canvas(modifier = modifier.size(200.dp)) {
+    Canvas(modifier = modifier.size(180.dp)) {
         val centerX = size.width / 2
         val centerY = size.height / 2
         val maxRadius = size.minDimension / 2
 
-        listOf(ripple1, ripple2, ripple3).forEach { progress ->
+        listOf(ripple1, ripple2).forEach { progress ->
             val radius = maxRadius * progress
-            val alpha = (1f - progress) * 0.6f
+            val alpha = (1f - progress) * 0.5f
             drawCircle(
                 color = color.copy(alpha = alpha),
                 radius = radius,
                 center = Offset(centerX, centerY),
-                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
             )
         }
 
         val gradient = Brush.radialGradient(
             colors = listOf(
-                color.copy(alpha = breathe * 0.8f),
-                color.copy(alpha = breathe * 0.4f),
+                color.copy(alpha = breathe * 0.6f),
+                color.copy(alpha = breathe * 0.2f),
                 color.copy(alpha = 0f)
             ),
             center = Offset(centerX, centerY),
-            radius = 40.dp.toPx()
+            radius = 35.dp.toPx()
         )
         drawCircle(
             brush = gradient,
-            radius = 40.dp.toPx(),
+            radius = 35.dp.toPx(),
             center = Offset(centerX, centerY)
         )
 
         drawCircle(
             color = color.copy(alpha = 0.9f),
-            radius = 12.dp.toPx(),
+            radius = 10.dp.toPx(),
             center = Offset(centerX, centerY)
         )
     }
@@ -133,13 +124,14 @@ fun StartupLoadingOverlay(
 ) {
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(300)) + scaleIn(
-            initialScale = 0.8f,
-            animationSpec = tween(300)
+        enter = fadeIn(
+            animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.EnterEasing)
+        ) + scaleIn(
+            initialScale = 0.9f,
+            animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.StandardEasing)
         ),
-        exit = fadeOut(animationSpec = tween(300)) + scaleOut(
-            targetScale = 1.2f,
-            animationSpec = tween(300)
+        exit = fadeOut(
+            animationSpec = tween(AnimationSpecs.DURATION_FAST, easing = AnimationSpecs.ExitEasing)
         ),
         modifier = modifier
     ) {
@@ -157,8 +149,12 @@ fun StartupLoadingOverlay(
             AnimatedContent(
                 targetState = loadingText ?: MLang.Component.Loading.Starting,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(200)) togetherWith
-                            fadeOut(animationSpec = tween(200))
+                    fadeIn(
+                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EnterEasing)
+                    ) togetherWith
+                            fadeOut(
+                                animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.ExitEasing)
+                            )
                 },
                 label = "loadingText"
             ) { text ->

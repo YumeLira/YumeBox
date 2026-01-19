@@ -23,10 +23,8 @@ package com.github.yumelira.yumebox.presentation.screen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +38,7 @@ import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
 import com.github.yumelira.yumebox.presentation.screen.home.HomeIdleContent
 import com.github.yumelira.yumebox.presentation.screen.home.HomeRunningContent
 import com.github.yumelira.yumebox.presentation.screen.home.ProxyControlButton
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
 import kotlinx.coroutines.launch
@@ -146,121 +145,69 @@ fun HomePager(mainInnerPadding: PaddingValues) {
                 item { Spacer(modifier = Modifier.height(32.dp)) }
             }
 
-            AnimatedContent(
-                targetState = displayRunning,
-                transitionSpec = {
-                    val enterSlide = if (targetState) {
-                        slideInVertically(
-                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                            initialOffsetY = { kotlin.math.max(it / 6, 24) },
-                        )
-                    } else {
-                        slideInVertically(
-                            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                            initialOffsetY = { -kotlin.math.max(it / 6, 24) },
-                        )
-                    }
-
-                    val exitSlide = if (targetState) {
-                        slideOutVertically(
-                            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                            targetOffsetY = { -kotlin.math.max(it / 6, 24) },
-                        )
-                    } else {
-                        slideOutVertically(
-                            animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                            targetOffsetY = { kotlin.math.max(it / 6, 24) },
-                        )
-                    }
-
-                    (fadeIn(animationSpec = tween(durationMillis = 160, easing = LinearOutSlowInEasing)) +
-                            scaleIn(
-                                initialScale = 0.98f,
-                                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                            ) +
-                            enterSlide).togetherWith(
-                        fadeOut(animationSpec = tween(durationMillis = 140, easing = FastOutLinearInEasing)) +
-                                scaleOut(
-                                    targetScale = 1.02f,
-                                    animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                                ) +
-                                exitSlide
-                    ).using(SizeTransform(clip = false))
+            ProxyControlButton(
+                isRunning = displayRunning,
+                isEnabled = profiles.isNotEmpty() && hasEnabledProfile && !isToggling,
+                hasEnabledProfile = hasEnabledProfile,
+                hasProfiles = profiles.isNotEmpty(),
+                onClick = {
+                    handleProxyToggle(
+                        isRunning = displayRunning,
+                        recommendedProfile = recommendedProfile,
+                        onStart = { profile ->
+                            pendingProfileId = profile.id
+                            coroutineScope.launch {
+                                homeViewModel.startProxy(profileId = profile.id)
+                            }
+                        },
+                        onStop = {
+                            coroutineScope.launch {
+                                homeViewModel.stopProxy()
+                            }
+                        }
+                    )
                 },
-                label = "ProxyControlButtonTransition",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = AppConstants.UI.DEFAULT_HORIZONTAL_PADDING)
                     .padding(bottom = mainInnerPadding.calculateBottomPadding() + 32.dp)
-                    .padding(top = AppConstants.UI.DEFAULT_VERTICAL_SPACING),
-            ) { isRunning ->
-                ProxyControlButton(
-                    isRunning = isRunning,
-                    isEnabled = profiles.isNotEmpty() && hasEnabledProfile && !isToggling,
-                    hasEnabledProfile = hasEnabledProfile,
-                    hasProfiles = profiles.isNotEmpty(),
-                    onClick = {
-                        handleProxyToggle(
-                            isRunning = isRunning,
-                            recommendedProfile = recommendedProfile,
-                            onStart = { profile ->
-                                pendingProfileId = profile.id
-                                coroutineScope.launch {
-                                    homeViewModel.startProxy(profileId = profile.id)
-                                }
-                            },
-                            onStop = {
-                                coroutineScope.launch {
-                                    homeViewModel.stopProxy()
-                                }
-                            }
-                        )
-                    },
-                )
-            }
+                    .padding(top = AppConstants.UI.DEFAULT_VERTICAL_SPACING)
+            )
         }
     }
 }
 
 @OptIn(ExperimentalAnimationApi::class)
 private fun AnimatedContentTransitionScope<HomeDisplayState>.createHomeTransitionSpec(): ContentTransform {
-    val enterSlide = if (targetState == HomeDisplayState.Running) {
-        slideInVertically(
-            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-            initialOffsetY = { kotlin.math.max(it / 10, 24) },
-        )
-    } else {
-        slideInVertically(
-            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-            initialOffsetY = { -kotlin.math.max(it / 10, 24) },
-        )
-    }
+    val fadeOutDuration = 180
+    val fadeInDuration = 240
+    val delayBetween = 40
 
-    val exitSlide = if (targetState == HomeDisplayState.Running) {
-        slideOutVertically(
-            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
-            targetOffsetY = { -kotlin.math.max(it / 10, 24) },
-        )
-    } else {
-        slideOutVertically(
-            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
-            targetOffsetY = { kotlin.math.max(it / 10, 24) },
-        )
-    }
+    val exitTransition = fadeOut(
+        animationSpec = tween(fadeOutDuration, easing = AnimationSpecs.ExitEasing),
+        targetAlpha = 0f
+    )
 
-    return (fadeIn(animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing)) +
-            scaleIn(
-                initialScale = 0.98f,
-                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-            ) +
-            enterSlide).togetherWith(
-        fadeOut(animationSpec = tween(durationMillis = 160, easing = FastOutLinearInEasing)) +
-                scaleOut(
-                    targetScale = 1.02f,
-                    animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
-                ) +
-                exitSlide
-    ).using(SizeTransform(clip = false))
+    val enterTransition = fadeIn(
+        animationSpec = tween(
+            durationMillis = fadeInDuration,
+            delayMillis = fadeOutDuration + delayBetween,
+            easing = AnimationSpecs.EnterEasing
+        ),
+        initialAlpha = 0f
+    )
+
+    return enterTransition.togetherWith(exitTransition).using(
+        SizeTransform(
+            clip = false,
+            sizeAnimationSpec = { _, _ ->
+                tween(
+                    durationMillis = fadeOutDuration + delayBetween,
+                    easing = AnimationSpecs.EmphasizedDecelerate
+                )
+            }
+        )
+    )
 }
 
 private fun handleProxyToggle(
