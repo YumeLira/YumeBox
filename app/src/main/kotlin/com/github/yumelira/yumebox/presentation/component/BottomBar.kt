@@ -21,14 +21,18 @@
 package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -61,7 +65,10 @@ fun BottomBar(
     isVisible: Boolean = true,
 ) {
     LocalContext.current
-    val page = LocalPagerState.current.targetPage
+    val pagerState = LocalPagerState.current
+    val page by remember(pagerState) {
+        derivedStateOf { if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage }
+    }
     val handlePageChange = LocalHandlePageChange.current
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val bottomBarFloating by appSettingsViewModel.bottomBarFloating.state.collectAsState()
@@ -80,46 +87,40 @@ fun BottomBar(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = tween(
-                durationMillis = 300,
-                easing = FastOutSlowInEasing
-            )
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = 200,
-                easing = LinearEasing
-            )
+        enter = fadeIn(
+            animationSpec = tween(durationMillis = 160, easing = LinearOutSlowInEasing),
+        ) + slideInVertically(
+            initialOffsetY = { kotlin.math.max(it / 2, 24) },
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        ) + scaleIn(
+            initialScale = 0.98f,
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
         ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = tween(
-                durationMillis = 280,
-                easing = FastOutSlowInEasing
-            )
-        ) + fadeOut(
-            animationSpec = tween(
-                durationMillis = 180,
-                easing = LinearEasing
-            )
+        exit = fadeOut(
+            animationSpec = tween(durationMillis = 140, easing = FastOutLinearInEasing),
+        ) + slideOutVertically(
+            targetOffsetY = { kotlin.math.max(it / 2, 24) },
+            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
+        ) + scaleOut(
+            targetScale = 0.98f,
+            animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing),
         ),
         label = "BottomBarVisibility"
     ) {
         AnimatedContent(
             targetState = bottomBarFloating,
             transitionSpec = {
-                (fadeIn(animationSpec = tween(300)) +
-                        slideInVertically(
-                            animationSpec = tween(300),
-                            initialOffsetY = { it / 2 },
+                (fadeIn(animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing)) +
+                        scaleIn(
+                            initialScale = 0.98f,
+                            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
                         )).togetherWith(
-                    fadeOut(animationSpec = tween(300)) +
-                            slideOutVertically(
-                                animationSpec = tween(300),
-                                targetOffsetY = { it / 2 },
+                    fadeOut(animationSpec = tween(durationMillis = 160, easing = FastOutLinearInEasing)) +
+                            scaleOut(
+                                targetScale = 1.02f,
+                                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
                             ),
-                )
+                ).using(SizeTransform(clip = false))
             },
             label = "BottomBarStyleTransition",
         ) { isFloating ->

@@ -185,19 +185,26 @@ fun MainScreen(navigator: DestinationsNavigator) {
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
 
-    val pagerSnapAnimationSpec = remember {
-        spring(
+    val pagerFlingAnimationSpec = remember {
+        spring<Float>(
             dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
+            stiffness = Spring.StiffnessMediumLow
         )
     }
 
-    val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope, pagerSnapAnimationSpec) {
+    val pagerClickAnimationSpec = remember {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+        )
+    }
+
+    val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope, pagerClickAnimationSpec) {
         { page ->
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
                     page = page,
-                    animationSpec = pagerSnapAnimationSpec
+                    animationSpec = pagerClickAnimationSpec
                 )
             }
         }
@@ -208,7 +215,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
                     page = 0,
-                    animationSpec = pagerSnapAnimationSpec
+                    animationSpec = pagerClickAnimationSpec
                 )
             }
         } else {
@@ -248,7 +255,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
                 ),
                 flingBehavior = PagerDefaults.flingBehavior(
                     state = pagerState,
-                    snapAnimationSpec = pagerSnapAnimationSpec
+                    snapAnimationSpec = pagerFlingAnimationSpec
                 ),
             ) { page ->
                 when (page) {

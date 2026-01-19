@@ -18,13 +18,12 @@ class BottomBarScrollBehavior {
     private var lastToggleTime = 0L
     private val toggleDelay = 150L
 
-    private var previousScrollOffset = 0f
-
     private var accumulatedScroll = 0f
 
     val nestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
             if (!isAutoHideEnabled) return Offset.Zero
+            if (source != NestedScrollSource.Drag) return Offset.Zero
 
             val delta = available.y
 
@@ -40,8 +39,6 @@ class BottomBarScrollBehavior {
                 }
                 accumulatedScroll = 0f
             }
-
-            previousScrollOffset = delta
             return Offset.Zero
         }
 
@@ -50,8 +47,11 @@ class BottomBarScrollBehavior {
             available: Offset,
             source: NestedScrollSource
         ): Offset {
-            if (available.y != 0f && isAutoHideEnabled) {
-                val delta = available.y
+            if (!isAutoHideEnabled) return Offset.Zero
+            if (source != NestedScrollSource.Drag) return Offset.Zero
+
+            if (consumed.y != 0f) {
+                val delta = consumed.y
                 accumulatedScroll += delta
 
                 if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
