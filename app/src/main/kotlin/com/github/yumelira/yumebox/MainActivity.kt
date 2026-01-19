@@ -29,6 +29,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.rememberSplineBasedDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
@@ -181,6 +182,15 @@ fun MainScreen(navigator: DestinationsNavigator) {
         backgroundColor = MiuixTheme.colorScheme.background,
         tint = HazeTint(MiuixTheme.colorScheme.background.copy(0.8f)),
     )
+    val pageChangeAnimationSpec = remember {
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
+    }
+    val pagerDecaySpec = rememberSplineBasedDecay<Float>()
+    val pagerFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        snapAnimationSpec = pageChangeAnimationSpec,
+        decayAnimationSpec = pagerDecaySpec
+    )
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
@@ -189,9 +199,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
         { page ->
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = page, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
+                    page = page,
+                    animationSpec = pageChangeAnimationSpec
                 )
             }
         }
@@ -201,9 +210,8 @@ fun MainScreen(navigator: DestinationsNavigator) {
         if (pagerState.currentPage != 0) {
             coroutineScope.launch {
                 pagerState.animateScrollToPage(
-                    page = 0, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
+                    page = 0,
+                    animationSpec = pageChangeAnimationSpec
                 )
             }
         } else {
@@ -236,16 +244,12 @@ fun MainScreen(navigator: DestinationsNavigator) {
                     .hazeSource(state = hazeState)
                     .nestedScroll(bottomBarScrollBehavior.nestedScrollConnection),
                 state = pagerState,
-                beyondViewportPageCount = 1,
+                beyondViewportPageCount = 2,
                 userScrollEnabled = true,
                 pageNestedScrollConnection = PagerDefaults.pageNestedScrollConnection(
                     state = pagerState, orientation = androidx.compose.foundation.gestures.Orientation.Horizontal
                 ),
-                flingBehavior = PagerDefaults.flingBehavior(
-                    state = pagerState, snapAnimationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-                    )
-                ),
+                flingBehavior = pagerFlingBehavior,
             ) { page ->
                 when (page) {
                     0 -> HomePager(innerPadding)

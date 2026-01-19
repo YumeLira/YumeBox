@@ -7,12 +7,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -54,8 +57,17 @@ fun ProxyControlButton(
         label = "CornerRadius"
     )
 
-    MiuixTheme.colorScheme.surface
-    MiuixTheme.colorScheme.onSurface
+    val iconScale by animateFloatAsState(
+        targetValue = if (isRunning) 0.92f else 1f,
+        animationSpec = tween(
+            durationMillis = 240,
+            easing = FastOutSlowInEasing
+        ),
+        label = "IconScale"
+    )
+
+    val buttonShape = androidx.compose.foundation.shape.RoundedCornerShape(animatedCornerRadius)
+    val buttonLabel = if (isRunning) "停止" else "启动"
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -75,23 +87,35 @@ fun ProxyControlButton(
                 .fillMaxWidth(animatedWidthFraction)
                 .shadow(
                     elevation = 1.dp,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(animatedCornerRadius),
+                    shape = buttonShape,
                     clip = false
                 )
                 .border(
                     width = 0.2.dp,
                     color = MiuixTheme.colorScheme.outline,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(animatedCornerRadius)
+                    shape = buttonShape
                 ),
             colors = ButtonDefaults.buttonColors(MiuixTheme.colorScheme.background),
             cornerRadius = animatedCornerRadius,
-            minHeight = 36.dp
+            minHeight = 44.dp
         ) {
-            Icon(
-                imageVector = if (isRunning) Yume.Square else Yume.Play,
-                contentDescription = null,
-                tint = MiuixTheme.colorScheme.onSurface
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (isRunning) Yume.Square else Yume.Play,
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onSurface,
+                    modifier = Modifier.scale(iconScale)
+                )
+                Text(
+                    text = buttonLabel,
+                    style = MiuixTheme.textStyles.body2,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
 
