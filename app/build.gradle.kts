@@ -192,8 +192,12 @@ android {
                     it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI 
                 }?.identifier ?: "universal"
                 val buildTypeName = variant.buildType ?: "release"
-                // Set output file name, not versionName
+                // Set correct versionName
                 output.versionName.set(gropify.project.version.name)
+                // Set APK output file name
+                (output as com.android.build.api.variant.impl.VariantOutputImpl).outputFileName.set(
+                    "${appName}-${abiName}-${buildTypeName}.apk"
+                )
             }
         }
     }
