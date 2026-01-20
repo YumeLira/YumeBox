@@ -117,10 +117,10 @@ github.com/metacubex/randv2 v0.2.0 h1:uP38uBvV2SxYfLj53kuvAjbND4RUDfFJjwr4UigMiL
 github.com/metacubex/randv2 v0.2.0/go.mod h1:kFi2SzrQ5WuneuoLLCMkABtiBu6VRrMrWFqSPyj2cxY=
 github.com/metacubex/restls-client-go v0.1.7 h1:eCwiXCTQb5WJu9IlgYvDBA1OgrINv58dEe7hcN5H15k=
 github.com/metacubex/restls-client-go v0.1.7/go.mod h1:BN/U52vPw7j8VTSh2vleD/MnmVKCov84mS5VcjVHH4g=
-github.com/metacubex/sing v0.5.6 h1:mEPDCadsCj3DB8gn+t/EtposlYuALEkExa/LUguw6/c=
-github.com/metacubex/sing v0.5.6/go.mod h1:ypf0mjwlZm0sKdQSY+yQvmsbWa0hNPtkeqyRMGgoN+w=
-github.com/metacubex/sing-mux v0.3.4 h1:tf4r27CIkzaxq9kBlAXQkgMXq2HPp5Mta60Kb4RCZF0=
-github.com/metacubex/sing-mux v0.3.4/go.mod h1:SEJfAuykNj/ozbPqngEYqyggwSr81+L7Nu09NRD5mh4=
+github.com/metacubex/sing v0.5.7 h1:8OC+fhKFSv/l9ehEhJRaZZAOuthfZo68SteBVLe8QqM=
+github.com/metacubex/sing v0.5.7/go.mod h1:ypf0mjwlZm0sKdQSY+yQvmsbWa0hNPtkeqyRMGgoN+w=
+github.com/metacubex/sing-mux v0.3.5 h1:UqVN+o62SR8kJaC9/3VfOc5UiVqgVY/ef9WwfGYYkk0=
+github.com/metacubex/sing-mux v0.3.5/go.mod h1:8bT7ZKT3clRrJjYc/x5CRYibC1TX/bK73a3r3+2E+Fc=
 github.com/metacubex/sing-quic v0.0.0-20260112044712-65d17608159e h1:MLxp42z9Jd6LtY2suyawnl24oNzIsFxWc15bNeDIGxA=
 github.com/metacubex/sing-quic v0.0.0-20260112044712-65d17608159e/go.mod h1:+lgKTd52xAarGtqugALISShyw4KxnoEpYe2u0zJh26w=
 github.com/metacubex/sing-shadowsocks v0.2.12 h1:Wqzo8bYXrK5aWqxu/TjlTnYZzAKtKsaFQBdr6IHFaBE=
@@ -131,8 +131,8 @@ github.com/metacubex/sing-shadowtls v0.0.0-20250503063515-5d9f966d17a2 h1:gXU+MY
 github.com/metacubex/sing-shadowtls v0.0.0-20250503063515-5d9f966d17a2/go.mod h1:mbfboaXauKJNIHJYxQRa+NJs4JU9NZfkA+I33dS2+9E=
 github.com/metacubex/sing-tun v0.4.12 h1:LCi+yB7y97X3cHQGdNXQBMQNHAzpP4AWg7YhSLk+LTM=
 github.com/metacubex/sing-tun v0.4.12/go.mod h1:L/TjQY5JEGy8nvsuYmy/XgMFMCPiF0+AWSFCYfS6r9w=
-github.com/metacubex/sing-vmess v0.2.4 h1:Tx6AGgCiEf400E/xyDuYyafsel6sGbR8oF7RkAaus6I=
-github.com/metacubex/sing-vmess v0.2.4/go.mod h1:21R5R1u90uUvBQF0owoooEu96/SAYYD56nDrwm6nFaM=
+github.com/metacubex/sing-vmess v0.2.5 h1:m9Zt5I27lB9fmLMZfism9sH2LcnAfShZfwSkf6/KJoE=
+github.com/metacubex/sing-vmess v0.2.5/go.mod h1:AwtlzUgf8COe9tRYAKqWZ+leDH7p5U98a0ZUpYehl8Q=
 github.com/metacubex/sing-wireguard v0.0.0-20250503063753-2dc62acc626f h1:Sr/DYKYofKHKc4GF3qkRGNuj6XA6c0eqPgEDN+VAsYU=
 github.com/metacubex/sing-wireguard v0.0.0-20250503063753-2dc62acc626f/go.mod h1:jpAkVLPnCpGSfNyVmj6Cq4YbuZsFepm/Dc+9BAOcR80=
 github.com/metacubex/smux v0.0.0-20260105030934-d0c8756d3141 h1:DK2l6m2Fc85H2BhiAPgbJygiWhesPlfGmF+9Vw6ARdk=

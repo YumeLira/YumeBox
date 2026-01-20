@@ -18,16 +18,45 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -51,9 +80,17 @@ import com.github.yumelira.yumebox.data.model.Profile
 import com.github.yumelira.yumebox.data.model.ProfileType
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.ProfileLink
-import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.component.CenteredText
+import com.github.yumelira.yumebox.presentation.component.DialogButtonRow
+import com.github.yumelira.yumebox.presentation.component.LocalBottomBarScrollBehavior
+import com.github.yumelira.yumebox.presentation.component.ProfileCard
+import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
+import com.github.yumelira.yumebox.presentation.icon.yume.`Badge-plus`
+import com.github.yumelira.yumebox.presentation.icon.yume.Chromium
+import com.github.yumelira.yumebox.presentation.icon.yume.`Circle-fading-arrow-up`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Link-2`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import com.github.yumelira.yumebox.presentation.viewmodel.ProfilesViewModel
@@ -70,15 +107,29 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.*
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.SpinnerEntry
+import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.extra.SuperSpinner
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Delete
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import java.io.File
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
@@ -455,7 +506,7 @@ private fun EditProfileNameDialog(
 ) {
     var editName by remember { mutableStateOf(currentName) }
 
-    SuperDialog(
+    WindowDialog (
         title = MLang.ProfilesPage.EditDialog.Title, show = show, onDismissRequest = onDismiss
     ) {
         Column(
@@ -777,7 +828,7 @@ private fun AddProfileSheet(
         showCameraPreview.value = show.value && selectedTypeIndex == 2 && !isDownloading && hasCameraPermission
     }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = show,
         title = if (profileToEdit != null) MLang.ProfilesPage.Sheet.EditTitle else MLang.ProfilesPage.Sheet.AddTitle,
         backgroundColor = MiuixTheme.colorScheme.surface,
@@ -1239,7 +1290,7 @@ private suspend fun readQrFromImage(context: Context, uri: Uri): String? = suspe
 private fun DeleteConfirmDialog(
     profileName: String, onConfirm: () -> Unit, onDismiss: () -> Unit
 ) {
-    SuperDialog(
+    WindowDialog (
         title = MLang.ProfilesPage.DeleteDialog.Title,
         summary = MLang.ProfilesPage.DeleteDialog.Message.format(profileName),
         show = remember { mutableStateOf(true) },
@@ -1280,7 +1331,7 @@ private fun LinkSettingsDialog(
         links.indexOfFirst { it.id == defaultLinkId }.let { if (it == -1) 0 else it }
     }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         title = MLang.ProfilesPage.LinkSettings.Title, show = show, onDismissRequest = {
             show.value = false
         }) {
@@ -1349,7 +1400,7 @@ private fun LinkSettingsDialog(
                                 IconButton(
                                     onClick = { onDeleteLink(link.id) }) {
                                     Icon(
-                                        imageVector = MiuixIcons.Useful.Delete,
+                                        imageVector = MiuixIcons.Delete,
                                         contentDescription = MLang.Component.ProfileCard.Delete,
                                         tint = MiuixTheme.colorScheme.error
                                     )
@@ -1414,7 +1465,7 @@ private fun AddLinkDialog(
         }
     }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         title = if (linkToEdit != null) MLang.ProfilesPage.LinkSettings.EditLink else MLang.ProfilesPage.LinkSettings.AddLink,
         show = show,
         onDismissRequest = onDismiss
@@ -1484,7 +1535,7 @@ private fun ShareOptionsDialog(
     onShareFile: (Profile) -> Unit,
     onShareLink: (Profile) -> Unit
 ) {
-    SuperDialog(
+    WindowDialog (
         title = MLang.ProfilesPage.ShareDialog.Title, show = show, onDismissRequest = onDismiss
     ) {
         Column(

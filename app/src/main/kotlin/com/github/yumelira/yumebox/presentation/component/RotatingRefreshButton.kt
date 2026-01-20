@@ -20,7 +20,11 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -29,7 +33,7 @@ import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Refresh
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -55,7 +59,7 @@ fun RotatingRefreshButton(
         enabled = !isRotating
     ) {
         Icon(
-            imageVector = MiuixIcons.Useful.Refresh,
+            imageVector = MiuixIcons.Refresh,
             contentDescription = contentDescription,
             modifier = if (isRotating) Modifier.rotate(rotation) else Modifier,
             tint = if (isRotating) {

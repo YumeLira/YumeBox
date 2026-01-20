@@ -30,7 +30,7 @@ import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Back
+import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 @Composable
@@ -44,7 +44,7 @@ fun NavigationBackIcon(
         onClick = dropUnlessResumed { navigator.popBackStack() },
     ) {
         Icon(
-            imageVector = MiuixIcons.Useful.Back,
+            imageVector = MiuixIcons.Back,
             contentDescription = contentDescription,
             tint = colorScheme.onBackground,
         )

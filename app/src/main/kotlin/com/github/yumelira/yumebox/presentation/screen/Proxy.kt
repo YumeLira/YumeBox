@@ -64,7 +64,8 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -159,7 +160,7 @@ fun ProxyPager(
             }
         }
 
-        SuperBottomSheet(
+        WindowBottomSheet(
             show = showBottomSheet,
             title = MLang.Proxy.Settings.Title,
             onDismissRequest = { showBottomSheet.value = false },

@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -46,7 +46,7 @@ fun ConfirmDialog(
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
 ) {
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = show,
         title = title,
         insideMargin = DpSize(32.dp, 16.dp),
@@ -77,7 +77,7 @@ fun ConfirmDialogSimple(
     cancelText: String = MLang.Component.Button.Cancel,
     confirmText: String = MLang.Component.Button.Confirm,
 ) {
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = remember { mutableStateOf(true) },
         title = title,
         insideMargin = DpSize(32.dp, 16.dp),

@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.extra.SuperDialog
+import top.yukonga.miuix.kmp.extra.WindowDialog 
 
 enum class MessageType {
     SUCCESS,
@@ -63,7 +63,7 @@ fun MessageHost(
     }
 
     if (message != null) {
-        SuperDialog(
+        WindowDialog (
             title = getTitle(message.type, message.title),
             summary = message.content,
             show = showDialog,

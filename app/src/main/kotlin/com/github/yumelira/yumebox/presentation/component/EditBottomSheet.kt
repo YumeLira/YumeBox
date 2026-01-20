@@ -20,7 +20,12 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
@@ -32,7 +37,7 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -43,7 +48,7 @@ fun TextEditBottomSheet(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit = { show.value = false },
 ) {
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = show, title = title, insideMargin = DpSize(32.dp, 16.dp), onDismissRequest = onDismiss
     ) {
         Column {
@@ -77,7 +82,7 @@ fun WarningBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit = { show.value = false },
 ) {
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = show,
         title = title,
         insideMargin = DpSize(32.dp, 16.dp),
