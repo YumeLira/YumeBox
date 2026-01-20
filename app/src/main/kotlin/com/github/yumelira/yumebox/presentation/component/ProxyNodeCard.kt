@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.core.model.Proxy
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -64,45 +65,32 @@ internal object ProxyCardDefaults {
     val TextSpacing = 8.dp
 }
 
-private data class DelayPillStyle(
-    val text: String,
-    val color: Color,
-    val backgroundColor: Color,
-)
-
 @Composable
 internal fun DelayPill(
     delay: Int,
     onClick: (() -> Unit)?,
     isLoading: Boolean = false,
-    enableLoadingAnimation: Boolean = true,
     modifier: Modifier = Modifier,
     textStyle: TextStyle = MiuixTheme.textStyles.footnote1,
 ) {
-    val style = remember(delay) {
-        when {
-            delay < 0 -> DelayPillStyle("TIMEOUT", Color(0xFF9E9E9E), Color(0xFF9E9E9E).copy(alpha = 0.14f))
-            delay == 0 -> DelayPillStyle("N/A", Color(0xFFBDBDBD), Color(0xFFBDBDBD).copy(alpha = 0.14f))
-            delay in 1..800 -> DelayPillStyle("${delay}", Color(0xFF4CAF50), Color(0xFF4CAF50).copy(alpha = 0.14f))
-            delay in 801..5000 -> DelayPillStyle("${delay}", Color(0xFFFFA726), Color(0xFFFFA726).copy(alpha = 0.14f))
-            else -> null
-        }
-    } ?: return
-    val displayText = if (isLoading && !enableLoadingAnimation) "..." else style.text
-    val interactionSource = if (onClick != null) {
-        remember { MutableInteractionSource() }
-    } else {
-        null
+    val (text, color) = when {
+        delay < 0 -> "TIMEOUT" to Color(0xFF9E9E9E)
+        delay == 0 -> "N/A" to Color(0xFFBDBDBD)
+        delay in 1..800 -> "${delay}" to Color(0xFF4CAF50)
+        delay in 801..5000 -> "${delay}" to Color(0xFFFFA726)
+        else -> return
     }
+    val backgroundColor = color.copy(alpha = 0.14f)
+    val interactionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(style.backgroundColor)
+            .background(backgroundColor)
             .let { base ->
                 if (onClick != null) {
                     base.clickable(
-                        interactionSource = interactionSource!!,
+                        interactionSource = interactionSource,
                         indication = null,
                         onClick = onClick,
                     )
@@ -113,19 +101,19 @@ internal fun DelayPill(
             .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (isLoading && enableLoadingAnimation) {
+        if (isLoading) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = style.text,
+                    text = text,
                     style = textStyle,
-                    color = style.color,
+                    color = color,
                     maxLines = 1,
                     modifier = Modifier.alpha(0f),
                 )
-                LoadingDots(color = style.color)
+                LoadingDots(color = color)
             }
         } else {
-            Text(text = displayText, style = textStyle, color = style.color, maxLines = 1)
+            Text(text = text, style = textStyle, color = color, maxLines = 1)
         }
     }
 }
@@ -224,9 +212,7 @@ internal fun ProxySelectableCard(
 
 @Composable
 fun ProxyNodeCard(
-    name: String,
-    typeName: String,
-    delay: Int,
+    proxy: Proxy,
     isSelected: Boolean,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -234,8 +220,13 @@ fun ProxyNodeCard(
     showDetail: Boolean = false,
     onDelayClick: (() -> Unit)? = null,
     isDelayTesting: Boolean = false,
-    enableLoadingAnimation: Boolean = true,
 ) {
+    val backgroundColor = if (isSelected) {
+        MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        MiuixTheme.colorScheme.background
+    }
+
     val textColor = if (isSelected) {
         MiuixTheme.colorScheme.primary
     } else {
@@ -255,7 +246,7 @@ fun ProxyNodeCard(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = name,
+                            text = proxy.name,
                             style = MiuixTheme.textStyles.body1,
                             color = textColor,
                             maxLines = 1,
@@ -264,24 +255,23 @@ fun ProxyNodeCard(
                         if (showDetail) {
                             Spacer(modifier = Modifier.height(ProxyCardDefaults.TextSpacing))
                             Text(
-                                text = typeName,
+                                text = proxy.type.name,
                                 style = MiuixTheme.textStyles.footnote1,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                         }
                     }
                     DelayPill(
-                        delay = delay,
+                        delay = proxy.delay,
                         onClick = onDelayClick,
                         isLoading = isDelayTesting,
-                        enableLoadingAnimation = enableLoadingAnimation,
                         textStyle = MiuixTheme.textStyles.body2,
                     )
                 }
             } else if (showDetail) {
                 Column {
                     Text(
-                        text = name,
+                        text = proxy.name,
                         style = MiuixTheme.textStyles.body2,
                         color = textColor,
                         maxLines = 1,
@@ -295,7 +285,7 @@ fun ProxyNodeCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = typeName,
+                            text = proxy.type.name,
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             maxLines = 1,
@@ -304,10 +294,9 @@ fun ProxyNodeCard(
                             modifier = Modifier.weight(1f),
                         )
                         DelayPill(
-                            delay = delay,
+                            delay = proxy.delay,
                             onClick = onDelayClick,
                             isLoading = isDelayTesting,
-                            enableLoadingAnimation = enableLoadingAnimation,
                         )
                     }
                 }
@@ -318,19 +307,14 @@ fun ProxyNodeCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = name,
+                        text = proxy.name,
                         style = MiuixTheme.textStyles.body2,
                         color = textColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    DelayPill(
-                        delay = delay,
-                        onClick = onDelayClick,
-                        isLoading = isDelayTesting,
-                        enableLoadingAnimation = enableLoadingAnimation,
-                    )
+                    DelayPill(delay = proxy.delay, onClick = onDelayClick, isLoading = isDelayTesting)
                 }
             }
     }

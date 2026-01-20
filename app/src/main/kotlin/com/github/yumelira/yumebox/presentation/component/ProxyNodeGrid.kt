@@ -24,9 +24,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -37,23 +36,13 @@ fun ProxyNodeGrid(
     proxies: List<Proxy>,
     selectedProxyName: String,
     displayMode: ProxyDisplayMode,
-    onProxyClick: ((String) -> Unit)? = null,
-    onProxyDelayClick: ((String) -> Unit)? = null,
+    onProxyClick: ((Proxy) -> Unit)? = null,
+    onProxyDelayClick: ((Proxy) -> Unit)? = null,
     isDelayTesting: Boolean = false,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val columns = if (displayMode.isSingleColumn) 1 else 2
-    val maxAnimatedPills = if (proxies.size <= 40) {
-        proxies.size
-    } else {
-        12
-    }
-    val contentType = when {
-        displayMode.isSingleColumn -> "single"
-        displayMode.showDetail -> "detail"
-        else -> "compact"
-    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
@@ -62,30 +51,18 @@ fun ProxyNodeGrid(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        itemsIndexed(
+        items(
             items = proxies,
-            key = { _, proxy -> proxy.name },
-            contentType = { _, _ -> contentType },
-        ) { index, proxy ->
-            val proxyName = proxy.name
-            val onClick = onProxyClick?.let { handler ->
-                remember(proxyName, handler) { { handler(proxyName) } }
-            }
-            val onDelayClick = onProxyDelayClick?.let { handler ->
-                remember(proxyName, handler) { { handler(proxyName) } }
-            }
-            val isLoading = isDelayTesting && index < maxAnimatedPills
+            key = { it.name },
+        ) { proxy ->
             ProxyNodeCard(
-                name = proxyName,
-                typeName = proxy.type.name,
-                delay = proxy.delay,
+                proxy = proxy,
                 isSelected = proxy.name == selectedProxyName,
-                onClick = onClick,
+                onClick = onProxyClick?.let { { it(proxy) } },
                 isSingleColumn = displayMode.isSingleColumn,
                 showDetail = displayMode.showDetail,
-                onDelayClick = onDelayClick,
-                isDelayTesting = isLoading,
-                enableLoadingAnimation = isLoading,
+                onDelayClick = onProxyDelayClick?.let { { it(proxy) } },
+                isDelayTesting = isDelayTesting,
             )
         }
     }
