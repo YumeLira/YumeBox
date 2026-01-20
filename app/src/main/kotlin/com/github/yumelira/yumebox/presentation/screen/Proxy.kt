@@ -361,9 +361,9 @@ private fun ProxyGroupSelectorContent(
                 selectedProxyName = group.now,
                 displayMode = displayMode,
                 onProxyClick = onProxyClick?.let { click ->
-                    { proxy: Proxy -> click(proxy.name) }
+                    { proxyName: String -> click(proxyName) }
                 },
-                onProxyDelayClick = { onGroupDelayClick() },
+                onProxyDelayClick = { _ -> onGroupDelayClick() },
                 isDelayTesting = isGroupTesting,
                 contentPadding = PaddingValues(top = 12.dp, bottom = 16.dp),
                 modifier = Modifier.fillMaxSize(),
