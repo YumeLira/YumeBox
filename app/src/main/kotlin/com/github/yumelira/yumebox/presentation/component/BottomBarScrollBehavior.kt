@@ -21,47 +21,26 @@ class BottomBarScrollBehavior {
     private var accumulatedScroll = 0f
 
     val nestedScrollConnection = object : NestedScrollConnection {
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            if (!isAutoHideEnabled) return Offset.Zero
-            if (source != NestedScrollSource.Drag) return Offset.Zero
-
-            val delta = available.y
-
-            if (kotlin.math.abs(delta) < 0.5f) return Offset.Zero
-
-            accumulatedScroll += delta
-
-            if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
-                if (accumulatedScroll < 0) {
-                    hideBottomBar()
-                } else {
-                    showBottomBar()
-                }
-                accumulatedScroll = 0f
-            }
-            return Offset.Zero
-        }
-
         override fun onPostScroll(
             consumed: Offset,
             available: Offset,
             source: NestedScrollSource
         ): Offset {
             if (!isAutoHideEnabled) return Offset.Zero
-            if (source != NestedScrollSource.Drag) return Offset.Zero
+            if (source != NestedScrollSource.UserInput) return Offset.Zero
 
-            if (consumed.y != 0f) {
-                val delta = consumed.y
-                accumulatedScroll += delta
+            val delta = consumed.y
+            if (kotlin.math.abs(delta) < 0.5f) return Offset.Zero
 
-                if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
-                    if (accumulatedScroll < 0) {
-                        hideBottomBar()
-                    } else {
-                        showBottomBar()
-                    }
-                    accumulatedScroll = 0f
-                }
+            if ((accumulatedScroll > 0 && delta < 0) || (accumulatedScroll < 0 && delta > 0)) {
+                accumulatedScroll = 0f
+            }
+
+            accumulatedScroll += delta
+
+            if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
+                if (accumulatedScroll < 0) hideBottomBar() else showBottomBar()
+                accumulatedScroll = 0f
             }
             return Offset.Zero
         }

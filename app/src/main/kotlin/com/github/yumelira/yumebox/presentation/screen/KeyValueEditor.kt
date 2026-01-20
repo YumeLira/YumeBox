@@ -37,11 +37,11 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Delete
-import top.yukonga.miuix.kmp.icon.icons.useful.New
-import top.yukonga.miuix.kmp.icon.icons.useful.Restore
+import top.yukonga.miuix.kmp.icon.extended.AddCircle
+import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Reset
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 object EditorDataHolder {
@@ -130,10 +130,11 @@ fun StringListEditorScreen(
                 navigationIcon = { NavigationBackIcon(navigator) },
                 actions = {
                     IconButton(
-                        onClick = { showResetDialog = true }, modifier = Modifier.padding(end = 16.dp)
+                        onClick = { showResetDialog = true },
+                        modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Useful.Restore,
+                            imageVector = MiuixIcons.Reset,
                             contentDescription = MLang.Component.Editor.Action.Reset,
                         )
                     }
@@ -142,7 +143,7 @@ fun StringListEditorScreen(
                         onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Useful.New,
+                            imageVector = MiuixIcons.AddCircle,
                             contentDescription = MLang.Component.Editor.Action.Add,
                         )
                     }
@@ -264,10 +265,11 @@ fun KeyValueEditorScreen(
                 navigationIcon = { NavigationBackIcon(navigator) },
                 actions = {
                     IconButton(
-                        onClick = { showResetDialog = true }, modifier = Modifier.padding(end = 16.dp)
+                        onClick = { showResetDialog = true },
+                        modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Useful.Restore,
+                            imageVector = MiuixIcons.Reset,
                             contentDescription = MLang.Component.Editor.Action.Reset,
                         )
                     }
@@ -276,7 +278,7 @@ fun KeyValueEditorScreen(
                         onClick = { showAddDialog = true }, modifier = Modifier.padding(end = 24.dp)
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Useful.New,
+                            imageVector = MiuixIcons.AddCircle,
                             contentDescription = MLang.Component.Editor.Action.Add,
                         )
                     }
@@ -420,7 +422,7 @@ private fun ListItem(
                 modifier = Modifier.size(40.dp),
             ) {
                 Icon(
-                    imageVector = MiuixIcons.Useful.Delete,
+                    imageVector = MiuixIcons.Delete,
                     contentDescription = MLang.Component.Editor.Action.Delete,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -467,7 +469,7 @@ private fun KeyValueItem(
                 modifier = Modifier.size(40.dp),
             ) {
                 Icon(
-                    imageVector = MiuixIcons.Useful.Delete,
+                    imageVector = MiuixIcons.Delete,
                     contentDescription = MLang.Component.Editor.Action.Delete,
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -486,7 +488,7 @@ private fun InputDialog(
 ) {
     var value by remember { mutableStateOf(initialValue) }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = remember { mutableStateOf(true) },
         title = title,
         insideMargin = DpSize(24.dp, 16.dp),
@@ -529,7 +531,7 @@ private fun KeyValueInputDialog(
     var value by remember { mutableStateOf(initialValue) }
     var keyError by remember { mutableStateOf<String?>(null) }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = remember { mutableStateOf(true) },
         title = title,
         insideMargin = DpSize(24.dp, 16.dp),

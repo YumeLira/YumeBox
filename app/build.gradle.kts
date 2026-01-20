@@ -220,7 +220,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     
     // Additional Compose libraries
-    implementation("top.yukonga.miuix.kmp:miuix:0.7.2")
+    implementation("top.yukonga.miuix.kmp:miuix:0.8.0-rc06")
+    implementation("top.yukonga.miuix.kmp:miuix-icons:0.8.0-rc06")
     implementation("dev.chrisbanes.haze:haze-materials:1.7.1")
     
     // Storage
@@ -253,6 +254,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
     implementation("com.google.firebase:firebase-crashlytics-ndk")
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.microsoft.clarity:clarity-compose:3.+")
     
     // ML Kit
     implementation("com.google.mlkit:barcode-scanning:17.3.0")

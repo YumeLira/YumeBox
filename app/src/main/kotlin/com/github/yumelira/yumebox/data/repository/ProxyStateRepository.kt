@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 class ProxyStateRepository(
     private val context: Context,
-    private val proxyChainResolver: ProxyChainResolver,
     private val profileIdProvider: () -> String? = { null }
 ) {
 
@@ -98,12 +97,7 @@ class ProxyStateRepository(
                 }
             }.awaitAll().filterNotNull()
 
-            val groupsWithChain = groups.map { group ->
-                val chainPath = if (group.now.isNotEmpty()) proxyChainResolver.buildChainPath(group.now, groups) else emptyList()
-                group.copy(chainPath = chainPath)
-            }
-
-            _proxyGroups.value = groupsWithChain
+            _proxyGroups.value = groups
             Result.success(Unit)
         } catch (_: Exception) {
             Result.failure(Exception("同步失败"))

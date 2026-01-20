@@ -42,7 +42,7 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -179,7 +179,7 @@ private fun LicenseBottomSheet(
     val scrollState = rememberScrollState()
     val licenseContent = remember(library) { library.strippedLicenseContent.takeIf { it.isNotEmpty() } }
 
-    SuperBottomSheet(
+    WindowBottomSheet(
         show = show,
         title = library.name,
         insideMargin = DpSize(32.dp, 16.dp),

@@ -20,8 +20,14 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -78,29 +84,30 @@ fun BottomBar(
         )
     }
 
-    val onItemClick: (Int) -> Unit = { index ->
+    val onItemClick: (Int) -> Unit = onItemClick@{ index ->
+        if (index == pagerState.currentPage && !pagerState.isScrollInProgress) return@onItemClick
         handlePageChange(index)
     }
 
     AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(
-            animationSpec = tween(200, easing = AnimationSpecs.EnterEasing),
+            animationSpec = tween(durationMillis = 200, easing = AnimationSpecs.EnterEasing),
         ) + slideInVertically(
-            initialOffsetY = { (it / 6).toInt() },
-            animationSpec = tween(240, easing = AnimationSpecs.EmphasizedDecelerate),
+            initialOffsetY = { (it / 5f).toInt() },
+            animationSpec = tween(durationMillis = 300, easing = AnimationSpecs.EmphasizedDecelerate),
         ) + scaleIn(
-            initialScale = 0.97f,
-            animationSpec = tween(240, easing = AnimationSpecs.EmphasizedDecelerate),
+            initialScale = 0.98f,
+            animationSpec = tween(durationMillis = 300, easing = AnimationSpecs.EmphasizedDecelerate),
         ),
         exit = fadeOut(
-            animationSpec = tween(160, easing = AnimationSpecs.ExitEasing),
+            animationSpec = tween(durationMillis = 160, easing = AnimationSpecs.ExitEasing),
         ) + slideOutVertically(
-            targetOffsetY = { (it / 8).toInt() },
-            animationSpec = tween(180, easing = AnimationSpecs.EmphasizedAccelerate),
+            targetOffsetY = { (it / 6f).toInt() },
+            animationSpec = tween(durationMillis = 240, easing = AnimationSpecs.EmphasizedAccelerate),
         ) + scaleOut(
-            targetScale = 0.98f,
-            animationSpec = tween(180, easing = AnimationSpecs.ExitEasing),
+            targetScale = 0.99f,
+            animationSpec = tween(durationMillis = 240, easing = AnimationSpecs.EmphasizedAccelerate),
         ),
         label = "BottomBarVisibility"
     ) {

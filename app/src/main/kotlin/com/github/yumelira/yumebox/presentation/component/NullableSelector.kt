@@ -22,7 +22,7 @@ package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.runtime.Composable
 import dev.oom_wg.purejoy.mlang.MLang
-import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 
 @Composable
 fun NullableBooleanSelector(
@@ -39,7 +39,7 @@ fun NullableBooleanSelector(
         false -> 2
     }
 
-    SuperDropdown(
+    WindowDropdown(
         title = title,
         summary = summary,
         items = items,
@@ -67,7 +67,7 @@ fun <T> NullableEnumSelector(
 ) {
     val selectedIndex = values.indexOf(value).coerceAtLeast(0)
 
-    SuperDropdown(
+    WindowDropdown(
         title = title,
         summary = summary,
         items = items,

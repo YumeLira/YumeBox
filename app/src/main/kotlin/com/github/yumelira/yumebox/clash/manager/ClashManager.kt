@@ -13,7 +13,6 @@ import com.github.yumelira.yumebox.core.model.ProxySort
 import com.github.yumelira.yumebox.core.model.TunnelState
 import com.github.yumelira.yumebox.data.model.Profile
 import com.github.yumelira.yumebox.data.model.ProfileType
-import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.repository.ProxyStateRepository
 import com.github.yumelira.yumebox.data.repository.SelectionDao
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
@@ -39,7 +38,6 @@ class ClashManager(
 
     val proxyStateRepository = ProxyStateRepository(
         context = context,
-        proxyChainResolver = ProxyChainResolver(),
         profileIdProvider = { currentProfileId.get() }
     )
 

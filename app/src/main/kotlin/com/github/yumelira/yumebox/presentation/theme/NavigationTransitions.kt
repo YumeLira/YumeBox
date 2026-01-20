@@ -1,16 +1,22 @@
 package com.github.yumelira.yumebox.presentation.theme
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
 
 object NavigationTransitions {
 
-    private const val DURATION_ENTER = 420
-    private const val DURATION_EXIT = 360
-    private const val DURATION_POP_ENTER = 360
-    private const val DURATION_POP_EXIT = 420
+    // Flat "push with fade": old slides away and fades out by halfway; new slides in and fades in early.
+    private const val DURATION = 450
+    private const val FADE_DURATION = DURATION / 2
 
     val defaultStyle = object : NavHostAnimatedDestinationStyle() {
 
@@ -18,31 +24,32 @@ object NavigationTransitions {
             {
                 slideInHorizontally(
                     initialOffsetX = { it },
-                    animationSpec = tween(DURATION_ENTER, easing = AnimationSpecs.EmphasizedDecelerate)
+                    animationSpec = tween(durationMillis = DURATION, easing = AnimationSpecs.StandardEasing)
                 ) + fadeIn(
-                    animationSpec = tween(DURATION_ENTER - 80, easing = AnimationSpecs.EnterEasing),
-                    initialAlpha = 0.5f
+                    animationSpec = tween(durationMillis = FADE_DURATION, easing = LinearEasing),
+                    initialAlpha = 0f
                 )
             }
 
         override val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
             {
                 slideOutHorizontally(
-                    targetOffsetX = { -it * 2 / 5 },
-                    animationSpec = tween(DURATION_EXIT, easing = AnimationSpecs.EmphasizedAccelerate)
+                    targetOffsetX = { -it },
+                    animationSpec = tween(durationMillis = DURATION, easing = AnimationSpecs.StandardEasing)
                 ) + fadeOut(
-                    animationSpec = tween(DURATION_EXIT - 60, easing = AnimationSpecs.ExitEasing)
+                    animationSpec = tween(durationMillis = FADE_DURATION, easing = LinearEasing),
+                    targetAlpha = 0f
                 )
             }
 
         override val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
             {
                 slideInHorizontally(
-                    initialOffsetX = { -it * 2 / 5 },
-                    animationSpec = tween(DURATION_POP_ENTER, easing = AnimationSpecs.EmphasizedDecelerate)
+                    initialOffsetX = { -it },
+                    animationSpec = tween(durationMillis = DURATION, easing = AnimationSpecs.StandardEasing)
                 ) + fadeIn(
-                    animationSpec = tween(DURATION_POP_ENTER - 60, easing = AnimationSpecs.EnterEasing),
-                    initialAlpha = 0.7f
+                    animationSpec = tween(durationMillis = FADE_DURATION, easing = LinearEasing),
+                    initialAlpha = 0f
                 )
             }
 
@@ -50,9 +57,10 @@ object NavigationTransitions {
             {
                 slideOutHorizontally(
                     targetOffsetX = { it },
-                    animationSpec = tween(DURATION_POP_EXIT, easing = AnimationSpecs.EmphasizedAccelerate)
+                    animationSpec = tween(durationMillis = DURATION, easing = AnimationSpecs.StandardEasing)
                 ) + fadeOut(
-                    animationSpec = tween(DURATION_POP_EXIT - 80, easing = AnimationSpecs.ExitEasing)
+                    animationSpec = tween(durationMillis = FADE_DURATION, easing = LinearEasing),
+                    targetAlpha = 0f
                 )
             }
     }

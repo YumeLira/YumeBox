@@ -25,12 +25,25 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.component.ConfirmDialog
+import com.github.yumelira.yumebox.presentation.component.NullableBooleanSelector
+import com.github.yumelira.yumebox.presentation.component.NullableEnumSelector
+import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumelira.yumebox.presentation.component.SmallTitle
+import com.github.yumelira.yumebox.presentation.component.StringListInput
+import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -45,7 +58,7 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Restore
+import top.yukonga.miuix.kmp.icon.extended.Reset
 import java.io.File
 import java.io.FileOutputStream
 
@@ -132,7 +145,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                 actions = {
                     IconButton(
                         modifier = Modifier.padding(end = 24.dp), onClick = { showResetDialog.value = true }) {
-                        Icon(MiuixIcons.Useful.Restore, contentDescription = "刷新")
+                        Icon(MiuixIcons.Reset, contentDescription = "刷新")
                     }
                 },
             )

@@ -30,7 +30,7 @@ import com.ramcosta.composedestinations.generated.destinations.StringListEditorS
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 
 
 @Composable
@@ -49,7 +49,7 @@ fun PortInput(
     )
 
     if (showDialog) {
-        SuperBottomSheet(
+        WindowBottomSheet(
             show = remember(showDialog) { mutableStateOf(true) },
             title = title,
             onDismissRequest = { showDialog = false },
@@ -98,7 +98,7 @@ fun StringInput(
     )
 
     if (showDialog) {
-        SuperBottomSheet(
+        WindowBottomSheet(
             show = remember(showDialog) { mutableStateOf(true) },
             title = title,
             onDismissRequest = { showDialog = false },

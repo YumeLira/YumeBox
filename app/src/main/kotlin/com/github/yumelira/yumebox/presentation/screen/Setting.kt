@@ -2,7 +2,14 @@ package com.github.yumelira.yumebox.presentation.screen
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -21,14 +28,32 @@ import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.BuildConfig
 import com.github.yumelira.yumebox.common.util.DeviceUtil.is32BitDevice
 import com.github.yumelira.yumebox.common.util.toast
-import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.component.Card
+import com.github.yumelira.yumebox.presentation.component.LocalNavigator
+import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
+import com.github.yumelira.yumebox.presentation.component.SmallTitle
+import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.*
+import com.github.yumelira.yumebox.presentation.icon.yume.Atom
+import com.github.yumelira.yumebox.presentation.icon.yume.`Chart-column`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
+import com.github.yumelira.yumebox.presentation.icon.yume.Github
+import com.github.yumelira.yumebox.presentation.icon.yume.Meta
+import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
+import com.github.yumelira.yumebox.presentation.icon.yume.`Settings-2`
+import com.github.yumelira.yumebox.presentation.icon.yume.`Wifi-cog`
 import com.github.yumelira.yumebox.presentation.viewmodel.SettingEvent
 import com.github.yumelira.yumebox.presentation.viewmodel.SettingViewModel
 import com.github.yumelira.yumebox.presentation.webview.WebViewActivity
 import com.github.yumelira.yumebox.substore.SubStoreService
-import com.ramcosta.composedestinations.generated.destinations.*
+import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.FeatureScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.MetaFeatureScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.NetworkSettingsScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.OverrideScreenDestination
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Icon
@@ -37,8 +62,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.other.GitHub
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -127,7 +150,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.UiSettings.App,
                         onClick = { navigator.navigate(AppSettingsScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.`Settings-2`, contentDescription = null
                             )
@@ -136,7 +159,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.UiSettings.Network,
                         onClick = { navigator.navigate(NetworkSettingsScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.`Wifi-cog`, contentDescription = null
                             )
@@ -145,7 +168,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.UiSettings.Override,
                         onClick = { navigator.navigate(OverrideScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.`Git-merge`, contentDescription = null
                             )
@@ -158,7 +181,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                                 launchSingleTop = true
                             }
                         },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.Meta, contentDescription = null
                             )
@@ -173,7 +196,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         title = MLang.Settings.Function.SubStore,
                         onClick = { viewModel.onSubStoreCardClicked(isAllowed = SubStoreService.isRunning) },
                         enabled = !is32BitDevice() && SubStoreService.isRunning,
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.Atom, contentDescription = null
                             )
@@ -184,7 +207,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                         onClick = {
                             navigator.navigate(FeatureScreenDestination) { launchSingleTop = true }
                         },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.Rocket, contentDescription = null
                             )
@@ -200,7 +223,7 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.More.Logs,
                         onClick = { navigator.navigate(LogScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.`Chart-column`, contentDescription = null
                             )
@@ -209,12 +232,12 @@ fun SettingPager(mainInnerPadding: PaddingValues) {
                     SuperArrow(
                         title = MLang.Settings.More.About,
                         onClick = { navigator.navigate(AboutScreenDestination) { launchSingleTop = true } },
-                        leftAction = {
+                        startAction = {
                             CircularIcon(
                                 imageVector = Yume.Github, contentDescription = null
                             )
                         },
-                        rightActions = {
+                        endActions = {
                             VersionBadge(versionInfo)
                         },
                     )

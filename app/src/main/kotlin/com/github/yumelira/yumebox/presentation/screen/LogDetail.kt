@@ -26,8 +26,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -55,9 +68,9 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Cancel
-import top.yukonga.miuix.kmp.icon.icons.useful.Delete
-import top.yukonga.miuix.kmp.icon.icons.useful.Save
+import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
 
@@ -128,7 +141,7 @@ fun LogDetailScreen(
                             modifier = Modifier.padding(end = 24.dp)
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Useful.Cancel,
+                                imageVector = MiuixIcons.Close,
                                 contentDescription = "暂停记录",
                             )
                         }
@@ -140,7 +153,7 @@ fun LogDetailScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Useful.Save,
+                                imageVector = MiuixIcons.Ok,
                                 contentDescription = "保存",
                             )
                         }
@@ -152,7 +165,7 @@ fun LogDetailScreen(
                             modifier = Modifier.padding(end = 24.dp)
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Useful.Delete,
+                                imageVector = MiuixIcons.Delete,
                                 contentDescription = "删除",
                             )
                         }

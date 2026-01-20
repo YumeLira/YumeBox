@@ -27,7 +27,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.presentation.component.Card
@@ -50,12 +56,13 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Cancel
-import top.yukonga.miuix.kmp.icon.icons.useful.Delete
-import top.yukonga.miuix.kmp.icon.icons.useful.Play
+import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Play
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @Composable
 @Destination<RootGraph>
@@ -93,7 +100,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Icon(
-                            imageVector = if (isRecording) MiuixIcons.Useful.Cancel else MiuixIcons.Useful.Play,
+                            imageVector = if (isRecording) MiuixIcons.Close else MiuixIcons.Play,
                             contentDescription = if (isRecording) MLang.Log.Action.StopRecording else MLang.Log.Action.StartRecording,
                         )
                     }
@@ -102,7 +109,7 @@ fun LogScreen(navigator: DestinationsNavigator) {
                         modifier = Modifier.padding(end = 24.dp)
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Useful.Delete,
+                            imageVector = MiuixIcons.Delete,
                             contentDescription = MLang.Log.Action.ClearLogs,
                         )
                     }
@@ -173,7 +180,7 @@ private fun LogFileItem(
     ) {
         SuperArrow(
             title = fileInfo.name, summary = summary, onClick = onClick,
-            rightActions = {
+            startAction = {
                 if (fileInfo.isRecording) {
                     Text(
                         MLang.Log.Status.Recording,

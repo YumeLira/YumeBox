@@ -20,11 +20,9 @@
 
 package com.github.yumelira.yumebox.presentation.screen
 
-import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,12 +35,29 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,10 +79,21 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.SuperBottomSheet
-import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.extra.SuperSwitch
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -178,7 +204,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            SuperBottomSheet(
+            WindowBottomSheet(
                 show = showSettingsSheet,
                 title = "访问控制设置",
                 onDismissRequest = { showSettingsSheet.value = false },
@@ -210,7 +236,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     top.yukonga.miuix.kmp.basic.Card {
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "排序方式",
                             summary = "当前：${uiState.sortMode.displayName}",
                             items = AccessControlViewModel.SortMode.entries.map { it.displayName },
@@ -222,7 +248,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     ?.let { viewModel.onSortModeChange(it) }
                             }
                         )
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "批量操作",
                             items = listOf("全选", "全不选", "反选"),
                             selectedIndex = 0,
@@ -234,7 +260,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                 }
                             }
                         )
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "导入/导出",
                             items = listOf("从剪贴板导入", "导出到剪贴板"),
                             selectedIndex = 0,
@@ -365,7 +391,7 @@ private fun ExpandedSearchOverlay(
                     BasicComponent(
                         title = app.label,
                         summary = app.packageName,
-                        leftAction = {
+                        startAction = {
                             app.icon?.let { icon ->
                                 Image(
                                     bitmap = icon.toBitmap(width = 80, height = 80).asImageBitmap(),
@@ -374,7 +400,7 @@ private fun ExpandedSearchOverlay(
                                 )
                             }
                         },
-                        rightActions = {
+                        endActions = {
                             Checkbox(
                                 checked = app.isSelected,
                                 onCheckedChange = { checked ->
@@ -402,7 +428,7 @@ private fun AppCard(
         BasicComponent(
             title = app.label,
             summary = app.packageName,
-            leftAction = {
+            startAction = {
                 app.icon?.let { icon ->
                     Image(
                         bitmap = icon.toBitmap(width = 80, height = 80).asImageBitmap(),
@@ -413,7 +439,7 @@ private fun AppCard(
                     )
                 }
             },
-            rightActions = {
+            endActions = {
                 Checkbox(
                     checked = app.isSelected,
                     onCheckedChange = onSelectionChange
