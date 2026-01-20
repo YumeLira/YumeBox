@@ -28,24 +28,36 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.github.yumelira.yumebox.common.util.IntentController
-import com.github.yumelira.yumebox.presentation.component.*
+import com.github.yumelira.yumebox.presentation.component.BottomBar
+import com.github.yumelira.yumebox.presentation.component.LocalHandlePageChange
+import com.github.yumelira.yumebox.presentation.component.LocalNavigator
+import com.github.yumelira.yumebox.presentation.component.LocalPagerState
+import com.github.yumelira.yumebox.presentation.component.rememberBottomBarScrollBehavior
 import com.github.yumelira.yumebox.presentation.screen.HomePager
 import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
 import com.github.yumelira.yumebox.presentation.screen.ProxyPager
 import com.github.yumelira.yumebox.presentation.screen.SettingPager
+import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
@@ -59,6 +71,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,6 +81,7 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
 
@@ -193,19 +207,33 @@ fun MainScreen(navigator: DestinationsNavigator) {
         )
     }
 
-    val pagerClickAnimationSpec = remember {
-        tween<Float>(
-            durationMillis = 380,
-            easing = com.github.yumelira.yumebox.presentation.theme.AnimationSpecs.EmphasizedDecelerate
-        )
+    val pagerClickAnimationSpec: (Int, Int) -> androidx.compose.animation.core.AnimationSpec<Float> = remember {
+        { fromPage: Int, toPage: Int ->
+            val distance = abs(fromPage - toPage)
+            val durationMillis = when (distance) {
+                0 -> AnimationSpecs.DURATION_INSTANT
+                1 -> AnimationSpecs.DURATION_STANDARD
+                else -> (AnimationSpecs.DURATION_FAST + (distance - 1) * 60).coerceAtMost(AnimationSpecs.DURATION_SLOW)
+            }
+            tween<Float>(
+                durationMillis = durationMillis,
+                easing = AnimationSpecs.EmphasizedDecelerate
+            )
+        }
     }
+
+    var pageChangeJob by remember { mutableStateOf<Job?>(null) }
 
     val handlePageChange: (Int) -> Unit = remember(pagerState, coroutineScope, pagerClickAnimationSpec) {
         { page ->
-            coroutineScope.launch {
+            if (page == pagerState.currentPage && !pagerState.isScrollInProgress) return@remember
+
+            pageChangeJob?.cancel()
+            pageChangeJob = coroutineScope.launch {
+                val fromPage = if (pagerState.isScrollInProgress) pagerState.targetPage else pagerState.currentPage
                 pagerState.animateScrollToPage(
                     page = page,
-                    animationSpec = pagerClickAnimationSpec
+                    animationSpec = pagerClickAnimationSpec(fromPage, page)
                 )
             }
         }
@@ -213,12 +241,7 @@ fun MainScreen(navigator: DestinationsNavigator) {
 
     BackHandler {
         if (pagerState.currentPage != 0) {
-            coroutineScope.launch {
-                pagerState.animateScrollToPage(
-                    page = 0,
-                    animationSpec = pagerClickAnimationSpec
-                )
-            }
+            handlePageChange(0)
         } else {
             activity?.finish()
         }
