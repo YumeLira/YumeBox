@@ -37,7 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 
 @Composable
@@ -155,7 +155,7 @@ fun FeatureScreen(
 
                 SmallTitle(MLang.Feature.Panel.Section)
                 Card {
-                    SuperDropdown(
+                    WindowDropdown(
                         title = MLang.Feature.Panel.SelectPanel,
                         summary = "$currentPanelName - $statusText",
                         items = panelDisplayNames,

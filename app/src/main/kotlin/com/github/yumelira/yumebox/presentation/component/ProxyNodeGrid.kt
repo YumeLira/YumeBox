@@ -36,7 +36,9 @@ fun ProxyNodeGrid(
     proxies: List<Proxy>,
     selectedProxyName: String,
     displayMode: ProxyDisplayMode,
-    onProxyClick: (Proxy) -> Unit,
+    onProxyClick: ((Proxy) -> Unit)? = null,
+    onProxyDelayClick: ((Proxy) -> Unit)? = null,
+    isDelayTesting: Boolean = false,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -45,24 +47,23 @@ fun ProxyNodeGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier,
-        contentPadding = PaddingValues(
-            start = 12.dp,
-            end = 12.dp,
-            top = 12.dp + contentPadding.calculateTopPadding(),
-            bottom = 12.dp + contentPadding.calculateBottomPadding()
-        ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        contentPadding = contentPadding,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(proxies) { proxy ->
+        items(
+            items = proxies,
+            key = { it.name },
+        ) { proxy ->
             ProxyNodeCard(
                 proxy = proxy,
                 isSelected = proxy.name == selectedProxyName,
-                onClick = { onProxyClick(proxy) },
+                onClick = onProxyClick?.let { { it(proxy) } },
                 isSingleColumn = displayMode.isSingleColumn,
-                showDetail = displayMode.showDetail
+                showDetail = displayMode.showDetail,
+                onDelayClick = onProxyDelayClick?.let { { it(proxy) } },
+                isDelayTesting = isDelayTesting,
             )
         }
     }
 }
-

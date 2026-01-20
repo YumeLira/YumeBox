@@ -20,110 +20,233 @@
 
 package com.github.yumelira.yumebox.presentation.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.ScrollableDefaults
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
-import kotlinx.coroutines.launch
+import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-@Composable
-fun ProxyGroupTabs(
+fun LazyListScope.proxyGroupGridItems(
     groups: List<ProxyGroupInfo>,
-    selectedIndex: Int,
-    onTabSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    displayMode: ProxyDisplayMode,
+    onGroupClick: (ProxyGroupInfo) -> Unit,
+    onGroupDelayClick: (ProxyGroupInfo) -> Unit,
+    testingGroupNames: Set<String> = emptySet(),
 ) {
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
+    val columns = if (displayMode.isSingleColumn) 1 else 2
+    val showDetail = displayMode.showDetail
 
-    val tabPositions = remember { mutableStateMapOf<Int, Pair<Float, Float>>() }
-
-    LaunchedEffect(selectedIndex, groups.size) {
-        if (selectedIndex in groups.indices && tabPositions.containsKey(selectedIndex)) {
-            val (tabPosition, tabWidth) = tabPositions[selectedIndex]!!
-            val viewportWidth = scrollState.viewportSize.toFloat()
-
-            val targetScroll = (tabPosition + tabWidth / 2 - viewportWidth / 2)
-                .coerceIn(0f, scrollState.maxValue.toFloat())
-
-            coroutineScope.launch {
-                scrollState.animateScrollTo(targetScroll.toInt())
-            }
-        }
-    }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface)
-            .horizontalScroll(
-                state = scrollState,
-                flingBehavior = ScrollableDefaults.flingBehavior()
+    if (columns == 1) {
+        items(
+            count = groups.size,
+            key = { index -> "group_${groups[index].name}_$index" },
+        ) { index ->
+            val group = groups[index]
+            ProxyGroupCard(
+                group = group,
+                showDetail = showDetail,
+                isSingleColumn = true,
+                isDelayTesting = testingGroupNames.contains(group.name),
+                onClick = { onGroupClick(group) },
+                onDelayClick = { onGroupDelayClick(group) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
             )
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        groups.forEachIndexed { index, group ->
-            ProxyGroupTab(
-                text = group.name,
-                isSelected = index == selectedIndex,
-                onClick = { onTabSelected(index) },
-                modifier = Modifier.onGloballyPositioned { coordinates ->
-                    tabPositions[index] = Pair(
-                        coordinates.positionInParent().x,
-                        coordinates.size.width.toFloat()
+        }
+    } else {
+        val rowCount = (groups.size + 1) / 2
+        items(
+            count = rowCount,
+            key = { rowIndex ->
+                val startIndex = rowIndex * 2
+                val first = groups.getOrNull(startIndex)?.name.orEmpty()
+                val second = groups.getOrNull(startIndex + 1)?.name.orEmpty()
+                "group_${first}_${second}_$rowIndex"
+            },
+        ) { rowIndex ->
+            val startIndex = rowIndex * 2
+            val firstGroup = groups[startIndex]
+            val secondGroup = groups.getOrNull(startIndex + 1)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    ProxyGroupCard(
+                        group = firstGroup,
+                        showDetail = showDetail,
+                        isSingleColumn = false,
+                        isDelayTesting = testingGroupNames.contains(firstGroup.name),
+                        onClick = { onGroupClick(firstGroup) },
+                        onDelayClick = { onGroupDelayClick(firstGroup) },
                     )
                 }
-            )
+
+                if (secondGroup != null) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ProxyGroupCard(
+                            group = secondGroup,
+                            showDetail = showDetail,
+                            isSingleColumn = false,
+                            isDelayTesting = testingGroupNames.contains(secondGroup.name),
+                            onClick = { onGroupClick(secondGroup) },
+                            onDelayClick = { onGroupDelayClick(secondGroup) },
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ProxyGroupTab(
-    text: String,
-    isSelected: Boolean,
+private fun ProxyGroupCard(
+    group: ProxyGroupInfo,
+    showDetail: Boolean,
+    isSingleColumn: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onDelayClick: () -> Unit,
+    isDelayTesting: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = if (isSelected) {
-        MiuixTheme.colorScheme.primary
-    } else {
-        MiuixTheme.colorScheme.surface
+    val summary = group.now.ifBlank { MLang.Proxy.Mode.Direct }
+    val proxiesState = rememberUpdatedState(group.proxies)
+    val nowState = rememberUpdatedState(group.now)
+    val selectedDelay: Int? by remember {
+        derivedStateOf { proxiesState.value.firstOrNull { it.name == nowState.value }?.delay }
     }
+    val delay = selectedDelay
 
-    val textColor = if (isSelected) {
-        MiuixTheme.colorScheme.onPrimary
-    } else {
-        MiuixTheme.colorScheme.onSurface
-    }
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
+    ProxySelectableCard(
+        isSelected = false,
+        onClick = onClick,
+        modifier = modifier,
     ) {
-        Text(
-            text = text,
-            style = MiuixTheme.textStyles.body2,
-            color = textColor,
-            maxLines = 1
-        )
+        if (isSingleColumn) {
+            if (showDetail) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = group.name,
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.height(ProxyCardDefaults.TextSpacing))
+                        Text(
+                            text = summary,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (delay != null) {
+                            DelayPill(
+                                delay = delay,
+                                onClick = onDelayClick,
+                                isLoading = isDelayTesting,
+                                textStyle = MiuixTheme.textStyles.body2,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = group.name,
+                        style = MiuixTheme.textStyles.body1,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (delay != null) DelayPill(delay = delay, onClick = null, textStyle = MiuixTheme.textStyles.body2)
+                }
+            }
+        } else {
+            if (showDetail) {
+                Column(verticalArrangement = Arrangement.spacedBy(ProxyCardDefaults.TextSpacing)) {
+                    Text(
+                        text = group.name,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = summary,
+                            style = MiuixTheme.textStyles.footnote1,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (delay != null) {
+                            DelayPill(
+                                delay = delay,
+                                onClick = onDelayClick,
+                                isLoading = isDelayTesting,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = group.name,
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (delay != null) DelayPill(delay = delay, onClick = onDelayClick, isLoading = isDelayTesting)
+                }
+            }
+        }
     }
 }

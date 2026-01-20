@@ -276,7 +276,7 @@ private fun ProviderCard(
                     val items = listOf("更新", "上传")
                     var selectedIndex by remember { mutableStateOf(0) }
 
-                    WindowListPopup(
+                    WindowListPopup  (
                         show = showPopup,
                         popupPositionProvider = ListPopupDefaults.DropdownPositionProvider,
                         alignment = PopupPositionProvider.Align.End,

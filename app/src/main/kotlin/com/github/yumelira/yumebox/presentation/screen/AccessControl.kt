@@ -91,7 +91,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -236,7 +236,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     top.yukonga.miuix.kmp.basic.Card {
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "排序方式",
                             summary = "当前：${uiState.sortMode.displayName}",
                             items = AccessControlViewModel.SortMode.entries.map { it.displayName },
@@ -248,7 +248,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     ?.let { viewModel.onSortModeChange(it) }
                             }
                         )
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "批量操作",
                             items = listOf("全选", "全不选", "反选"),
                             selectedIndex = 0,
@@ -260,7 +260,7 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                 }
                             }
                         )
-                        SuperDropdown(
+                        WindowDropdown(
                             title = "导入/导出",
                             items = listOf("从剪贴板导入", "导出到剪贴板"),
                             selectedIndex = 0,

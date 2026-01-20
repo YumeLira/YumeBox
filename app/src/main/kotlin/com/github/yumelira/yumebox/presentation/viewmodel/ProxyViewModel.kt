@@ -24,6 +24,9 @@ class ProxyViewModel(
     private val _uiState = MutableStateFlow(ProxyUiState())
     val uiState: StateFlow<ProxyUiState> = _uiState.asStateFlow()
 
+    private val _testingGroupNames = MutableStateFlow<Set<String>>(emptySet())
+    val testingGroupNames: StateFlow<Set<String>> = _testingGroupNames.asStateFlow()
+
     val currentMode: StateFlow<TunnelState.Mode> = proxyDisplaySettingsStore.proxyMode.state
         .stateIn(viewModelScope, SharingStarted.Eagerly, TunnelState.Mode.Rule)
 
@@ -86,6 +89,7 @@ class ProxyViewModel(
                 clearError()
 
                 if (groupName != null) {
+                    _testingGroupNames.update { it + groupName }
                     showMessage(MLang.Proxy.Testing.Group.format(groupName))
                     val result = clashManager.healthCheck(groupName)
                     if (result.isSuccess) {
@@ -104,11 +108,13 @@ class ProxyViewModel(
                 Timber.e(e, "延迟测试异常")
                 showError(MLang.Proxy.Testing.Failed.format(e.message))
             } finally {
+                if (groupName != null) {
+                    _testingGroupNames.update { it - groupName }
+                }
                 setLoading(false)
             }
         }
     }
-
 
     fun setSelectedGroup(index: Int) {
         val groups = proxyGroups.value
