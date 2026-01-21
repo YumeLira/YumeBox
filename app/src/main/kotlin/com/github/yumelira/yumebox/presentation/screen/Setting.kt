@@ -37,6 +37,7 @@ import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.combinePaddingValues
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Atom
+import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
 import com.github.yumelira.yumebox.presentation.icon.yume.`Chart-column`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Git-merge`
 import com.github.yumelira.yumebox.presentation.icon.yume.Github
