@@ -22,12 +22,15 @@ package com.github.yumelira.yumebox.presentation.screen.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.yumelira.yumebox.presentation.component.CountryFlagCircle
+import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -55,13 +58,26 @@ fun NodeInfoDisplay(
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = serverName ?: "Not Selected",
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            val flagged = remember(serverName) {
+                serverName?.let(::extractFlaggedName)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                val countryCode = flagged?.countryCode
+                if (countryCode != null) {
+                    CountryFlagCircle(countryCode = countryCode, size = 18.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = flagged?.displayName ?: (serverName ?: "Not Selected"),
+                    style = MiuixTheme.textStyles.body1,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -85,7 +101,7 @@ private fun PingValue(ping: Int?) {
             Color(0xFFFFA726)
         }
         Text(
-            text = "$ping",
+            text = "${ping}ms",
             style = MiuixTheme.textStyles.body1,
             color = color
         )

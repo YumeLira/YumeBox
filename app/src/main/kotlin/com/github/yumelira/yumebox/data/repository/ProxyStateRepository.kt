@@ -90,7 +90,13 @@ class ProxyStateRepository(
                 async {
                     try {
                         val group = Clash.queryGroup(name, ProxySort.Default)
-                        ProxyGroupInfo(name = name, type = group.type, proxies = group.proxies, now = group.now)
+                        ProxyGroupInfo(
+                            name = name,
+                            type = group.type,
+                            proxies = group.proxies,
+                            now = group.now,
+                            icon = group.icon,
+                        )
                     } catch (_: Exception) {
                         null
                     }

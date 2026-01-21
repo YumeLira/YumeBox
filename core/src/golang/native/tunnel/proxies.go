@@ -32,6 +32,7 @@ type Proxy struct {
 type ProxyGroup struct {
 	Type    string   `json:"type"`
 	Now     string   `json:"now"`
+	Icon    string   `json:"icon,omitempty"`
 	Proxies []*Proxy `json:"proxies"`
 }
 
@@ -123,7 +124,23 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 	return &ProxyGroup{
 		Type:    g.Type().String(),
 		Now:     g.Now(),
+		Icon:    proxyGroupIcon(g),
 		Proxies: proxies,
+	}
+}
+
+func proxyGroupIcon(group outboundgroup.ProxyGroup) string {
+	switch g := group.(type) {
+	case *outboundgroup.Selector:
+		return g.Icon
+	case *outboundgroup.URLTest:
+		return g.Icon
+	case *outboundgroup.LoadBalance:
+		return g.Icon
+	case *outboundgroup.Fallback:
+		return g.Icon
+	default:
+		return ""
 	}
 }
 

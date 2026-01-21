@@ -68,3 +68,5 @@ Thumbs.db
 /app/google-services.json
 /desktop.ini
 /app/src/main/assets/ASN.mmdb
+/.gradle-user-home/
+/.android-user-home/

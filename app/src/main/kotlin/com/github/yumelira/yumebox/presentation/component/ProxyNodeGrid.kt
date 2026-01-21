@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
@@ -38,15 +37,13 @@ fun ProxyNodeGrid(
     selectedProxyName: String,
     displayMode: ProxyDisplayMode,
     onProxyClick: ((Proxy) -> Unit)? = null,
-    onProxyDelayClick: ((Proxy) -> Unit)? = null,
     isDelayTesting: Boolean = false,
+    onDelayTestClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val columns = if (displayMode.isSingleColumn) 1 else 2
-
-    val rememberedOnProxyClick = remember(onProxyClick) { onProxyClick }
-    val rememberedOnProxyDelayClick = remember(onProxyDelayClick) { onProxyDelayClick }
+    val showDetail = displayMode.showDetail
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
@@ -63,11 +60,11 @@ fun ProxyNodeGrid(
             ProxyNodeCard(
                 proxy = proxy,
                 isSelected = proxy.name == selectedProxyName,
-                onClick = rememberedOnProxyClick?.let { { it(proxy) } },
+                onClick = onProxyClick?.let { { it(proxy) } },
                 isSingleColumn = displayMode.isSingleColumn,
-                showDetail = displayMode.showDetail,
-                onDelayClick = rememberedOnProxyDelayClick?.let { { it(proxy) } },
+                showDetail = showDetail,
                 isDelayTesting = isDelayTesting,
+                onDelayTestClick = onDelayTestClick,
             )
         }
     }

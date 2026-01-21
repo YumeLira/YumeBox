@@ -28,7 +28,7 @@ plugins {
 }
 
 dependencies {
-    implementation("com.caoccao.javet:javet-node-android:5.0.2")
+    implementation("com.caoccao.javet:javet-node-android:5.0.3")
 }
 
 val extensionJvmTarget = gropify.project.jvm.toString()

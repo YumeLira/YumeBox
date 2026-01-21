@@ -1,7 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.MergeSourceSetFolders
-import org.gradle.api.provider.MapProperty
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -273,6 +272,10 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     implementation("io.coil-kt.coil3:coil-svg:3.3.0")
+    implementation("io.github.panpf.sketch4:sketch-compose-android:4.3.1")
+    implementation("io.github.panpf.sketch4:sketch-http-android:4.3.1")
+    implementation("io.github.panpf.sketch4:sketch-animated-gif-android:4.3.1")
+    implementation("io.github.panpf.sketch4:sketch-animated-webp-android:4.3.1")
 
     // About Libraries
     implementation("com.mikepenz:aboutlibraries-core:13.2.1")

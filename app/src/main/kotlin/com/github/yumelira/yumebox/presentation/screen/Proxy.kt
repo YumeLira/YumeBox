@@ -67,8 +67,8 @@ import com.github.yumelira.yumebox.presentation.component.ProxyNodeGrid
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.proxyGroupGridItems
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Activity
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
+import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
 import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
 import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
 import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
@@ -225,7 +225,7 @@ fun ProxyPager(
             endAction = {
                 val group = sheetGroup ?: return@WindowBottomSheet
                 IconButton(onClick = { proxyViewModel.testDelay(group.name) }) {
-                    Icon(Yume.Activity, contentDescription = MLang.Proxy.Action.Test)
+                    Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
                 }
             },
             onDismissRequest = { showGroupBottomSheet.value = false },
@@ -235,12 +235,12 @@ fun ProxyPager(
             ProxyGroupSelectorContent(
                 group = group,
                 displayMode = displayMode,
-                isGroupTesting = testingGroupNames.contains(group.name),
-                onGroupDelayClick = { proxyViewModel.testDelay(group.name) },
                 onSelectProxy = { proxyName ->
                     proxyViewModel.selectProxy(group.name, proxyName)
                     showGroupBottomSheet.value = false
                 },
+                isDelayTesting = testingGroupNames.contains(group.name),
+                onTestDelay = { proxyViewModel.testDelay(group.name) },
             )
         }
     }
@@ -290,7 +290,7 @@ private fun ProxyTopBar(
                     onTestDelay?.invoke()
                 }
             ) {
-                Icon(Yume.Activity, contentDescription = MLang.Proxy.Action.Test)
+                Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
             }
 
             IconButton(
@@ -342,18 +342,18 @@ private fun ProxyContent(
 private fun ProxyGroupSelectorContent(
     group: ProxyGroupInfo,
     displayMode: ProxyDisplayMode,
-    isGroupTesting: Boolean,
-    onGroupDelayClick: () -> Unit,
     onSelectProxy: (String) -> Unit,
+    isDelayTesting: Boolean,
+    onTestDelay: () -> Unit,
 ) {
     val groupName = group.name
     val isSelectable = group.type == Proxy.Type.Selector
 
-    val onProxyClick = remember(groupName, isSelectable, onSelectProxy) {
+    val onProxyClick: (String) -> Unit = remember(groupName, isSelectable, onSelectProxy, onTestDelay) {
         if (isSelectable) {
             { proxyName: String -> onSelectProxy(proxyName) }
         } else {
-            null
+            { _: String -> onTestDelay() }
         }
     }
 
@@ -369,12 +369,8 @@ private fun ProxyGroupSelectorContent(
     )
 
     LaunchedEffect(shouldShowLoading) {
-        if (shouldShowLoading) {
-            delay(450)
-            showContent = true
-        } else {
-            showContent = true
-        }
+        if (shouldShowLoading) delay(450)
+        showContent = true
     }
 
     val contentPadding = remember {
@@ -412,13 +408,9 @@ private fun ProxyGroupSelectorContent(
                     proxies = group.proxies,
                     selectedProxyName = group.now,
                     displayMode = displayMode,
-                    onProxyClick = if (onProxyClick != null) {
-                        { proxy: Proxy -> onProxyClick(proxy.name) }
-                    } else {
-                        null
-                    },
-                    onProxyDelayClick = { onGroupDelayClick() },
-                    isDelayTesting = isGroupTesting,
+                    onProxyClick = { proxy: Proxy -> onProxyClick(proxy.name) },
+                    isDelayTesting = isDelayTesting,
+                    onDelayTestClick = onTestDelay,
                     contentPadding = contentPadding,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -433,13 +425,19 @@ private fun ProxySettingsContent(
     onDismiss: () -> Unit
 ) {
     val currentMode by proxyViewModel.currentMode.collectAsState()
-    val sortMode by proxyViewModel.sortMode.collectAsState()
     val displayMode by proxyViewModel.displayMode.collectAsState()
 
     val modeTabs = remember { listOf(MLang.Proxy.Mode.Rule, MLang.Proxy.Mode.Global, MLang.Proxy.Mode.Direct) }
     val modeValues = remember { listOf(TunnelState.Mode.Rule, TunnelState.Mode.Global, TunnelState.Mode.Direct) }
-    val sortTabs = remember { ProxySortMode.entries.map { it.displayName } }
-    val displayTabs = remember { ProxyDisplayMode.entries.map { it.displayName } }
+    val displayModes = remember { listOf(ProxyDisplayMode.SINGLE_DETAILED, ProxyDisplayMode.DOUBLE_DETAILED) }
+    val displayTabs = remember { displayModes.map { it.displayName } }
+    val selectedDisplayMode = remember(displayMode) {
+        when (displayMode) {
+            ProxyDisplayMode.SINGLE_SIMPLE -> ProxyDisplayMode.SINGLE_DETAILED
+            ProxyDisplayMode.DOUBLE_SIMPLE -> ProxyDisplayMode.DOUBLE_DETAILED
+            else -> displayMode
+        }
+    }
 
     Column {
         Text(
@@ -460,33 +458,16 @@ private fun ProxySettingsContent(
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = MLang.Proxy.Settings.SortMode,
-            style = MiuixTheme.textStyles.subtitle,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        TabRowWithContour(
-            tabs = sortTabs,
-            selectedTabIndex = sortMode.ordinal,
-            onTabSelected = { index ->
-                if (index < ProxySortMode.entries.size) {
-                    proxyViewModel.setSortMode(ProxySortMode.entries[index])
-                }
-            }
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
             text = MLang.Proxy.Settings.DisplayMode,
             style = MiuixTheme.textStyles.subtitle,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         TabRowWithContour(
             tabs = displayTabs,
-            selectedTabIndex = displayMode.ordinal,
+            selectedTabIndex = displayModes.indexOf(selectedDisplayMode).coerceAtLeast(0),
             onTabSelected = { index ->
-                if (index < ProxyDisplayMode.entries.size) {
-                    proxyViewModel.setDisplayMode(ProxyDisplayMode.entries[index])
+                if (index < displayModes.size) {
+                    proxyViewModel.setDisplayMode(displayModes[index])
                 }
             }
         )
