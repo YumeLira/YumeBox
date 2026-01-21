@@ -67,7 +67,7 @@ import com.github.yumelira.yumebox.presentation.component.ProxyNodeGrid
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.proxyGroupGridItems
 import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.Activity
+import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
 import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
 import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
