@@ -225,7 +225,7 @@ fun ProxyPager(
             endAction = {
                 val group = sheetGroup ?: return@WindowBottomSheet
                 IconButton(onClick = { proxyViewModel.testDelay(group.name) }) {
-                    Icon(Yume.Activity, contentDescription = MLang.Proxy.Action.Test)
+                    Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
                 }
             },
             onDismissRequest = { showGroupBottomSheet.value = false },
@@ -290,7 +290,7 @@ private fun ProxyTopBar(
                     onTestDelay?.invoke()
                 }
             ) {
-                Icon(Yume.Activity, contentDescription = MLang.Proxy.Action.Test)
+                Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
             }
 
             IconButton(
