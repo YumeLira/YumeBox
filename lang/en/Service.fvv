@@ -6,6 +6,7 @@ Service = {
         ConnectedWithProfile = "Connected: %s"
         Connected = "Connected"
         TrafficFormat = "Total: %s"
+        UnknownProfile = "Unknown profile"
     }
     
     Status = {
@@ -13,9 +14,11 @@ Service = {
         Establishing = "Establishing connection"
         StartingProxy = "Starting proxy"
         StartFailed = "Start failed"
+        ProfileNotFound = "Profile not found"
         ConfigLoadFailed = "Config load failed"
         VpnEstablishFailed = "Unable to establish VPN connection"
         HttpProxyStartFailed = "Unable to start HTTP proxy"
+        TunStartFailed = "Failed to start TUN"
         UnknownError = "Unknown error"
     }
     
@@ -36,5 +39,11 @@ Service = {
         Recording = "Recording logs"
         RecordingFile = "Recording logs..."
         ActionStop = "Stop"
+    }
+
+    AutoRestart = {
+        ChannelName = "Auto Restart Service"
+        ChannelDescription = "Used to restart proxy service automatically"
+        Checking = "Checking auto-start..."
     }
 }

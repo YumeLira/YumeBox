@@ -21,33 +21,12 @@
 package com.github.yumelira.yumebox.presentation.screen
 
 import android.content.Context
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -67,11 +46,10 @@ import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.component.proxyGroupGridItems
 import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.`List-chevrons-up-down`
-import com.github.yumelira.yumebox.presentation.icon.yume.Rocket
+import com.github.yumelira.yumebox.presentation.icon.yume.Speed
 import com.github.yumelira.yumebox.presentation.icon.yume.`Squares-exclude`
 import com.github.yumelira.yumebox.presentation.icon.yume.Zashboard
 import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
-import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import com.github.yumelira.yumebox.presentation.viewmodel.ProxyViewModel
 import com.github.yumelira.yumebox.presentation.webview.WebViewActivity
 import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
@@ -79,20 +57,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.DropdownImpl
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
-import top.yukonga.miuix.kmp.basic.ListPopupDefaults
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.PopupPositionProvider
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
-import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
 import top.yukonga.miuix.kmp.extra.WindowListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -101,12 +66,10 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun ProxyPager(
-    mainInnerPadding: PaddingValues,
-    navigator: DestinationsNavigator
+    mainInnerPadding: PaddingValues, navigator: DestinationsNavigator
 ) {
     val context = LocalContext.current
     val proxyViewModel = koinViewModel<ProxyViewModel>()
-    koinViewModel<HomeViewModel>()
     val featureViewModel = koinViewModel<FeatureViewModel>()
 
     val proxyGroups by proxyViewModel.sortedProxyGroups.collectAsState()
@@ -129,15 +92,12 @@ fun ProxyPager(
                 selectedPanelType = selectedPanelType,
                 onNavigateToProviders = { navigator.navigate(ProvidersScreenDestination) { launchSingleTop = true } },
                 onTestDelay = onTestDelay,
-                onShowSettings = { showSettingsBottomSheet.value = true }
-            )
-        }
-    ) { innerPadding ->
+                onShowSettings = { showSettingsBottomSheet.value = true })
+        }) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             if (proxyGroups.isEmpty()) {
                 CenteredText(
-                    firstLine = MLang.Proxy.Empty.NoNodes,
-                    secondLine = MLang.Proxy.Empty.Hint
+                    firstLine = MLang.Proxy.Empty.NoNodes, secondLine = MLang.Proxy.Empty.Hint
                 )
             } else {
                 ProxyContent(
@@ -165,9 +125,7 @@ fun ProxyPager(
             insideMargin = DpSize(32.dp, 16.dp),
         ) {
             ProxySettingsContent(
-                proxyViewModel = proxyViewModel,
-                onDismiss = { showSettingsBottomSheet.value = false }
-            )
+                proxyViewModel = proxyViewModel, onDismiss = { showSettingsBottomSheet.value = false })
         }
 
         val proxyGroupsState = rememberUpdatedState(proxyGroups)
@@ -202,8 +160,7 @@ fun ProxyPager(
                     show = showPopup,
                     popupPositionProvider = ListPopupDefaults.DropdownPositionProvider,
                     alignment = PopupPositionProvider.Align.Start,
-                    onDismissRequest = { showPopup.value = false }
-                ) {
+                    onDismissRequest = { showPopup.value = false }) {
                     ListPopupColumn {
                         modes.forEachIndexed { index, mode ->
                             DropdownImpl(
@@ -224,7 +181,7 @@ fun ProxyPager(
             endAction = {
                 val group = sheetGroup ?: return@WindowBottomSheet
                 IconButton(onClick = { proxyViewModel.testDelay(group.name) }) {
-                    Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
+                    Icon(Yume.Speed, contentDescription = MLang.Proxy.Action.Test)
                 }
             },
             onDismissRequest = { showGroupBottomSheet.value = false },
@@ -254,52 +211,42 @@ private fun ProxyTopBar(
     onTestDelay: (() -> Unit)?,
     onShowSettings: () -> Unit
 ) {
-    TopBar(
-        title = MLang.Proxy.Title,
-        scrollBehavior = scrollBehavior,
-        navigationIcon = {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                IconButton(
-                    modifier = Modifier.padding(start = 24.dp),
-                    onClick = onNavigateToProviders
-                ) {
-                    Icon(Yume.`Squares-exclude`, contentDescription = MLang.Proxy.Action.ExternalResources)
-                }
-
-                IconButton(
-                    onClick = {
-                        val panelUrl = getPanelUrl(context, selectedPanelType)
-                        val webViewUrl = panelUrl.ifEmpty {
-                            val localUrl = getLocalBaseUrl(context)
-                            if (localUrl.isNotEmpty()) localUrl + "index.html" else ""
-                        }
-                        if (webViewUrl.isNotEmpty()) {
-                            WebViewActivity.start(context, webViewUrl)
-                        }
-                    }
-                ) {
-                    Icon(Yume.Zashboard, contentDescription = MLang.Proxy.Action.Panel)
-                }
-            }
-        },
-        actions = {
+    TopBar(title = MLang.Proxy.Title, scrollBehavior = scrollBehavior, navigationIcon = {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             IconButton(
-                modifier = Modifier.padding(end = 16.dp),
+                modifier = Modifier.padding(start = 24.dp), onClick = onNavigateToProviders
+            ) {
+                Icon(Yume.`Squares-exclude`, contentDescription = MLang.Proxy.Action.ExternalResources)
+            }
+
+            IconButton(
                 onClick = {
-                    onTestDelay?.invoke()
-                }
-            ) {
-                Icon(Yume.Rocket, contentDescription = MLang.Proxy.Action.Test)
-            }
-
-            IconButton(
-                modifier = Modifier.padding(end = 24.dp),
-                onClick = onShowSettings
-            ) {
-                Icon(Yume.`List-chevrons-up-down`, contentDescription = MLang.Proxy.Action.Settings)
+                    val panelUrl = getPanelUrl(context, selectedPanelType)
+                    val webViewUrl = panelUrl.ifEmpty {
+                        val localUrl = getLocalBaseUrl(context)
+                        if (localUrl.isNotEmpty()) localUrl + "index.html" else ""
+                    }
+                    if (webViewUrl.isNotEmpty()) {
+                        WebViewActivity.start(context, webViewUrl)
+                    }
+                }) {
+                Icon(Yume.Zashboard, contentDescription = MLang.Proxy.Action.Panel)
             }
         }
-    )
+    }, actions = {
+        IconButton(
+            modifier = Modifier.padding(end = 16.dp), onClick = {
+                onTestDelay?.invoke()
+            }) {
+            Icon(Yume.Speed, contentDescription = MLang.Proxy.Action.Test)
+        }
+
+        IconButton(
+            modifier = Modifier.padding(end = 24.dp), onClick = onShowSettings
+        ) {
+            Icon(Yume.`List-chevrons-up-down`, contentDescription = MLang.Proxy.Action.Settings)
+        }
+    })
 }
 
 @Composable
@@ -377,24 +324,19 @@ private fun ProxyGroupSelectorContent(
     val maxSheetHeight = (screenHeight * 0.72f).coerceAtLeast(420.dp).coerceAtMost(620.dp)
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .let { base ->
-                // IMPORTANT: 当需要显示 loading 时，固定到最终高度，避免 loading->内容切换时“往上顶一下”。
-                // 在 Dialog(WindowBottomSheet/SuperBottomSheet) 场景下，高度跳变会非常明显。
-                if (shouldShowLoading) {
-                    base.height(maxSheetHeight)
-                } else {
-                    base.heightIn(min = minSheetHeight, max = maxSheetHeight)
-                }
-            },
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxWidth().let { base ->
+            // IMPORTANT: 当需要显示 loading 时，固定到最终高度，避免 loading-> 内容切换时“往上顶一下”。
+            // 在 Dialog(WindowBottomSheet/SuperBottomSheet) 场景下，高度跳变会非常明显。
+            if (shouldShowLoading) {
+                base.height(maxSheetHeight)
+            } else {
+                base.heightIn(min = minSheetHeight, max = maxSheetHeight)
+            }
+        }, contentAlignment = Alignment.Center
     ) {
         if (!showContent && shouldShowLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
             ) {
                 InfiniteProgressIndicator()
             }
@@ -417,8 +359,7 @@ private fun ProxyGroupSelectorContent(
 
 @Composable
 private fun ProxySettingsContent(
-    proxyViewModel: ProxyViewModel,
-    onDismiss: () -> Unit
+    proxyViewModel: ProxyViewModel, onDismiss: () -> Unit
 ) {
     val currentMode by proxyViewModel.currentMode.collectAsState()
     val displayMode by proxyViewModel.displayMode.collectAsState()
@@ -448,8 +389,7 @@ private fun ProxySettingsContent(
                 if (index < modeValues.size) {
                     proxyViewModel.patchMode(modeValues[index])
                 }
-            }
-        )
+            })
 
         Spacer(Modifier.height(12.dp))
 
@@ -465,22 +405,18 @@ private fun ProxySettingsContent(
                 if (index < displayModes.size) {
                     proxyViewModel.setDisplayMode(displayModes[index])
                 }
-            }
-        )
+            })
 
         Spacer(modifier = Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f)
+                onClick = onDismiss, modifier = Modifier.weight(1f)
             ) {
                 Text(MLang.Component.Button.Cancel)
             }
 
             Button(
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColorsPrimary()
+                onClick = onDismiss, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()
             ) {
                 Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.background)
             }

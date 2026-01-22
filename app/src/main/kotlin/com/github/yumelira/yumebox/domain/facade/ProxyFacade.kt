@@ -44,8 +44,8 @@ class ProxyFacade(
         return proxyConnectionService.prepareAndStart(profileId, forceTunMode)
     }
 
-    fun stopProxy() {
-        proxyConnectionService.stop(runningMode.value)
+    suspend fun stopProxy(): Result<Unit> {
+        return proxyConnectionService.stop(runningMode.value)
     }
 
     suspend fun selectProxy(groupName: String, proxyName: String): Result<Boolean> {

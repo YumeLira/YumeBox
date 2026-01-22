@@ -25,6 +25,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.github.yumelira.yumebox.MainActivity
+import timber.log.Timber
 
 class DialerReceiver : BroadcastReceiver() {
 
@@ -55,6 +56,7 @@ class DialerReceiver : BroadcastReceiver() {
             }
             context.startActivity(launchIntent)
         } catch (e: Exception) {
+            Timber.e(e, "启动主界面失败")
         }
     }
 }

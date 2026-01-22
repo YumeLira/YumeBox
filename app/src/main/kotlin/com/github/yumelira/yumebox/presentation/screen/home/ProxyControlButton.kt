@@ -49,6 +49,7 @@ import com.github.yumelira.yumebox.presentation.icon.Yume
 import com.github.yumelira.yumebox.presentation.icon.yume.Play
 import com.github.yumelira.yumebox.presentation.icon.yume.Square
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -79,9 +80,9 @@ fun ProxyControlButton(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (!hasProfiles) {
-            HintText("请先添加配置文件")
+            HintText(MLang.Home.Control.HintAddProfile)
         } else if (!hasEnabledProfile) {
-            HintText("请先在「配置」页面启用一个配置")
+            HintText(MLang.Home.Control.HintEnableProfile)
         }
 
         Button(

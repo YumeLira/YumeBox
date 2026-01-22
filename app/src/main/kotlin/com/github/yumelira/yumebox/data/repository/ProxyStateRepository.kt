@@ -49,15 +49,15 @@ class ProxyStateRepository(
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
-    private val isActive = AtomicBoolean(false)
+    private val activeFlag = AtomicBoolean(false)
 
     private var autoSyncJob: Job? = null
 
     fun start(intervalMs: Long = 5000L) {
-        if (isActive.getAndSet(true)) return
+        if (activeFlag.getAndSet(true)) return
 
         autoSyncJob = scope.launch {
-            while (isActive) {
+            while (isActive && activeFlag.get()) {
                 delay(intervalMs)
                 syncFromCore()
             }
@@ -67,7 +67,7 @@ class ProxyStateRepository(
     suspend fun syncOnce() = syncFromCore()
 
     fun stop() {
-        if (!isActive.getAndSet(false)) return
+        if (!activeFlag.getAndSet(false)) return
 
         autoSyncJob?.cancel()
         autoSyncJob = null
@@ -76,7 +76,7 @@ class ProxyStateRepository(
     }
 
     suspend fun syncFromCore(): Result<Unit> = withContext(Dispatchers.IO) {
-        if (!isActive) return@withContext Result.failure(IllegalStateException("未启动"))
+        if (!activeFlag.get()) return@withContext Result.failure(IllegalStateException("未启动"))
 
         _isSyncing.value = true
         try {

@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,10 +61,10 @@ class AccessControlViewModel(
 
         val displayName: String
             get() = when (this) {
-                PACKAGE_NAME -> "包名"
-                LABEL -> "标签"
-                INSTALL_TIME -> "安装时间"
-                UPDATE_TIME -> "更新时间"
+                PACKAGE_NAME -> MLang.AccessControl.SortMode.PackageName
+                LABEL -> MLang.AccessControl.SortMode.Label
+                INSTALL_TIME -> MLang.AccessControl.SortMode.InstallTime
+                UPDATE_TIME -> MLang.AccessControl.SortMode.UpdateTime
             }
     }
 

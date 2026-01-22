@@ -58,6 +58,7 @@ import com.github.yumelira.yumebox.presentation.viewmodel.ProvidersViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
@@ -110,7 +111,7 @@ fun ProvidersScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopBar(
-                title = "外部资源",
+                title = MLang.Providers.Title,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     NavigationBackIcon(navigator = navigator)
@@ -121,7 +122,7 @@ fun ProvidersScreen(navigator: DestinationsNavigator) {
                             isRotating = uiState.isUpdatingAll,
                             onClick = { viewModel.updateAllProviders() },
                             modifier = Modifier.padding(end = 24.dp),
-                            contentDescription = "更新全部"
+                            contentDescription = MLang.Providers.Action.UpdateAll
                         )
                     }
                 }
@@ -130,13 +131,13 @@ fun ProvidersScreen(navigator: DestinationsNavigator) {
     ) { innerPadding ->
         if (!isRunning) {
             CenteredText(
-                firstLine = "代理未启动",
-                secondLine = "请先启动代理服务以查看外部资源"
+                firstLine = MLang.Providers.Empty.NotRunning,
+                secondLine = MLang.Providers.Empty.NotRunningHint
             )
         } else if (providers.isEmpty() && !uiState.isLoading) {
             CenteredText(
-                firstLine = "暂无外部资源",
-                secondLine = "当前配置未包含外部资源"
+                firstLine = MLang.Providers.Empty.NoProviders,
+                secondLine = MLang.Providers.Empty.NoProvidersHint
             )
         } else {
             ScreenLazyColumn(
@@ -148,7 +149,7 @@ fun ProvidersScreen(navigator: DestinationsNavigator) {
 
                 if (proxyProviders.isNotEmpty()) {
                     item {
-                        SmallTitle("代理提供者 (${proxyProviders.size})")
+                        SmallTitle(MLang.Providers.Type.ProxyProviders.format(proxyProviders.size))
                     }
                     proxyProviders.forEach { provider ->
                         val providerKey = "${provider.type}_${provider.name}"
@@ -165,7 +166,7 @@ fun ProvidersScreen(navigator: DestinationsNavigator) {
 
                 if (ruleProviders.isNotEmpty()) {
                     item {
-                        SmallTitle("规则提供者 (${ruleProviders.size})")
+                        SmallTitle(MLang.Providers.Type.RuleProviders.format(ruleProviders.size))
                     }
                     ruleProviders.forEach { provider ->
                         val providerKey = "${provider.type}_${provider.name}"
@@ -261,11 +262,11 @@ private fun ProviderCard(
                                 modifier = Modifier.size(20.dp),
                                 imageVector = MiuixIcons.Edit,
                                 tint = updateTint,
-                                contentDescription = "操作",
+                                contentDescription = MLang.Providers.Action.Operation,
                             )
                             Text(
                                 modifier = Modifier.padding(end = 3.dp),
-                                text = "操作",
+                                text = MLang.Providers.Action.Operation,
                                 color = updateTint,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 15.sp
@@ -273,7 +274,7 @@ private fun ProviderCard(
                         }
                     }
 
-                    val items = listOf("更新", "上传")
+                    val items = listOf(MLang.Providers.Action.Update, MLang.Providers.Action.Upload)
                     var selectedIndex by remember { mutableStateOf(0) }
 
                     WindowListPopup  (

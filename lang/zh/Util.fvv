@@ -13,9 +13,59 @@ Util = {
         NotExist = "配置文件不存在: %s"
         NoCurrent = "没有当前配置"
         DirError = "无法获取配置目录"
+        DirNotExist = "配置目录不存在: %s"
+        LoadTimeout = "配置加载超时"
+        LoadFailed = "配置加载失败"
     }
     
     State = {
         Preparing = "正在准备..."
+        Idle = "空闲"
+    }
+
+    Import = {
+        Preparing = "准备导入..."
+        Downloading = "下载配置中..."
+        Copying = "复制文件中..."
+        Validating = "验证配置..."
+        LoadingProviders = "加载资源..."
+        Retrying = "第 %d/%d 次重试，原因: %s"
+        Cleaning = "清理临时文件..."
+        Success = "导入成功"
+        Cancelled = "导入已取消"
+        CopyDone = "复制完成"
+        FileInPlace = "文件已就位"
+    }
+
+    Error = {
+        UnknownError = "未知错误"
+        SaveFailed = "保存失败"
+        FileReadFailed = "无法读取文件: %s"
+        FileTooLarge = "文件超过 %dMB 限制"
+        UrlEmpty = "URL 地址为空"
+        DownloadFailed = "下载失败: %s"
+        Importing = "配置正在导入中: %s"
+        ImportDirInvalid = "无法确定导入目录"
+        ImportDirCreateFailed = "无法创建导入目录: %s"
+        ConfigDirCreateFailed = "无法创建配置目录: %s"
+        FilePathEmpty = "配置文件路径为空"
+        ImportFailed = "导入失败: %s"
+        ConfigValidationFailed = "配置文件格式错误: %s"
+        ConfigValidationFailedDetails = "配置文件格式错误:\n%s"
+        NetworkFailedHttp = "网络请求失败 (HTTP %d): %s"
+        NetworkFailedUrl = "无法连接到服务器: %s"
+        NetworkFailed = "网络连接失败: %s"
+        FileNotFound = "文件不存在: %s"
+        NoReadPermission = "没有读取权限: %s"
+        NoWritePermission = "没有写入权限: %s"
+        InsufficientSpace = "存储空间不足"
+        InvalidPath = "无效的文件路径: %s"
+        FileAccessError = "文件访问错误: %s"
+        RequestTimeout = "网络请求超时"
+        DnsResolveFailed = "无法解析域名: %s"
+        PermissionDenied = "权限被拒绝"
+        FileOpFailed = "文件操作失败"
+        ConfigDirInvalid = "配置目录不存在或不是目录"
+        ConfigFileMissing = "配置文件不存在"
     }
 }

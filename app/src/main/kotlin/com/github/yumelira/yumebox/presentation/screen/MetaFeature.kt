@@ -48,6 +48,7 @@ import com.github.yumelira.yumebox.presentation.viewmodel.OverrideViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,7 +103,7 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                 if (ext !in validExtensions) {
                     Toast.makeText(
                         context,
-                        "不支持的文件格式，请选择 ${validExtensions.joinToString("/")}",
+                        MLang.MetaFeature.Message.UnsupportedFormat.format(validExtensions.joinToString("/")),
                         Toast.LENGTH_LONG
                     ).show()
                     return@launch
@@ -128,10 +129,18 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
                     }
                 }
 
-                Toast.makeText(context, "已导入: $fileName", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    MLang.MetaFeature.Message.Imported.format(fileName),
+                    Toast.LENGTH_SHORT
+                ).show()
 
             } catch (e: Exception) {
-                Toast.makeText(context, "导入失败: ${e.message}", Toast.LENGTH_LONG)
+                Toast.makeText(
+                    context,
+                    MLang.MetaFeature.Message.ImportFailed.format(e.message ?: MLang.Util.Error.UnknownError),
+                    Toast.LENGTH_LONG
+                )
                     .show()
             }
         }
@@ -140,12 +149,12 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopBar(
-                title = "Meta 功能",
+                title = MLang.MetaFeature.Title,
                 scrollBehavior = scrollBehavior,
                 actions = {
                     IconButton(
                         modifier = Modifier.padding(end = 24.dp), onClick = { showResetDialog.value = true }) {
-                        Icon(MiuixIcons.Reset, contentDescription = "刷新")
+                        Icon(MiuixIcons.Reset, contentDescription = MLang.Component.Navigation.Refresh)
                     }
                 },
             )
@@ -156,31 +165,34 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
             innerPadding = innerPadding,
         ) {
             item {
-                SmallTitle("核心设置")
+                SmallTitle(MLang.MetaFeature.Section.CoreSettings)
                 Card {
                     NullableBooleanSelector(
-                        title = "统一延迟",
-                        summary = "使用统一的延迟测试方式", value = configuration.unifiedDelay,
+                        title = MLang.MetaFeature.Core.UnifiedDelayTitle,
+                        summary = MLang.MetaFeature.Core.UnifiedDelaySummary,
+                        value = configuration.unifiedDelay,
                         onValueChange = { viewModel.setUnifiedDelay(it) },
                     )
                     NullableBooleanSelector(
-                        title = "Geodata 模式",
-                        summary = "使用 dat 格式的 GeoIP/GeoSite", value = configuration.geodataMode,
+                        title = MLang.MetaFeature.Core.GeodataModeTitle,
+                        summary = MLang.MetaFeature.Core.GeodataModeSummary,
+                        value = configuration.geodataMode,
                         onValueChange = { viewModel.setGeodataMode(it) },
                     )
                     NullableBooleanSelector(
-                        title = "TCP 并发",
-                        summary = "启用 TCP 并发连接", value = configuration.tcpConcurrent,
+                        title = MLang.MetaFeature.Core.TcpConcurrentTitle,
+                        summary = MLang.MetaFeature.Core.TcpConcurrentSummary,
+                        value = configuration.tcpConcurrent,
                         onValueChange = { viewModel.setTcpConcurrent(it) },
                     )
                     NullableEnumSelector(
-                        title = "进程匹配模式",
+                        title = MLang.MetaFeature.Core.FindProcessModeTitle,
                         value = configuration.findProcessMode,
                         items = listOf(
-                            "不修改",
-                            "关闭",
-                            "严格",
-                            "始终"
+                            MLang.MetaFeature.Core.FindProcessNotModify,
+                            MLang.MetaFeature.Core.FindProcessOff,
+                            MLang.MetaFeature.Core.FindProcessStrict,
+                            MLang.MetaFeature.Core.FindProcessAlways
                         ),
                         values = listOf(
                             null,
@@ -194,96 +206,96 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
             }
 
             item {
-                SmallTitle("嗅探器")
+                SmallTitle(MLang.MetaFeature.Section.Sniffer)
                 Card {
                     NullableEnumSelector(
-                        title = "嗅探策略",
+                        title = MLang.MetaFeature.Sniffer.EnableTitle,
                         value = configuration.sniffer.enable,
                         items = listOf(
-                            "不修改",
-                            "启用",
-                            "禁用"
+                            MLang.MetaFeature.Sniffer.EnableNotModify,
+                            MLang.MetaFeature.Sniffer.EnableOn,
+                            MLang.MetaFeature.Sniffer.EnableOff
                         ),
                         values = listOf(null, true, false),
                         onValueChange = { viewModel.setSnifferEnable(it) },
                     )
                     if (configuration.sniffer.enable != false) {
                         StringListInput(
-                            title = "HTTP 嗅探端口",
+                            title = MLang.MetaFeature.Sniffer.HttpPorts,
                             value = configuration.sniffer.sniff.http.ports,
-                            placeholder = "例如: 80, 8080-8880",
+                            placeholder = MLang.MetaFeature.Sniffer.HttpPortsHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferHttpPorts(it) },
                         )
                         NullableBooleanSelector(
-                            title = "HTTP 覆盖目标",
+                            title = MLang.MetaFeature.Sniffer.HttpOverride,
                             value = configuration.sniffer.sniff.http.overrideDestination,
                             onValueChange = { viewModel.setSnifferHttpOverride(it) },
                         )
                         StringListInput(
-                            title = "TLS 嗅探端口",
+                            title = MLang.MetaFeature.Sniffer.TlsPorts,
                             value = configuration.sniffer.sniff.tls.ports,
-                            placeholder = "例如: 443, 8443",
+                            placeholder = MLang.MetaFeature.Sniffer.TlsPortsHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferTlsPorts(it) },
                         )
                         NullableBooleanSelector(
-                            title = "TLS 覆盖目标",
+                            title = MLang.MetaFeature.Sniffer.TlsOverride,
                             value = configuration.sniffer.sniff.tls.overrideDestination,
                             onValueChange = { viewModel.setSnifferTlsOverride(it) },
                         )
                         StringListInput(
-                            title = "QUIC 嗅探端口",
+                            title = MLang.MetaFeature.Sniffer.QuicPorts,
                             value = configuration.sniffer.sniff.quic.ports,
-                            placeholder = "例如: 443",
+                            placeholder = MLang.MetaFeature.Sniffer.QuicPortsHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferQuicPorts(it) },
                         )
                         NullableBooleanSelector(
-                            title = "QUIC 覆盖目标",
+                            title = MLang.MetaFeature.Sniffer.QuicOverride,
                             value = configuration.sniffer.sniff.quic.overrideDestination,
                             onValueChange = { viewModel.setSnifferQuicOverride(it) },
                         )
                         NullableBooleanSelector(
-                            title = "强制 DNS 映射",
+                            title = MLang.MetaFeature.Sniffer.ForceDnsMapping,
                             value = configuration.sniffer.forceDnsMapping,
                             onValueChange = { viewModel.setSnifferForceDnsMapping(it) },
                         )
                         NullableBooleanSelector(
-                            title = "解析纯 IP",
+                            title = MLang.MetaFeature.Sniffer.ParsePureIp,
                             value = configuration.sniffer.parsePureIp,
                             onValueChange = { viewModel.setSnifferParsePureIp(it) },
                         )
                         NullableBooleanSelector(
-                            title = "覆盖目标地址",
+                            title = MLang.MetaFeature.Sniffer.OverrideDestination,
                             value = configuration.sniffer.overrideDestination,
                             onValueChange = { viewModel.setSnifferOverrideDestination(it) },
                         )
                         StringListInput(
-                            title = "强制嗅探域名",
+                            title = MLang.MetaFeature.Sniffer.ForceDomain,
                             value = configuration.sniffer.forceDomain,
-                            placeholder = "例如: +.google.com",
+                            placeholder = MLang.MetaFeature.Sniffer.ForceDomainHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferForceDomain(it) },
                         )
                         StringListInput(
-                            title = "跳过嗅探域名",
+                            title = MLang.MetaFeature.Sniffer.SkipDomain,
                             value = configuration.sniffer.skipDomain,
-                            placeholder = "例如: +.baidu.com",
+                            placeholder = MLang.MetaFeature.Sniffer.SkipDomainHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferSkipDomain(it) },
                         )
                         StringListInput(
-                            title = "跳过源地址",
+                            title = MLang.MetaFeature.Sniffer.SkipSrcAddress,
                             value = configuration.sniffer.skipSrcAddress,
-                            placeholder = "例如: 192.168.0.0/16",
+                            placeholder = MLang.MetaFeature.Sniffer.SkipSrcAddressHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferSkipSrcAddress(it) },
                         )
                         StringListInput(
-                            title = "跳过目标地址",
+                            title = MLang.MetaFeature.Sniffer.SkipDstAddress,
                             value = configuration.sniffer.skipDstAddress,
-                            placeholder = "例如: 10.0.0.0/8",
+                            placeholder = MLang.MetaFeature.Sniffer.SkipDstAddressHint,
                             navigator = navigator,
                             onValueChange = { viewModel.setSnifferSkipDstAddress(it) },
                         )
@@ -292,43 +304,43 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
             }
 
             item {
-                SmallTitle("GeoX 文件")
+                SmallTitle(MLang.MetaFeature.Section.GeoXFiles)
                 Card {
                     SuperArrow(
-                        title = "导入 GeoIP 文件",
-                        summary = "导入自定义 GeoIP 数据库",
+                        title = MLang.MetaFeature.GeoX.ImportGeoipTitle,
+                        summary = MLang.MetaFeature.GeoX.ImportGeoipSummary,
                         onClick = {
                             pendingGeoFileType = GeoFileType.GeoIP
                             filePickerLauncher.launch("*/*")
                         },
                     )
                     SuperArrow(
-                        title = "导入 GeoSite 文件",
-                        summary = "导入自定义 GeoSite 数据库",
+                        title = MLang.MetaFeature.GeoX.ImportGeositeTitle,
+                        summary = MLang.MetaFeature.GeoX.ImportGeositeSummary,
                         onClick = {
                             pendingGeoFileType = GeoFileType.GeoSite
                             filePickerLauncher.launch("*/*")
                         },
                     )
                     SuperArrow(
-                        title = "导入 Country 文件",
-                        summary = "导入自定义 Country.mmdb 数据库",
+                        title = MLang.MetaFeature.GeoX.ImportCountryTitle,
+                        summary = MLang.MetaFeature.GeoX.ImportCountrySummary,
                         onClick = {
                             pendingGeoFileType = GeoFileType.Country
                             filePickerLauncher.launch("*/*")
                         },
                     )
                     SuperArrow(
-                        title = "导入 ASN 文件",
-                        summary = "导入自定义 ASN 数据库",
+                        title = MLang.MetaFeature.GeoX.ImportAsnTitle,
+                        summary = MLang.MetaFeature.GeoX.ImportAsnSummary,
                         onClick = {
                             pendingGeoFileType = GeoFileType.ASN
                             filePickerLauncher.launch("*/*")
                         },
                     )
                     SuperArrow(
-                        title = "导入 Model 文件",
-                        summary = "导入自定义 Model 数据库",
+                        title = MLang.MetaFeature.GeoX.ImportModelTitle,
+                        summary = MLang.MetaFeature.GeoX.ImportModelSummary,
                         onClick = {
                             pendingGeoFileType = GeoFileType.Model
                             filePickerLauncher.launch("*/*")
@@ -341,8 +353,8 @@ fun MetaFeatureScreen(navigator: DestinationsNavigator) {
 
     ConfirmDialog(
         show = showResetDialog,
-        title = "重置 Meta 功能设置",
-        message = "所有的 Meta 功能覆写设置将会被擦除，确定要继续吗？",
+        title = MLang.MetaFeature.ResetDialog.Title,
+        message = MLang.MetaFeature.ResetDialog.Message,
         onConfirm = {
             viewModel.resetConfiguration()
             showResetDialog.value = false

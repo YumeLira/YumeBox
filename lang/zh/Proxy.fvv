@@ -69,4 +69,11 @@ Proxy = {
         DoubleDetailed = "双列详细"
         DoubleSimple = "双列简洁"
     }
+
+    Error = {
+        NotStarted = "未启动"
+        SyncFailed = "同步失败"
+        GroupNotFound = "代理组不存在"
+        NotSelector = "非 Selector 类型"
+    }
 }

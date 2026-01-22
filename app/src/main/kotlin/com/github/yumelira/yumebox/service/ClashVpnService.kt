@@ -17,6 +17,7 @@ import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProfilesStore
 import com.github.yumelira.yumebox.service.notification.ServiceNotificationManager
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
 import java.net.InetSocketAddress
@@ -63,8 +64,6 @@ class ClashVpnService : VpnService() {
     private var serviceScope: CoroutineScope? = null
 
     private var vpnInterface: ParcelFileDescriptor? = null
-    private var tunFd: Int? = null
-    private var httpProxyAddress: InetSocketAddress? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -76,13 +75,17 @@ class ClashVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(
             ServiceNotificationManager.VPN_CONFIG.notificationId,
-            notificationManager.create("正在连接...", "正在建立连接", false)
+            notificationManager.create(
+                MLang.Service.Status.Connecting,
+                MLang.Service.Status.Establishing,
+                false
+            )
         )
 
         when (intent?.action) {
             ACTION_START -> {
                 val profileId = intent.getStringExtra(EXTRA_PROFILE_ID)
-                if (profileId != null) {
+                if (!profileId.isNullOrBlank()) {
                     startVpn(profileId)
                 } else {
                     stopSelf()
@@ -90,20 +93,30 @@ class ClashVpnService : VpnService() {
             }
 
             ACTION_STOP -> stopVpn()
+            null -> {
+                val lastProfileId = profilesStore.lastUsedProfileId
+                if (lastProfileId.isNotBlank()) {
+                    startVpn(lastProfileId)
+                } else {
+                    stopSelf()
+                }
+            }
+
             else -> stopSelf()
         }
 
-        return START_STICKY
+        return START_REDELIVER_INTENT
     }
 
     private fun startVpn(profileId: String) {
+        serviceScope?.cancel()
         serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         serviceScope?.launch {
             try {
 
-                val profile = profilesStore.getAllProfiles().find { it.id == profileId }
+                val profile = profilesStore.getProfileById(profileId)
                 if (profile == null) {
-                    showErrorNotification("启动失败", "配置文件不存在")
+                    showErrorNotification(MLang.Service.Status.StartFailed, MLang.Service.Status.ProfileNotFound)
                     return@launch
                 }
 
@@ -111,13 +124,19 @@ class ClashVpnService : VpnService() {
                 val loadResult = clashManager.loadProfile(profile)
                 if (loadResult.isFailure) {
                     val error = loadResult.exceptionOrNull()
-                    showErrorNotification("启动失败", error?.message ?: "配置加载失败")
+                    showErrorNotification(
+                        MLang.Service.Status.StartFailed,
+                        error?.message ?: MLang.Service.Status.ConfigLoadFailed
+                    )
                     return@launch
                 }
 
                 vpnInterface = withContext(Dispatchers.IO) { establishVpnInterface() }
                     ?: run {
-                        showErrorNotification("启动失败", "无法建立 VPN 连接")
+                        showErrorNotification(
+                            MLang.Service.Status.StartFailed,
+                            MLang.Service.Status.VpnEstablishFailed
+                        )
                         return@launch
                     }
 
@@ -133,16 +152,27 @@ class ClashVpnService : VpnService() {
                     dnsHijacking = networkSettings.dnsHijack.value
                 )
 
-                clashManager.startTun(
+                val startResult = clashManager.startTun(
                     fd = rawFd,
                     config = tunConfig,
                     enableIPv6 = networkSettings.enableIPv6.value,
                     markSocket = { protect(it) }
                 )
+                if (startResult.isFailure) {
+                    runCatching { ParcelFileDescriptor.adoptFd(rawFd).close() }
+                    showErrorNotification(
+                        MLang.Service.Status.StartFailed,
+                        startResult.exceptionOrNull()?.message ?: MLang.Service.Status.TunStartFailed
+                    )
+                    return@launch
+                }
 
                 startNotificationUpdate()
             } catch (e: Exception) {
-                showErrorNotification("启动失败", e.message ?: "未知错误")
+                showErrorNotification(
+                    MLang.Service.Status.StartFailed,
+                    e.message ?: MLang.Service.Status.UnknownError
+                )
             }
         }
     }
@@ -241,7 +271,6 @@ class ClashVpnService : VpnService() {
 
                 if (networkSettings.systemProxy.value) {
                     listenHttp()?.let { addr ->
-                        httpProxyAddress = addr
                         val exclusionList = if (networkSettings.bypassPrivateNetwork.value) {
                             RouteConfig.HTTP_PROXY_LOCAL_LIST + RouteConfig.HTTP_PROXY_BLACK_LIST
                         } else {
@@ -267,10 +296,6 @@ class ClashVpnService : VpnService() {
 
         vpnInterface?.close()
         vpnInterface = null
-        tunFd = null
-
-        httpProxyAddress = null
-
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

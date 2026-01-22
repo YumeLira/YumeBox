@@ -23,26 +23,33 @@ package com.github.yumelira.yumebox.presentation.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.yumelira.yumebox.clash.manager.ClashManager
 import com.github.yumelira.yumebox.data.model.AccessControlMode
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
+import com.github.yumelira.yumebox.data.repository.ProxyConnectionService
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
-import com.github.yumelira.yumebox.service.NetworkServiceManager
+import com.github.yumelira.yumebox.data.store.ProfilesStore
+import com.github.yumelira.yumebox.domain.model.RunningMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class NetworkSettingsViewModel(
     application: Application,
     storage: NetworkSettingsStorage,
+    private val profilesStore: ProfilesStore,
+    private val proxyConnectionService: ProxyConnectionService,
+    private val clashManager: ClashManager,
 ) : AndroidViewModel(application) {
 
-
-    private val serviceManager = NetworkServiceManager(application)
-
+    private var restartJob: Job? = null
 
     val proxyMode: Preference<ProxyMode> = storage.proxyMode
     val bypassPrivateNetwork: Preference<Boolean> = storage.bypassPrivateNetwork
@@ -54,8 +61,11 @@ class NetworkSettingsViewModel(
     val accessControlMode: Preference<AccessControlMode> = storage.accessControlMode
 
 
-    val serviceState = serviceManager.serviceState
-    val currentProxyMode = serviceManager.proxyMode
+    val serviceState: StateFlow<ServiceState> = clashManager.isRunning
+        .map { running -> if (running) ServiceState.Running else ServiceState.Stopped }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ServiceState.Stopped)
+
+    val currentProxyMode: StateFlow<ProxyMode> = proxyMode.state
 
 
     val uiState: StateFlow<NetworkSettingsUiState> = combine(
@@ -65,7 +75,7 @@ class NetworkSettingsViewModel(
         NetworkSettingsUiState(
             serviceState = serviceState,
             currentProxyMode = proxyMode,
-            needsRestart = serviceState == NetworkServiceManager.ServiceState.Running
+            needsRestart = serviceState == ServiceState.Running
         )
     }.stateIn(
         scope = viewModelScope,
@@ -115,32 +125,49 @@ class NetworkSettingsViewModel(
 
 
     fun startService(proxyMode: ProxyMode) {
-        serviceManager.startService(proxyMode)
+        viewModelScope.launch {
+            val profileId = resolveProfileId() ?: return@launch
+            val runningMode = clashManager.runningMode.value
+            if (runningMode != RunningMode.None) {
+                proxyConnectionService.stop(runningMode)
+            }
+            proxyConnectionService.startDirect(profileId, proxyMode)
+        }
     }
 
     fun restartService() {
-        serviceManager.restartService()
+        viewModelScope.launch {
+            val runningMode = clashManager.runningMode.value
+            if (runningMode == RunningMode.None) return@launch
+            proxyConnectionService.stop(runningMode)
+            val profileId = resolveProfileId() ?: return@launch
+            proxyConnectionService.startDirect(profileId, proxyMode.value)
+        }
     }
 
     private fun updateServiceConfig() {
-        viewModelScope.launch {
-            val serviceConfig = NetworkServiceManager.ServiceConfig(
-                bypassPrivateNetwork = bypassPrivateNetwork.value,
-                dnsHijacking = dnsHijack.value,
-                allowBypass = allowBypass.value,
-                allowIpv6 = enableIPv6.value,
-                systemProxy = systemProxy.value,
-                tunStackMode = tunStack.value.name,
-                accessControlMode = accessControlMode.value
-            )
-            serviceManager.updateServiceConfig(serviceConfig)
+        restartJob?.cancel()
+        restartJob = viewModelScope.launch {
+            delay(300)
+            if (serviceState.value == ServiceState.Running) {
+                restartService()
+            }
         }
+    }
+
+    private fun resolveProfileId(): String? {
+        return profilesStore.lastUsedProfileId.takeIf { it.isNotBlank() }
+            ?: profilesStore.getRecommendedProfile()?.id
     }
 
 }
 
 data class NetworkSettingsUiState(
-    val serviceState: NetworkServiceManager.ServiceState = NetworkServiceManager.ServiceState.Stopped,
+    val serviceState: ServiceState = ServiceState.Stopped,
     val currentProxyMode: ProxyMode = ProxyMode.Tun,
     val needsRestart: Boolean = false
 )
+
+enum class ServiceState {
+    Running, Stopped
+}

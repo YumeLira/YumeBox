@@ -61,40 +61,36 @@ class IntentController(
 
     private fun handleStartClash() {
         scope.launch {
-            try {
-                val profiles = profilesRepository.profiles.value
-                val recommendedProfile = profilesRepository.recommendedProfile.value
-                val targetProfile = recommendedProfile ?: profiles.find { it.enabled }
+            val profiles = profilesRepository.profiles.value
+            val recommendedProfile = profilesRepository.recommendedProfile.value
+            val targetProfile = recommendedProfile ?: profiles.find { it.enabled }
 
-                if (targetProfile != null) {
-                    Timber.i("Starting Clash via external intent for profile: ${targetProfile.name}")
+            if (targetProfile == null) {
+                Timber.w("No available profile to start Clash via external intent")
+                return@launch
+            }
 
-                    val proxyMode = networkSettingsStorage.proxyMode.value
-                    val result = proxyConnectionService.startDirect(
-                        profileId = targetProfile.id, mode = proxyMode
-                    )
+            Timber.i("Starting Clash via external intent for profile: ${targetProfile.name}")
 
-                    if (result.isSuccess) {
-                        Timber.i("Clash started successfully via external intent")
-                    } else {
-                        Timber.e("Failed to start Clash via external intent: ${result.exceptionOrNull()?.message}")
-                    }
-                } else {
-                    Timber.w("No available profile to start Clash via external intent")
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to start Clash via external intent")
+            val proxyMode = networkSettingsStorage.proxyMode.value
+            val result = proxyConnectionService.startDirect(
+                profileId = targetProfile.id, mode = proxyMode
+            )
+
+            if (result.isSuccess) {
+                Timber.i("Clash started successfully via external intent")
+            } else {
+                Timber.e("Failed to start Clash via external intent: ${result.exceptionOrNull()?.message}")
             }
         }
     }
 
     private fun handleStopClash() {
         scope.launch {
-            try {
-                Timber.i("Stopping Clash via external intent")
-                val currentRunningMode = clashManager.runningMode.value
-                proxyConnectionService.stop(currentRunningMode)
-            } catch (e: Exception) {
+            Timber.i("Stopping Clash via external intent")
+            val currentRunningMode = clashManager.runningMode.value
+            val result = proxyConnectionService.stop(currentRunningMode)
+            result.onFailure { e ->
                 Timber.e(e, "Failed to stop Clash via external intent")
             }
         }

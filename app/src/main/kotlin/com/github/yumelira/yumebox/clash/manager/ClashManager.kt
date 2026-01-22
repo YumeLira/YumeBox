@@ -3,10 +3,14 @@ package com.github.yumelira.yumebox.clash.manager
 import android.content.Context
 import com.github.yumelira.yumebox.clash.config.Configuration
 import com.github.yumelira.yumebox.clash.config.RouteConfig
-import com.github.yumelira.yumebox.clash.core.ClashCore
+import com.github.yumelira.yumebox.clash.exception.ConfigValidationException
+import com.github.yumelira.yumebox.clash.exception.FileAccessException
+import com.github.yumelira.yumebox.clash.exception.TimeoutException
 import com.github.yumelira.yumebox.clash.exception.toConfigImportException
 import com.github.yumelira.yumebox.common.util.SystemProxyHelper
 import com.github.yumelira.yumebox.core.Clash
+import com.github.yumelira.yumebox.core.bridge.ClashException
+import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.core.model.ProxySort
@@ -86,10 +90,11 @@ class ClashManager(
                 return@withContext Result.failure(IllegalStateException("配置目录不存在: ${profile.name}"))
             }
 
-            val loadResult = ClashCore.loadConfig(
-                configDir = configDir, options = ClashCore.LoadOptions(
-                    timeoutMs = 30_000L, resetBeforeLoad = true, clearSessionOverride = true
-                )
+            val loadResult = loadConfig(
+                configDir = configDir,
+                timeoutMs = 30_000L,
+                resetBeforeLoad = true,
+                clearSessionOverride = true
             )
 
             if (loadResult.isFailure) {
@@ -102,14 +107,14 @@ class ClashManager(
             proxyModeProvider?.let { provider ->
                 runCatching {
                     val mode = provider()
-                    val persist = ClashCore.queryOverride(Clash.OverrideSlot.Persist)
+                    val persist = safeQueryOverride(Clash.OverrideSlot.Persist)
                     if (persist.mode != mode) {
                         persist.mode = mode
-                        ClashCore.patchOverride(Clash.OverrideSlot.Persist, persist)
+                        Clash.patchOverride(Clash.OverrideSlot.Persist, persist)
                     }
-                    val session = ClashCore.queryOverride(Clash.OverrideSlot.Session)
+                    val session = safeQueryOverride(Clash.OverrideSlot.Session)
                     session.mode = mode
-                    ClashCore.patchOverride(Clash.OverrideSlot.Session, session)
+                    Clash.patchOverride(Clash.OverrideSlot.Session, session)
                 }
             }
 
@@ -128,7 +133,7 @@ class ClashManager(
                 val proxy = group?.proxies?.find { it.name == proxyName }
 
                 if (group != null && proxy != null && group.type == Proxy.Type.Selector) {
-                    runCatching { ClashCore.selectProxy(groupName, proxyName) }
+                    runCatching { Clash.patchSelector(groupName, proxyName) }
                 }
             }
 
@@ -202,7 +207,7 @@ class ClashManager(
                 }
             }
 
-            ClashCore.startTun(
+            Clash.startTun(
                 fd = fd,
                 stack = config.stack,
                 gateway = gateway,
@@ -232,7 +237,7 @@ class ClashManager(
 
             _proxyState.value = ProxyState.Connecting(RunningMode.Http(config.address))
 
-            val address = ClashCore.startHttp(config.listenAddress) ?: config.address
+            val address = Clash.startHttp(config.listenAddress) ?: config.address
 
             _proxyState.value = ProxyState.Running(profile, RunningMode.Http(address))
             startMonitor()
@@ -247,8 +252,8 @@ class ClashManager(
 
     fun stop() {
         runCatching { _proxyState.value = ProxyState.Stopping }
-        runCatching { ClashCore.stopTun() }
-        runCatching { ClashCore.stopHttp() }
+        runCatching { Clash.stopTun() }
+        runCatching { Clash.stopHttp() }
         runCatching { SystemProxyHelper.clearSystemProxy(context) }
 
         runCatching {
@@ -256,7 +261,7 @@ class ClashManager(
             stopMonitor()
             resetState()
         }.onFailure {
-            runCatching { ClashCore.reset() }
+            runCatching { Clash.reset() }
             proxyStateRepository.stop()
             stopMonitor()
             resetState()
@@ -270,9 +275,9 @@ class ClashManager(
         monitorJob = scope.launch {
             while (isActive) {
                 runCatching {
-                    _trafficNow.value = TrafficData.from(ClashCore.queryTrafficNow())
-                    _trafficTotal.value = TrafficData.from(ClashCore.queryTrafficTotal())
-                    _tunnelState.value = ClashCore.queryTunnelState()
+                    _trafficNow.value = TrafficData.from(runCatching { Clash.queryTrafficNow() }.getOrDefault(0L))
+                    _trafficTotal.value = TrafficData.from(runCatching { Clash.queryTrafficTotal() }.getOrDefault(0L))
+                    _tunnelState.value = Clash.queryTunnelState()
                 }
                 delay(1000)
             }
@@ -286,7 +291,7 @@ class ClashManager(
 
     private fun startLogSubscription() {
         logJob = scope.launch {
-            val channel = ClashCore.subscribeLogcat()
+            val channel = Clash.subscribeLogcat()
             for (log in channel) {
                 if (!log.message.contains("Request interrupted by user") && !log.message.contains("更新延迟")) {
                     _logs.emit(log)
@@ -332,5 +337,79 @@ class ClashManager(
         proxyStateRepository.close()
         scope.cancel("ClashManager closed")
         resetState()
+    }
+
+    private suspend fun loadConfig(
+        configDir: File,
+        timeoutMs: Long,
+        resetBeforeLoad: Boolean,
+        clearSessionOverride: Boolean
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (!configDir.exists() || !configDir.isDirectory) {
+                return@withContext Result.failure(
+                    FileAccessException(
+                        "配置目录不存在或不是目录",
+                        filePath = configDir.absolutePath,
+                        reason = FileAccessException.Reason.NOT_FOUND
+                    )
+                )
+            }
+
+            val configFile = File(configDir, "config.yaml")
+            if (!configFile.exists()) {
+                return@withContext Result.failure(
+                    FileAccessException(
+                        "配置文件不存在",
+                        filePath = configFile.absolutePath,
+                        reason = FileAccessException.Reason.NOT_FOUND
+                    )
+                )
+            }
+
+            if (resetBeforeLoad) {
+                Clash.reset()
+            }
+
+            if (clearSessionOverride) {
+                Clash.clearOverride(Clash.OverrideSlot.Session)
+            }
+
+            val deferred = Clash.load(configDir)
+            try {
+                withTimeout(timeoutMs) {
+                    deferred.await()
+                }
+            } finally {
+                if (deferred.isActive) {
+                    deferred.cancel()
+                }
+            }
+
+            Result.success(Unit)
+        } catch (e: TimeoutCancellationException) {
+            Result.failure(
+                TimeoutException(
+                    "配置加载超时",
+                    e,
+                    timeoutMs = timeoutMs,
+                    operation = "加载配置"
+                )
+            )
+        } catch (e: ClashException) {
+            Result.failure(
+                ConfigValidationException(
+                    e.message ?: "配置加载失败",
+                    e
+                )
+            )
+        } catch (e: Exception) {
+            Result.failure(e.toConfigImportException())
+        }
+    }
+
+    private fun safeQueryOverride(slot: Clash.OverrideSlot): ConfigurationOverride {
+        return runCatching { Clash.queryOverride(slot) }
+            .getOrElse { ConfigurationOverride() }
     }
 }

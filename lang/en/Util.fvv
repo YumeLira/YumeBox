@@ -13,9 +13,59 @@ Util = {
         NotExist = "Profile does not exist: %s"
         NoCurrent = "No current profile"
         DirError = "Unable to get profile directory"
+        DirNotExist = "Config directory does not exist: %s"
+        LoadTimeout = "Profile load timed out"
+        LoadFailed = "Profile load failed"
     }
     
     State = {
         Preparing = "Preparing..."
+        Idle = "Idle"
+    }
+
+    Import = {
+        Preparing = "Preparing import..."
+        Downloading = "Downloading configuration..."
+        Copying = "Copying files..."
+        Validating = "Validating configuration..."
+        LoadingProviders = "Loading external resources..."
+        Retrying = "Retry %d/%d, reason: %s"
+        Cleaning = "Cleaning temporary files..."
+        Success = "Import successful"
+        Cancelled = "Import cancelled"
+        CopyDone = "Copy completed"
+        FileInPlace = "File already in place"
+    }
+
+    Error = {
+        UnknownError = "Unknown error"
+        SaveFailed = "Save failed"
+        FileReadFailed = "Unable to read file: %s"
+        FileTooLarge = "File exceeds %dMB limit"
+        UrlEmpty = "URL is empty"
+        DownloadFailed = "Download failed: %s"
+        Importing = "Profile is being imported: %s"
+        ImportDirInvalid = "Unable to determine import directory"
+        ImportDirCreateFailed = "Unable to create import directory: %s"
+        ConfigDirCreateFailed = "Unable to create config directory: %s"
+        FilePathEmpty = "Config file path is empty"
+        ImportFailed = "Import failed: %s"
+        ConfigValidationFailed = "Configuration format error: %s"
+        ConfigValidationFailedDetails = "Configuration format error:\n%s"
+        NetworkFailedHttp = "Network request failed (HTTP %d): %s"
+        NetworkFailedUrl = "Unable to connect to server: %s"
+        NetworkFailed = "Network connection failed: %s"
+        FileNotFound = "File not found: %s"
+        NoReadPermission = "No read permission: %s"
+        NoWritePermission = "No write permission: %s"
+        InsufficientSpace = "Insufficient storage space"
+        InvalidPath = "Invalid file path: %s"
+        FileAccessError = "File access error: %s"
+        RequestTimeout = "Network request timed out"
+        DnsResolveFailed = "Unable to resolve host: %s"
+        PermissionDenied = "Permission denied"
+        FileOpFailed = "File operation failed"
+        ConfigDirInvalid = "Config directory does not exist or is invalid"
+        ConfigFileMissing = "Config file does not exist"
     }
 }

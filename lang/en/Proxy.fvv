@@ -69,4 +69,11 @@ Proxy = {
         DoubleDetailed = "Double Detailed"
         DoubleSimple = "Double Simple"
     }
+
+    Error = {
+        NotStarted = "Not started"
+        SyncFailed = "Sync failed"
+        GroupNotFound = "Proxy group not found"
+        NotSelector = "Not a selector type"
+    }
 }

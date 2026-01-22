@@ -943,7 +943,7 @@ private fun AddProfileSheet(
                         }
 
                         Text(
-                            text = downloadProgress?.message ?: "下载中...",
+                            text = downloadProgress?.message ?: MLang.ProfilesPage.Progress.Downloading,
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,

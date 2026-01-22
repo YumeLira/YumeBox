@@ -6,6 +6,7 @@ Service = {
         ConnectedWithProfile = "已连接: %s"
         Connected = "已连接"
         TrafficFormat = "总计: %s"
+        UnknownProfile = "未知配置"
     }
     
     Status = {
@@ -13,9 +14,11 @@ Service = {
         Establishing = "正在建立连接"
         StartingProxy = "正在启动代理"
         StartFailed = "启动失败"
+        ProfileNotFound = "配置文件不存在"
         ConfigLoadFailed = "配置加载失败"
         VpnEstablishFailed = "无法建立 VPN 连接"
         HttpProxyStartFailed = "无法启动 HTTP 代理"
+        TunStartFailed = "TUN 启动失败"
         UnknownError = "未知错误"
     }
     
@@ -36,5 +39,11 @@ Service = {
         Recording = "正在记录日志"
         RecordingFile = "日志记录中..."
         ActionStop = "停止"
+    }
+
+    AutoRestart = {
+        ChannelName = "自动重启服务"
+        ChannelDescription = "用于自动重启代理服务"
+        Checking = "正在检查自动启动..."
     }
 }

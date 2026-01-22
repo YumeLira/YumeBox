@@ -69,10 +69,12 @@ val appModule = module {
     }
 
     single { NetworkInfoService() }
-    single { ProxyConnectionService(androidContext(), get(), get(), get()) }
+    single { ProxyConnectionService(androidContext(), get(), get()) }
     single { ProxyChainResolver() }
     single { TrafficStatisticsCollector(get(), get()) }
     single { SelectionDao(androidContext()) }
+    single { OverrideRepository() }
+    single { ProvidersRepository() }
 
     single { ProxyFacade(get(), get(), get()) }
     single { ProfilesRepository(get()) }
@@ -80,13 +82,13 @@ val appModule = module {
     viewModel { AppSettingsViewModel(get()) }
     viewModel { HomeViewModel(androidApplication(), get(), get(), get(), get(), get(), get()) }
     viewModel { ProfilesViewModel(androidApplication(), get(), get()) }
-    viewModel { ProxyViewModel(get<ClashManager>(), get()) }
-    viewModel { ProvidersViewModel(get()) }
+    viewModel { ProxyViewModel(get<ClashManager>(), get(), get()) }
+    viewModel { ProvidersViewModel(get(), get()) }
     viewModel { LogViewModel(androidApplication()) }
     viewModel { SettingViewModel(get()) }
     viewModel { FeatureViewModel(get(), androidApplication()) }
-    viewModel { NetworkSettingsViewModel(androidApplication(), get()) }
+    viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { AccessControlViewModel(androidApplication(), get()) }
-    viewModel { OverrideViewModel() }
+    viewModel { OverrideViewModel(get()) }
     viewModel { TrafficStatisticsViewModel(androidApplication(), get()) }
 }

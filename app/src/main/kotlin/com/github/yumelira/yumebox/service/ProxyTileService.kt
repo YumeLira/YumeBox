@@ -24,6 +24,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.github.yumelira.yumebox.MainActivity
@@ -32,10 +33,12 @@ import com.github.yumelira.yumebox.clash.manager.ClashManager
 import com.github.yumelira.yumebox.data.repository.ProxyConnectionService
 import com.github.yumelira.yumebox.data.store.ProfilesStore
 import com.github.yumelira.yumebox.domain.model.RunningMode
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 import org.koin.android.ext.android.inject
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ProxyTileService : TileService() {
 
@@ -49,7 +52,7 @@ class ProxyTileService : TileService() {
 
     private var serviceScope: CoroutineScope? = null
     private var stateObserverJob: Job? = null
-    private var isOperating = false
+    private val isOperating = AtomicBoolean(false)
 
     override fun onStartListening() {
         super.onStartListening()
@@ -70,7 +73,7 @@ class ProxyTileService : TileService() {
     override fun onClick() {
         super.onClick()
 
-        if (isOperating) {
+        if (!isOperating.compareAndSet(false, true)) {
             return
         }
 
@@ -89,10 +92,10 @@ class ProxyTileService : TileService() {
         if (profile == null) {
             Timber.tag(TAG).w("没有可用的配置文件，打开应用")
             openApp()
+            isOperating.set(false)
             return
         }
 
-        isOperating = true
         updateTileState(TileState.CONNECTING)
 
         serviceScope?.launch(Dispatchers.IO) {
@@ -111,22 +114,20 @@ class ProxyTileService : TileService() {
                 Timber.tag(TAG).e(e, "启动代理异常")
                 updateTileState(TileState.DISCONNECTED)
             }
-            isOperating = false
+            isOperating.set(false)
         }
     }
 
     private fun stopProxy() {
-        isOperating = true
         updateTileState(TileState.DISCONNECTING)
 
         serviceScope?.launch(Dispatchers.IO) {
-            runCatching {
-                val currentMode = clashManager.runningMode.value
-                proxyConnectionService.stop(currentMode)
-            }.onFailure { e ->
+            val currentMode = clashManager.runningMode.value
+            val result = proxyConnectionService.stop(currentMode)
+            result.onFailure { e ->
                 Timber.tag(TAG).e(e, "停止代理异常")
             }
-            isOperating = false
+            isOperating.set(false)
         }
     }
 
@@ -159,7 +160,7 @@ class ProxyTileService : TileService() {
                     else -> TileState.DISCONNECTED
                 }
 
-                if (!isOperating) {
+                if (!isOperating.get()) {
                     updateTileState(state)
                 }
             }
@@ -167,12 +168,13 @@ class ProxyTileService : TileService() {
     }
 
     private fun updateTileState(state: TileState) {
-        val tile = qsTile ?: return
+        val updateBlock = updateBlock@{
+            val tile = qsTile ?: return@updateBlock
 
-        when (state) {
+            when (state) {
             TileState.CONNECTED -> {
                 tile.state = Tile.STATE_ACTIVE
-                tile.label = "已连接"
+                tile.label = MLang.Service.Tile.Connected
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = getRunningModeText()
                 }
@@ -181,7 +183,7 @@ class ProxyTileService : TileService() {
 
             TileState.DISCONNECTED -> {
                 tile.state = Tile.STATE_INACTIVE
-                tile.label = "已断开"
+                tile.label = MLang.Service.Tile.Disconnected
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = null
                 }
@@ -190,7 +192,7 @@ class ProxyTileService : TileService() {
 
             TileState.CONNECTING -> {
                 tile.state = Tile.STATE_ACTIVE
-                tile.label = "连接中..."
+                tile.label = MLang.Service.Tile.Connecting
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = null
                 }
@@ -199,7 +201,7 @@ class ProxyTileService : TileService() {
 
             TileState.DISCONNECTING -> {
                 tile.state = Tile.STATE_ACTIVE
-                tile.label = "断开中..."
+                tile.label = MLang.Service.Tile.Disconnecting
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     tile.subtitle = null
                 }
@@ -208,21 +210,28 @@ class ProxyTileService : TileService() {
 
             TileState.UNAVAILABLE -> {
                 tile.state = Tile.STATE_UNAVAILABLE
-                tile.label = "未配置"
+                tile.label = MLang.Service.Tile.Unconfigured
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    tile.subtitle = "点击打开应用"
+                    tile.subtitle = MLang.Service.Tile.ClickToOpen
                 }
                 tile.icon = Icon.createWithResource(this, R.drawable.ic_logo_service)
             }
         }
 
-        tile.updateTile()
+            tile.updateTile()
+        }
+
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            updateBlock()
+        } else {
+            serviceScope?.launch(Dispatchers.Main.immediate) { updateBlock() }
+        }
     }
 
     private fun getRunningModeText(): String {
         return when (clashManager.runningMode.value) {
-            is RunningMode.Tun -> "VPN 模式"
-            is RunningMode.Http -> "HTTP 模式"
+            is RunningMode.Tun -> MLang.Service.Tile.ModeVpn
+            is RunningMode.Http -> MLang.Service.Tile.ModeHttp
             is RunningMode.None -> ""
         }
     }

@@ -37,7 +37,7 @@ import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.model.TunStack
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.viewmodel.NetworkSettingsViewModel
-import com.github.yumelira.yumebox.service.NetworkServiceManager
+import com.github.yumelira.yumebox.presentation.viewmodel.ServiceState
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AccessControlScreenDestination
@@ -75,7 +75,8 @@ fun NetworkSettingsScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            viewModel.startService(proxyMode)
+            viewModel.onProxyModeChange(ProxyMode.Tun)
+            viewModel.startService(ProxyMode.Tun)
         } else {
             Toast.makeText(context, MLang.NetworkSettings.Error.VpnDenied, Toast.LENGTH_SHORT).show()
         }
@@ -184,7 +185,7 @@ fun NetworkSettingsScreen(
                 }
 
 
-                if (uiState.needsRestart && serviceState == NetworkServiceManager.ServiceState.Running) {
+                if (uiState.needsRestart && serviceState == ServiceState.Running) {
                     Card {
                         SuperArrow(
                             title = MLang.NetworkSettings.RestartService.Title,

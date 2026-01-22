@@ -33,6 +33,7 @@ import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.data.store.ProfileLink
 import com.github.yumelira.yumebox.data.store.ProfileLinksStorage
 import com.github.yumelira.yumebox.data.store.ProfilesStore
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -133,10 +134,10 @@ class ProfilesViewModel(
                 val maxOrder = profilesStore.profiles.value.maxOfOrNull { it.order } ?: -1
                 val profileWithOrder = profile.copy(order = maxOrder + 1)
                 profilesStore.addProfile(profileWithOrder)
-                showMessage("配置已添加: ${profile.name}")
+                showMessage(MLang.ProfilesVM.Message.ProfileAdded.format(profile.name))
             }.onFailure { e ->
                 timber.log.Timber.e(e, "addProfile failed")
-                showError("添加配置失败: ${e.message}")
+                showError(MLang.ProfilesVM.Message.AddFailed.format(e.message ?: MLang.Util.Error.UnknownError))
             }
         }
     }
@@ -148,21 +149,21 @@ class ProfilesViewModel(
         }
 
         if (profile.type != ProfileType.URL && profile.type != ProfileType.FILE) {
-            showError("只有 URL 或 本地文件 类型的配置才需要下载")
+            showError(MLang.ProfilesVM.Error.OnlyUrlOrFile)
             return null
         }
 
         val isUrl = profile.type == ProfileType.URL
         val remoteUrl = profile.remoteUrl
         if (isUrl && remoteUrl.isNullOrBlank()) {
-            showError("订阅链接为空，无法下载")
+            showError(MLang.ProfilesVM.Error.EmptyUrl)
             return null
         }
 
         downloadingProfiles.add(profile.id)
 
         return try {
-            _downloadProgress.value = DownloadProgress(0, "准备下载...")
+            _downloadProgress.value = DownloadProgress(0, MLang.ProfilesVM.Progress.Preparing)
 
             val subscriptionInfo = if (isUrl) {
                 withContext(Dispatchers.IO) {
@@ -184,7 +185,7 @@ class ProfilesViewModel(
             )
 
             if (result.isSuccess) {
-                _downloadProgress.value = DownloadProgress(100, "下载完成")
+                _downloadProgress.value = DownloadProgress(100, MLang.ProfilesVM.Progress.DownloadComplete)
                 val configFilePath = result.getOrThrow()
                 val existingProfile = if (saveToDb) {
                     profilesStore.profiles.value.find { it.id == profile.id }
@@ -200,7 +201,7 @@ class ProfilesViewModel(
                         fileName
                     }
 
-                    val defaultNames = "新配置"
+                    val defaultNames = setOf(MLang.ProfilesPage.Input.NewProfile)
                     if (updated.name.isBlank() || updated.name in defaultNames || updated.name.startsWith("temp_")) {
                         updated = updated.copy(name = nameWithoutExt)
                     }
@@ -234,7 +235,9 @@ class ProfilesViewModel(
                 val errorMsg = if (error is ConfigImportException) {
                     error.userFriendlyMessage
                 } else {
-                    error?.message ?: "下载失败"
+                    MLang.ProfilesVM.Progress.DownloadFailed.format(
+                        error?.message ?: MLang.Util.Error.UnknownError
+                    )
                 }
                 showError(errorMsg)
                 null
@@ -244,7 +247,7 @@ class ProfilesViewModel(
             val errorMsg = if (e is ConfigImportException) {
                 e.userFriendlyMessage
             } else {
-                "下载失败: ${e.message}"
+                MLang.ProfilesVM.Progress.DownloadFailed.format(e.message ?: MLang.Util.Error.UnknownError)
             }
             showError(errorMsg)
             null
@@ -261,18 +264,18 @@ class ProfilesViewModel(
     suspend fun importProfileFromFile(uri: Uri, name: String, saveToDb: Boolean = true): Profile? {
         return runCatching {
             setLoading(true)
-            _downloadProgress.value = DownloadProgress(0, "准备导入文件...")
+            _downloadProgress.value = DownloadProgress(0, MLang.ProfilesVM.Progress.ImportPreparing)
             val profileId = UUID.randomUUID().toString()
             val profileDir =
                 java.io.File(getApplication<Application>().filesDir, "imported/$profileId").apply { mkdirs() }
-            _downloadProgress.value = DownloadProgress(10, "正在复制文件...")
+            _downloadProgress.value = DownloadProgress(10, MLang.ProfilesVM.Progress.CopyingFile)
 
             val destFile = java.io.File(profileDir, "config.yaml")
             getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
                 destFile.outputStream().use { output -> input.copyTo(output) }
-            } ?: throw IOException("无法读取文件")
+            } ?: throw IOException(MLang.ProfilesVM.Error.CannotReadFile)
 
-            _downloadProgress.value = DownloadProgress(30, "正在验证配置...")
+            _downloadProgress.value = DownloadProgress(30, MLang.ProfilesVM.Progress.Verifying)
             // 注意：这里不设置 lastUpdatedAt，等验证成功后再设置
             val profile = Profile(
                 id = profileId, name = name, type = ProfileType.FILE,
@@ -290,7 +293,7 @@ class ProfilesViewModel(
             )
 
             if (result.isSuccess) {
-                _downloadProgress.value = DownloadProgress(100, "导入完成")
+                _downloadProgress.value = DownloadProgress(100, MLang.ProfilesVM.Progress.ImportComplete)
                 val configPath = result.getOrThrow()
                 val updatedProfile = profile.copy(
                     config = configPath,
@@ -298,7 +301,7 @@ class ProfilesViewModel(
                 )
                 if (saveToDb) {
                     profilesStore.addProfile(updatedProfile)
-                    showMessage("配置已导入: $name")
+                    showMessage(MLang.ProfilesVM.Message.ProfileImported.format(name))
                 }
                 updatedProfile
             } else {
@@ -310,7 +313,7 @@ class ProfilesViewModel(
                 val errorMsg = if (error is ConfigImportException) {
                     error.userFriendlyMessage
                 } else {
-                    "导入失败: ${error?.message}"
+                    MLang.ProfilesVM.Progress.ImportFailed.format(error?.message ?: MLang.Util.Error.UnknownError)
                 }
                 showError(errorMsg)
                 null
@@ -320,7 +323,7 @@ class ProfilesViewModel(
             val errorMsg = if (e is ConfigImportException) {
                 e.userFriendlyMessage
             } else {
-                "导入配置失败: ${e.message}"
+                MLang.ProfilesVM.Message.ImportFailed.format(e.message ?: MLang.Util.Error.UnknownError)
             }
             showError(errorMsg)
             null
@@ -335,8 +338,11 @@ class ProfilesViewModel(
                     getApplication<Application>().filesDir.resolve("imported/$profileId")
                         .takeIf { it.exists() }?.deleteRecursively()
                 }
-                showMessage("配置已删除")
-            }.onFailure { e -> timber.log.Timber.e(e, "removeProfile failed"); showError("删除配置失败: ${e.message}") }
+                showMessage(MLang.ProfilesVM.Message.ProfileDeleted)
+            }.onFailure { e ->
+                timber.log.Timber.e(e, "removeProfile failed")
+                showError(MLang.ProfilesVM.Message.DeleteFailed.format(e.message ?: MLang.Util.Error.UnknownError))
+            }
         }
     }
 
@@ -344,10 +350,10 @@ class ProfilesViewModel(
         viewModelScope.launch {
             runCatching {
                 profilesStore.updateProfile(profile)
-                showMessage("配置已更新: ${profile.name}")
+                showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
             }.onFailure { e ->
                 timber.log.Timber.e(e, "updateProfile failed")
-                showError("更新配置失败: ${e.message}")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: MLang.Util.Error.UnknownError))
             }
         }
     }
@@ -368,7 +374,7 @@ class ProfilesViewModel(
                 }
             }.onFailure { e ->
                 timber.log.Timber.e(e, "toggleProfileEnabled failed")
-                showError("切换状态失败: ${e.message}")
+                showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.message ?: MLang.Util.Error.UnknownError))
             }
         }
     }
@@ -394,7 +400,7 @@ class ProfilesViewModel(
                 profilesStore.reorderProfiles(currentList)
             }.onFailure { e ->
                 timber.log.Timber.e(e, "reorderProfiles failed")
-                showError("排序失败: ${e.message}")
+                showError(MLang.ProfilesVM.Message.SortFailed.format(e.message ?: MLang.Util.Error.UnknownError))
             }
         }
     }

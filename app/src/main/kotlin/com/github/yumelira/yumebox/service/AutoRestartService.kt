@@ -16,6 +16,7 @@ import com.github.yumelira.yumebox.data.repository.ProxyConnectionService
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.NetworkSettingsStorage
 import com.github.yumelira.yumebox.data.store.ProfilesStore
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
 import timber.log.Timber
@@ -24,7 +25,7 @@ class AutoRestartService : Service() {
 
     companion object {
         private const val TAG = "AutoRestartService"
-        private const val NOTIFICATION_ID = 1001
+        private const val NOTIFICATION_ID = 1101
         private const val CHANNEL_ID = "auto_restart_channel"
     }
 
@@ -77,10 +78,10 @@ class AutoRestartService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "自动重启服务",
+                MLang.Service.AutoRestart.ChannelName,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "用于自动重启代理服务"
+                description = MLang.Service.AutoRestart.ChannelDescription
                 setShowBadge(false)
             }
 
@@ -91,8 +92,8 @@ class AutoRestartService : Service() {
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("YumeBox")
-            .setContentText("正在检查自动启动...")
+            .setContentTitle(MLang.Home.Title)
+            .setContentText(MLang.Service.AutoRestart.Checking)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .build()

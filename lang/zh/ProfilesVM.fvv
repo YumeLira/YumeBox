@@ -13,6 +13,7 @@ ProfilesVM = {
         ToggleFailed = "切换状态失败: %s"
         ProfileImported = "配置已导入: %s"
         ImportFailed = "导入配置失败: %s"
+        SortFailed = "排序失败: %s"
     }
     
     Progress = {

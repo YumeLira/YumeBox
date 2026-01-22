@@ -1,5 +1,7 @@
 <Home Page>
 Home = {
+    Title = "YumeBox"
+
     Message = {
         ConfigSwitched = "配置已切换"
         ConfigSwitchFailed = "配置切换失败: %s"

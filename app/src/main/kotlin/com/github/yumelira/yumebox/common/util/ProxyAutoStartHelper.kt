@@ -75,20 +75,21 @@ object ProxyAutoStartHelper {
     }
 
     private fun getProfileToStart(profilesStore: ProfilesStore): String? {
+        val profiles = profilesStore.getAllProfiles()
         val lastUsedId = profilesStore.lastUsedProfileId
         if (lastUsedId.isNotEmpty()) {
-            val lastUsedProfile = profilesStore.getAllProfiles().find { it.id == lastUsedId }
+            val lastUsedProfile = profiles.find { it.id == lastUsedId }
             if (lastUsedProfile != null) {
                 return lastUsedId
             }
         }
 
-        val enabledProfile = profilesStore.getAllProfiles().find { it.enabled }
+        val enabledProfile = profiles.find { it.enabled }
         if (enabledProfile != null) {
             return enabledProfile.id
         }
 
-        val firstProfile = profilesStore.getAllProfiles().firstOrNull()
+        val firstProfile = profiles.firstOrNull()
         if (firstProfile != null) {
             return firstProfile.id
         }

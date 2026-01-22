@@ -25,20 +25,18 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.clash.manager.ClashManager
-import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.Provider
-import kotlinx.coroutines.Dispatchers
+import com.github.yumelira.yumebox.data.repository.ProvidersRepository
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import timber.log.Timber
-import java.io.File
 
 class ProvidersViewModel(
-    private val clashManager: ClashManager
+    private val clashManager: ClashManager,
+    private val providersRepository: ProvidersRepository
 ) : ViewModel() {
 
     private val _providers = MutableStateFlow<List<Provider>>(emptyList())
@@ -56,31 +54,33 @@ class ProvidersViewModel(
                 return@launch
             }
 
-            try {
-                _uiState.update { it.copy(isLoading = true) }
-                val providerList = Clash.queryProviders()
+            _uiState.update { it.copy(isLoading = true) }
+            val result = providersRepository.queryProviders()
+            result.onSuccess { providerList ->
                 _providers.value = providerList.sorted()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "获取外部资源失败: ${e.message ?: "Unknown error"}") }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(error = MLang.Providers.Message.FetchFailed.format(e.message ?: "Unknown error"))
+                }
             }
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     fun updateProvider(provider: Provider) {
         val providerKey = "${provider.type}_${provider.name}"
         viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
-                Clash.updateProvider(provider.type, provider.name).await()
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
+            val result = providersRepository.updateProvider(provider)
+            result.onSuccess {
                 refreshProviders()
-                _uiState.update { it.copy(message = "${provider.name} 更新成功") }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "更新失败: ${e.message ?: "Unknown error"}") }
-            } finally {
-                _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
+                _uiState.update { it.copy(message = MLang.Providers.Message.UpdateSuccess.format(provider.name)) }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: "Unknown error"))
+                }
             }
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
         }
     }
 
@@ -89,36 +89,31 @@ class ProvidersViewModel(
             val httpProviders = _providers.value.filter { it.vehicleType == Provider.VehicleType.HTTP }
             if (httpProviders.isEmpty()) return@launch
 
-            try {
-                _uiState.update { it.copy(isUpdatingAll = true) }
-                val providerKeys = httpProviders.map { "${it.type}_${it.name}" }.toSet()
-                _uiState.update { it.copy(updatingProviders = providerKeys) }
+            _uiState.update { it.copy(isUpdatingAll = true) }
+            val providerKeys = httpProviders.map { "${it.type}_${it.name}" }.toSet()
+            _uiState.update { it.copy(updatingProviders = providerKeys) }
 
-                val failedProviders = mutableListOf<String>()
-                httpProviders.forEach { provider ->
-                    try {
-                        Clash.updateProvider(provider.type, provider.name).await()
-                    } catch (e: Exception) {
-                        failedProviders.add(provider.name)
-                        Timber.e(e, "Failed to update provider: ${provider.name}")
-                    }
-                }
-
+            val result = providersRepository.updateAllProviders(httpProviders)
+            result.onSuccess { updateResult ->
                 refreshProviders()
-                if (failedProviders.isEmpty()) {
-                    _uiState.update { it.copy(message = "全部更新完成") }
+                if (updateResult.failedProviders.isEmpty()) {
+                    _uiState.update { it.copy(message = MLang.Providers.Message.AllUpdated) }
                 } else {
                     _uiState.update {
                         it.copy(
-                            error = "更新失败: Failed providers: ${failedProviders.joinToString(", ")}"
+                            error = MLang.Providers.Message.UpdateFailed.format(
+                                "Failed providers: ${updateResult.failedProviders.joinToString(", ")}"
+                            )
                         )
                     }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "更新失败: ${e.message ?: "Unknown error"}") }
-            } finally {
-                _uiState.update { it.copy(isUpdatingAll = false, updatingProviders = emptySet()) }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: "Unknown error"))
+                }
             }
+
+            _uiState.update { it.copy(isUpdatingAll = false, updatingProviders = emptySet()) }
         }
     }
 
@@ -133,42 +128,19 @@ class ProvidersViewModel(
     fun uploadProviderFile(context: Context, provider: Provider, uri: Uri) {
         val providerKey = "${provider.type}_${provider.name}"
         viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders + providerKey) }
 
-                withContext(Dispatchers.IO) {
-                    if (provider.path.isBlank()) {
-                        throw IllegalStateException("Provider path is empty")
-                    }
-
-                    val targetFile = File(provider.path)
-                    targetFile.parentFile?.mkdirs()
-
-                    // Validate URI and get file size
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                        ?: throw IllegalStateException("Cannot read file from uri: $uri")
-
-                    // Check file size (limit to 50MB to prevent abuse)
-                    val fileSize = inputStream.available()
-                    if (fileSize > 50 * 1024 * 1024) {
-                        inputStream.close()
-                        throw IllegalStateException("File size exceeds 50MB limit")
-                    }
-
-                    inputStream.use { input ->
-                        targetFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-
+            val result = providersRepository.uploadProviderFile(context, provider, uri)
+            result.onSuccess {
                 refreshProviders()
-                _uiState.update { it.copy(message = "${provider.name} 上传成功") }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = "上传失败: ${e.message ?: "Unknown error"}") }
-            } finally {
-                _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
+                _uiState.update { it.copy(message = MLang.Providers.Message.UploadSuccess.format(provider.name)) }
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(error = MLang.Providers.Message.UploadFailed.format(e.message ?: "Unknown error"))
+                }
             }
+
+            _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
         }
     }
 

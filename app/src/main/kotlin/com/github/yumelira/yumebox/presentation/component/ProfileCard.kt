@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.yumelira.yumebox.clash.isConfigSaved
 import com.github.yumelira.yumebox.data.model.Profile
+import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -190,7 +191,7 @@ fun ProfileCard(
                             .alpha(if (isConfigSaved) 1f else 0.4f),
                         imageVector = MiuixIcons.Share,
                         tint = actionIconTint.copy(alpha = if (isConfigSaved) 1f else 0.4f),
-                        contentDescription = "导出"
+                        contentDescription = MLang.Component.ProfileCard.Export
                     )
                 }
 
@@ -205,7 +206,7 @@ fun ProfileCard(
                         modifier = Modifier.size(20.dp),
                         imageVector = MiuixIcons.Edit,
                         tint = actionIconTint,
-                        contentDescription = "编辑"
+                        contentDescription = MLang.Component.ProfileCard.Edit
                     )
                 }
             }
@@ -233,11 +234,11 @@ fun ProfileCard(
                             modifier = Modifier.size(20.dp),
                             imageVector = MiuixIcons.Refresh,
                             tint = updateTint,
-                            contentDescription = "更新",
+                            contentDescription = MLang.Component.ProfileCard.Update,
                         )
                         Text(
                             modifier = Modifier.padding(end = 3.dp),
-                            text = "更新",
+                            text = MLang.Component.ProfileCard.Update,
                             color = updateTint,
                             fontWeight = FontWeight.Medium,
                             fontSize = 15.sp
@@ -262,11 +263,11 @@ fun ProfileCard(
                         modifier = Modifier.size(20.dp),
                         imageVector = MiuixIcons.Delete,
                         tint = actionIconTint,
-                        contentDescription = "删除"
+                        contentDescription = MLang.Component.ProfileCard.Delete
                     )
                     Text(
                         modifier = Modifier.padding(start = 4.dp, end = 3.dp),
-                        text = "删除",
+                        text = MLang.Component.ProfileCard.Delete,
                         color = actionIconTint,
                         fontWeight = FontWeight.Medium,
                         fontSize = 15.sp

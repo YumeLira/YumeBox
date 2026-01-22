@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.AppIconHelper
-import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.theme.AppColorTheme
@@ -39,6 +38,7 @@ import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -80,7 +80,7 @@ fun AppSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopBar(title = "应用设置", scrollBehavior = scrollBehavior)
+            TopBar(title = MLang.AppSettings.Title, scrollBehavior = scrollBehavior)
         },
     ) { innerPadding ->
         ScreenLazyColumn(
@@ -88,28 +88,28 @@ fun AppSettingsScreen(
             innerPadding = innerPadding,
         ) {
             item {
-                SmallTitle("行为")
+                SmallTitle(MLang.AppSettings.Section.Behavior)
                 Card {
                     SuperSwitch(
-                        title = "自动启动",
-                        summary = "应用启动和开机时自动启动代理服务",
+                        title = MLang.AppSettings.Behavior.AutoStartTitle,
+                        summary = MLang.AppSettings.Behavior.AutoStartSummary,
                         checked = automaticRestart,
                         onCheckedChange = { viewModel.onAutomaticRestartChange(it) },
                     )
                     if (com.github.yumelira.yumebox.common.util.LocaleUtil.isChineseLocale()) {
                         SuperSwitch(
-                            title = "坚持一个中国原则",
-                            summary = "自动将港澳台地区旗帜及区域码显示为中国",
+                            title = MLang.AppSettings.Behavior.OneChinaTitle,
+                            summary = MLang.AppSettings.Behavior.OneChinaSummary,
                             checked = true,
                             onCheckedChange = { },
                             enabled = false,
                         )
                     }
                 }
-                SmallTitle("首页")
+                SmallTitle(MLang.AppSettings.Section.Home)
                 Card {
                     BasicComponent(
-                        title = "一言",
+                        title = MLang.AppSettings.Home.OneWordTitle,
                         summary = viewModel.oneWord.value,
                         onClick = {
                             oneWordTextFieldState.value = TextFieldValue(viewModel.oneWord.value)
@@ -117,7 +117,7 @@ fun AppSettingsScreen(
                         }
                     )
                     BasicComponent(
-                        title = "作者",
+                        title = MLang.AppSettings.Home.OneWordAuthorTitle,
                         summary = viewModel.oneWordAuthor.value,
                         onClick = {
                             oneWordAuthorTextFieldState.value = TextFieldValue(viewModel.oneWordAuthor.value)
@@ -125,53 +125,57 @@ fun AppSettingsScreen(
                         }
                     )
                 }
-                SmallTitle("界面")
+                SmallTitle(MLang.AppSettings.Section.Interface)
                 Card {
                     EnumSelector(
-                        title = "主题模式",
-                        summary = "选择应用的主题样式",
+                        title = MLang.AppSettings.Interface.ThemeModeTitle,
+                        summary = MLang.AppSettings.Interface.ThemeModeSummary,
                         currentValue = themeMode,
-                        items = listOf("跟随系统", "浅色", "深色"),
+                        items = listOf(
+                            MLang.AppSettings.Interface.ThemeModeSystem,
+                            MLang.AppSettings.Interface.ThemeModeLight,
+                            MLang.AppSettings.Interface.ThemeModeDark
+                        ),
                         values = ThemeMode.entries,
                         onValueChange = { viewModel.onThemeModeChange(it) },
                     )
                     EnumSelector(
-                        title = "配色方案",
-                        summary = "选择品牌色风格，默认为极简黑白",
+                        title = MLang.AppSettings.Interface.ColorThemeTitle,
+                        summary = MLang.AppSettings.Interface.ColorThemeSummary,
                         currentValue = colorTheme,
                         items = listOf(
-                            "极简黑白",
-                            "柏码经典",
-                            "海洋之歌",
-                            "清新晨露",
-                            "小小公主",
-                            "神秘世界",
-                            "金色时光",
+                            MLang.AppSettings.Interface.ColorMinimal,
+                            MLang.AppSettings.Interface.ColorClassic,
+                            MLang.AppSettings.Interface.ColorOcean,
+                            MLang.AppSettings.Interface.ColorFresh,
+                            MLang.AppSettings.Interface.ColorPrincess,
+                            MLang.AppSettings.Interface.ColorMystery,
+                            MLang.AppSettings.Interface.ColorGolden,
                         ),
                         values = AppColorTheme.entries,
                         onValueChange = { viewModel.onColorThemeChange(it) },
                     )
                     SuperSwitch(
-                        title = "浮动导航栏",
-                        summary = "使用浮动样式的底部导航栏",
+                        title = MLang.AppSettings.Interface.FloatingNavbarTitle,
+                        summary = MLang.AppSettings.Interface.FloatingNavbarSummary,
                         checked = bottomBarFloating,
                         onCheckedChange = { viewModel.onBottomBarFloatingChange(it) },
                     )
                     SuperSwitch(
-                        title = "滑动隐藏底栏",
-                        summary = "向下滑动时自动隐藏底栏，向上滑动时显示",
+                        title = MLang.AppSettings.Interface.AutoHideNavbarTitle,
+                        summary = MLang.AppSettings.Interface.AutoHideNavbarSummary,
                         checked = bottomBarAutoHide,
                         onCheckedChange = { viewModel.onBottomBarAutoHideChange(it) },
                     )
                     SuperSwitch(
-                        title = "显示分割线",
-                        summary = "在列表项之间显示分割线",
+                        title = MLang.AppSettings.Interface.ShowDividerTitle,
+                        summary = MLang.AppSettings.Interface.ShowDividerSummary,
                         checked = showDivider,
                         onCheckedChange = { viewModel.onShowDividerChange(it) },
                     )
                     SuperSwitch(
-                        title = "隐藏应用图标",
-                        summary = "隐藏后可通过拨号盘 *#*#0721#*#* 打开",
+                        title = MLang.AppSettings.Interface.HideIconTitle,
+                        summary = MLang.AppSettings.Interface.HideIconSummary,
                         checked = hideAppIcon,
                         onCheckedChange = { checked ->
                             if (checked) {
@@ -183,20 +187,24 @@ fun AppSettingsScreen(
                         },
                     )
                 }
-                SmallTitle("服务")
+                SmallTitle(MLang.AppSettings.Section.Service)
                 Card {
                     SuperSwitch(
-                        title = "显示流量通知",
-                        summary = "在通知栏中显示流量使用情况",
+                        title = MLang.AppSettings.ServiceSection.TrafficNotificationTitle,
+                        summary = MLang.AppSettings.ServiceSection.TrafficNotificationSummary,
                         checked = showTrafficNotification,
                         onCheckedChange = { viewModel.onShowTrafficNotificationChange(it) },
                     )
                 }
-                SmallTitle("网络")
+                SmallTitle(MLang.AppSettings.Section.Network)
                 Card {
                     BasicComponent(
-                        title = "自定义 User-Agent",
-                        summary = if (customUserAgent.isEmpty()) "未设置，使用默认值" else customUserAgent,
+                        title = MLang.AppSettings.Network.CustomUserAgentTitle,
+                        summary = if (customUserAgent.isEmpty()) {
+                            MLang.AppSettings.Network.CustomUserAgentSummaryDefault
+                        } else {
+                            customUserAgent
+                        },
                         onClick = {
                             customUserAgentTextFieldState.value = TextFieldValue(customUserAgent)
                             showEditCustomUserAgentDialog.value = true
@@ -209,10 +217,10 @@ fun AppSettingsScreen(
     }
     WarningBottomSheet(
         show = showHideIconDialog,
-        title = "警告",
+        title = MLang.AppSettings.WarningDialog.Title,
         messages = listOf(
-            "请在隐藏之前确认你能够访问本应用的设置界面！",
-            "对于 HyperOS, 请开启 自启动 和 后台弹出界面 权限,以接受拨号界面代码！"
+            MLang.AppSettings.WarningDialog.HideIconMsg1,
+            MLang.AppSettings.WarningDialog.HideIconMsg2
         ),
         onConfirm = {
             viewModel.onHideAppIconChange(true)
@@ -222,25 +230,25 @@ fun AppSettingsScreen(
 
     TextEditBottomSheet(
         show = showEditOneWordDialog,
-        title = "编辑一言",
+        title = MLang.AppSettings.EditDialog.OneWordTitle,
         textFieldValue = oneWordTextFieldState,
         onConfirm = { viewModel.onOneWordChange(it) },
     )
 
     TextEditBottomSheet(
         show = showEditOneWordAuthorDialog,
-        title = "编辑作者",
+        title = MLang.AppSettings.EditDialog.AuthorTitle,
         textFieldValue = oneWordAuthorTextFieldState,
         onConfirm = { viewModel.onOneWordAuthorChange(it) },
     )
 
     TextEditBottomSheet(
         show = showEditCustomUserAgentDialog,
-        title = "编辑 User-Agent",
+        title = MLang.AppSettings.EditDialog.UserAgentTitle,
         textFieldValue = customUserAgentTextFieldState,
         onConfirm = {
             viewModel.onCustomUserAgentChange(it)
-            Clash.setCustomUserAgent(it)
+            viewModel.applyCustomUserAgent(it)
         },
     )
 }

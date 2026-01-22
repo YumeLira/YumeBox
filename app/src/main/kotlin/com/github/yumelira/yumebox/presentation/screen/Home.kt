@@ -41,6 +41,7 @@ import com.github.yumelira.yumebox.presentation.screen.home.ProxyControlButton
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import com.ramcosta.composedestinations.generated.destinations.TrafficStatisticsScreenDestination
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -96,7 +97,7 @@ fun HomePager(mainInnerPadding: PaddingValues) {
     val scrollBehavior = MiuixScrollBehavior()
 
     Scaffold(
-        topBar = { TopBar(title = "YumeBox", scrollBehavior = scrollBehavior) },
+        topBar = { TopBar(title = MLang.Home.Title, scrollBehavior = scrollBehavior) },
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             ScreenLazyColumn(

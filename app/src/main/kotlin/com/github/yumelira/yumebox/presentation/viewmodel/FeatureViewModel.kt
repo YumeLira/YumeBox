@@ -34,6 +34,7 @@ import com.github.yumelira.yumebox.data.store.FeatureStore
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.substore.SubStorePaths
 import com.github.yumelira.yumebox.substore.SubStoreService
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,7 +94,6 @@ class FeatureViewModel(
         private const val EXTENSION_PACKAGE_NAME = "com.github.yumelira.yumebox.extension"
         private const val JAVET_LIB_NAME = "libjavet-node-android"
         private val PANEL_NAMES = listOf("zashboard", "metacubexd")
-        private val PANEL_DISPLAY_NAMES = listOf("SubStore Zashboard", "SubStore 官方面板")
         private val PANEL_URLS = listOf(
             "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
             "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
@@ -103,7 +103,7 @@ class FeatureViewModel(
 
     fun startService() {
         if (DeviceUtil.is32BitDevice()) {
-            showToast("SubStore不支持32位设备")
+            showToast(MLang.Feature.SubStore.Not32Bit)
             return
         }
         if (!checkSubStoreReadiness()) return
@@ -121,15 +121,15 @@ class FeatureViewModel(
     private fun checkSubStoreReadiness(): Boolean {
         return when {
             !_isExtensionInstalled.value -> {
-                showToast("请先安装扩展包"); false
+                showToast(MLang.Feature.SubStore.InstallExtension); false
             }
 
             !_isSubStoreInitialized.value -> {
-                showToast("请先下载 SubStore 资源"); false
+                showToast(MLang.Feature.SubStore.DownloadSubStoreFirst); false
             }
 
             !_isJavetLoaded.value -> {
-                showToast("Javet 库未就绪，请确保扩展包已正确安装"); false
+                showToast(MLang.Feature.SubStore.JavetNotReady); false
             }
 
             else -> true
@@ -200,7 +200,7 @@ class FeatureViewModel(
                 val isInstalled = panelDir.exists() && entryFile != null
                 installStatus.add(isInstalled)
                 if (isInstalled) {
-                    paths.add("${PANEL_DISPLAY_NAMES[index]}: ${entryFile.absolutePath.substring(filesDir.length)}")
+                    paths.add("${panelDisplayName(index)}: ${entryFile.absolutePath.substring(filesDir.length)}")
                 }
             }
             _panelPaths.value = paths
@@ -230,9 +230,18 @@ class FeatureViewModel(
                     url = "https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip",
                     targetDir = SubStorePaths.frontendDir,
                     onProgress = { _subStoreFrontendDownloadProgress.value = it })
-                showToast(if (success) "SubStore 前端下载完成" else "SubStore 前端下载失败")
+                showToast(
+                    if (success) {
+                        MLang.Feature.SubStore.FrontendDownloadSuccess
+                    } else {
+                        MLang.Feature.SubStore.FrontendDownloadFailed
+                    }
+                )
                 if (success) _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
-            }.onFailure { e -> timber.log.Timber.e(e, "下载前端失败"); showToast("下载出错: ${e.message}") }
+            }.onFailure { e ->
+                timber.log.Timber.e(e, "下载前端失败")
+                showToast(MLang.Feature.SubStore.DownloadError.format(e.message ?: MLang.Util.Error.UnknownError))
+            }
             _isDownloadingSubStoreFrontend.value = false
             _subStoreFrontendDownloadProgress.value = null
         }
@@ -250,9 +259,18 @@ class FeatureViewModel(
                     url = "https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js",
                     targetFile = SubStorePaths.backendBundle,
                     onProgress = { _subStoreBackendDownloadProgress.value = it })
-                showToast(if (success) "SubStore 后端下载完成" else "SubStore 后端下载失败")
+                showToast(
+                    if (success) {
+                        MLang.Feature.SubStore.BackendDownloadSuccess
+                    } else {
+                        MLang.Feature.SubStore.BackendDownloadFailed
+                    }
+                )
                 if (success) _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
-            }.onFailure { e -> timber.log.Timber.e(e, "下载后端失败"); showToast("下载出错: ${e.message}") }
+            }.onFailure { e ->
+                timber.log.Timber.e(e, "下载后端失败")
+                showToast(MLang.Feature.SubStore.DownloadError.format(e.message ?: MLang.Util.Error.UnknownError))
+            }
             _isDownloadingSubStoreBackend.value = false
             _subStoreBackendDownloadProgress.value = null
         }
@@ -272,16 +290,26 @@ class FeatureViewModel(
             _isDownloadingPanel.value = true
             runCatching {
                 if (panelType !in PANEL_NAMES.indices) {
-                    showToast("无效的面板类型")
+                    showToast(MLang.Feature.SubStore.InvalidPanelType)
                     return@runCatching
                 }
                 val panelDir = File("${application.filesDir.absolutePath}/panel/${PANEL_NAMES[panelType]}")
                 if (panelDir.exists()) panelDir.deleteRecursively()
                 panelDir.mkdirs()
                 val success = DownloadUtil.downloadAndExtract(url = PANEL_URLS[panelType], targetDir = panelDir)
-                showToast(if (success) "${PANEL_NAMES[panelType]} 下载安装成功" else "${PANEL_NAMES[panelType]} 下载安装失败")
+                val panelName = panelDisplayName(panelType)
+                showToast(
+                    if (success) {
+                        MLang.Feature.SubStore.PanelInstallSuccess.format(panelName)
+                    } else {
+                        MLang.Feature.SubStore.PanelInstallFailed.format(panelName)
+                    }
+                )
                 if (success) updatePanelPaths()
-            }.onFailure { e -> timber.log.Timber.e(e, "下载面板失败"); showToast("下载安装出错: ${e.message}") }
+            }.onFailure { e ->
+                timber.log.Timber.e(e, "下载面板失败")
+                showToast(MLang.Feature.SubStore.PanelInstallError.format(e.message ?: MLang.Util.Error.UnknownError))
+            }
             _isDownloadingPanel.value = false
         }
     }
@@ -294,7 +322,7 @@ class FeatureViewModel(
         mode.minutes?.let { minutes ->
             autoCloseJob = viewModelScope.launch {
                 delay(minutes * 60 * 1000L)
-                showToast("服务已自动关闭")
+                showToast(MLang.Feature.ServiceStatus.AutoClosed)
                 stopService()
             }
         }
@@ -303,5 +331,11 @@ class FeatureViewModel(
     private fun cancelAutoCloseTimer() {
         autoCloseJob?.cancel()
         autoCloseJob = null
+    }
+
+    private fun panelDisplayName(index: Int): String = when (index) {
+        0 -> MLang.Feature.SubStore.Zashboard
+        1 -> MLang.Feature.SubStore.OfficialPanel
+        else -> MLang.Feature.Panel.Unknown
     }
 }

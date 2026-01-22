@@ -54,6 +54,7 @@ import com.github.yumelira.yumebox.presentation.component.NavigationBackIcon
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
 import com.github.yumelira.yumebox.presentation.viewmodel.LogViewModel
+import dev.oom_wg.purejoy.mlang.MLang
 import com.github.yumelira.yumebox.service.LogRecordService
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
@@ -104,7 +105,7 @@ fun LogDetailScreen(
                         }
                     }
                 } catch (e: Exception) {
-                    timber.log.Timber.e(e, "保存文件失败")
+                    timber.log.Timber.e(e, "Failed to save log file")
                 }
             }
         }
@@ -127,7 +128,7 @@ fun LogDetailScreen(
     Scaffold(
         topBar = {
             TopBar(
-                title = if (isCurrentFileRecording) "实时日志" else file.name,
+                title = if (isCurrentFileRecording) MLang.Log.Detail.RealTimeLog else file.name,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     NavigationBackIcon(navigator = navigator)
@@ -142,7 +143,7 @@ fun LogDetailScreen(
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Close,
-                                contentDescription = "暂停记录",
+                                contentDescription = MLang.Log.Action.Pause,
                             )
                         }
                     } else {
@@ -154,7 +155,7 @@ fun LogDetailScreen(
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Ok,
-                                contentDescription = "保存",
+                                contentDescription = MLang.Log.Action.Save,
                             )
                         }
                         IconButton(
@@ -166,7 +167,7 @@ fun LogDetailScreen(
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Delete,
-                                contentDescription = "删除",
+                                contentDescription = MLang.Log.Action.Delete,
                             )
                         }
                     }
@@ -177,15 +178,19 @@ fun LogDetailScreen(
         when {
             isLoading -> {
                 CenteredText(
-                    firstLine = "加载中...",
+                    firstLine = MLang.Log.Detail.Loading,
                     secondLine = ""
                 )
             }
 
             logEntries.isEmpty() -> {
                 CenteredText(
-                    firstLine = if (isCurrentFileRecording) "等待日志..." else "日志为空",
-                    secondLine = if (isCurrentFileRecording) "日志将在产生时显示" else "该文件没有日志内容"
+                    firstLine = if (isCurrentFileRecording) MLang.Log.Detail.WaitingLog else MLang.Log.Detail.LogEmpty,
+                    secondLine = if (isCurrentFileRecording) {
+                        MLang.Log.Detail.WillShowWhenGenerated
+                    } else {
+                        MLang.Log.Detail.NoLogContent
+                    }
                 )
             }
 

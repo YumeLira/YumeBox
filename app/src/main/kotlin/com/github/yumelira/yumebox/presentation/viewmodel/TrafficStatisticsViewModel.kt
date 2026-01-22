@@ -29,6 +29,7 @@ import com.github.yumelira.yumebox.data.model.StatisticsTimeRange
 import com.github.yumelira.yumebox.data.model.TimeSlot
 import com.github.yumelira.yumebox.data.store.TrafficStatisticsStore
 import com.github.yumelira.yumebox.presentation.component.BarChartItem
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -113,7 +114,7 @@ class TrafficStatisticsViewModel(
         return summaries.map { summary ->
             val calendar = Calendar.getInstance().apply { timeInMillis = summary.dateMillis }
             val label = if (summary.dateMillis == todayKey) {
-                "今日"
+                MLang.TrafficStatistics.TimeRange.Today
             } else {
                 dateFormat.format(calendar.time)
             }

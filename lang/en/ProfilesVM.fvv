@@ -13,6 +13,7 @@ ProfilesVM = {
         ToggleFailed = "Toggle state failed: %s"
         ProfileImported = "Profile imported: %s"
         ImportFailed = "Import profile failed: %s"
+        SortFailed = "Sort failed: %s"
     }
     
     Progress = {

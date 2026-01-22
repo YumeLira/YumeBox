@@ -8,6 +8,7 @@ AppSettings = {
         Interface = "界面"
         Service = "服务"
         Language = "语言"
+        Network = "网络"
     }
     
     Behavior = {
@@ -41,6 +42,9 @@ AppSettings = {
         
         FloatingNavbarTitle = "浮动导航栏"
         FloatingNavbarSummary = "使用浮动样式的底部导航栏"
+
+        AutoHideNavbarTitle = "滑动隐藏底栏"
+        AutoHideNavbarSummary = "向下滑动时自动隐藏底栏，向上滑动时显示"
         
         ShowDividerTitle = "显示分割线"
         ShowDividerSummary = "在列表项之间显示分割线"
@@ -59,6 +63,11 @@ AppSettings = {
         TrafficNotificationTitle = "显示流量通知"
         TrafficNotificationSummary = "在通知栏中显示流量使用情况"
     }
+
+    Network = {
+        CustomUserAgentTitle = "自定义 User-Agent"
+        CustomUserAgentSummaryDefault = "未设置，使用默认值"
+    }
     
     WarningDialog = {
         Title = "警告"
@@ -69,5 +78,6 @@ AppSettings = {
     EditDialog = {
         OneWordTitle = "编辑一言"
         AuthorTitle = "编辑作者"
+        UserAgentTitle = "编辑 User-Agent"
     }
 }

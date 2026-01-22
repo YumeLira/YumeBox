@@ -33,6 +33,7 @@ import com.github.yumelira.yumebox.data.repository.ProxyChainResolver
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.domain.facade.ProfilesRepository
 import com.github.yumelira.yumebox.domain.facade.ProxyFacade
+import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
@@ -134,19 +135,21 @@ class HomeViewModel(
             // 从 ProfilesStore 获取配置
             val profile = profilesRepository.profiles.value.find { it.id == profileId }
             if (profile == null) {
-                showError("配置切换失败: 配置不存在")
+                showError(MLang.Home.Message.ConfigSwitchFailed.format(MLang.ProfilesVM.Error.ProfileNotExist))
                 return
             }
 
             // 重新加载配置
             val result = clashManager.loadProfile(profile)
             if (result.isSuccess) {
-                showMessage("配置已切换")
+                showMessage(MLang.Home.Message.ConfigSwitched)
             } else {
-                showError("配置切换失败: ${result.exceptionOrNull()?.message}")
+                showError(
+                    MLang.Home.Message.ConfigSwitchFailed.format(result.exceptionOrNull()?.message)
+                )
             }
         } catch (e: Exception) {
-            showError("配置切换失败: ${e.message}")
+            showError(MLang.Home.Message.ConfigSwitchFailed.format(e.message))
         } finally {
             setLoading(false)
         }
@@ -156,34 +159,32 @@ class HomeViewModel(
         if (_isToggling.value) return
 
         viewModelScope.launch {
-            try {
-                _isToggling.value = true
-                _displayRunning.value = true
-                _uiState.update { it.copy(isStartingProxy = true, loadingProgress = "正在准备...") }
+            _isToggling.value = true
+            _displayRunning.value = true
+            _uiState.update {
+                it.copy(
+                    isStartingProxy = true,
+                    loadingProgress = MLang.Home.Message.Preparing
+                )
+            }
 
-                val result = proxyFacade.startProxy(profileId, useTunMode)
+            val result = proxyFacade.startProxy(profileId, useTunMode)
 
-                result.fold(onSuccess = { intent ->
-                    if (intent != null) {
-                        _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                        _vpnPrepareIntent.emit(intent)
-                        _displayRunning.value = false
-                        _isToggling.value = false
-                    } else {
-                        _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                    }
-                }, onFailure = { error ->
+            result.fold(onSuccess = { intent ->
+                if (intent != null) {
+                    _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
+                    _vpnPrepareIntent.emit(intent)
                     _displayRunning.value = false
                     _isToggling.value = false
+                } else {
                     _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                    showError("启动失败: ${error.message}")
-                })
-            } catch (e: Exception) {
+                }
+            }, onFailure = { error ->
                 _displayRunning.value = false
                 _isToggling.value = false
                 _uiState.update { it.copy(isStartingProxy = false, loadingProgress = null) }
-                showError("启动失败: ${e.message}")
-            }
+                showError(MLang.Home.Message.StartFailed.format(error.message))
+            })
         }
     }
 
@@ -191,19 +192,20 @@ class HomeViewModel(
         if (_isToggling.value) return
 
         viewModelScope.launch {
-            try {
-                _isToggling.value = true
-                _displayRunning.value = false
-                setLoading(true)
-                proxyFacade.stopProxy()
-                showMessage("代理服务已停止")
-            } catch (e: Exception) {
+            _isToggling.value = true
+            _displayRunning.value = false
+            setLoading(true)
+
+            val result = proxyFacade.stopProxy()
+            result.onSuccess {
+                showMessage(MLang.Home.Message.ProxyStopped)
+            }.onFailure { e ->
                 _displayRunning.value = true
                 _isToggling.value = false
-                showError("停止失败: ${e.message}")
-            } finally {
-                setLoading(false)
+                showError(MLang.Home.Message.StopFailed.format(e.message))
             }
+
+            setLoading(false)
         }
     }
 

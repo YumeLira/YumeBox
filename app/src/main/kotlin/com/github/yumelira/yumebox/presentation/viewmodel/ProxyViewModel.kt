@@ -3,9 +3,9 @@ package com.github.yumelira.yumebox.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.clash.manager.ClashManager
-import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.core.model.TunnelState
+import com.github.yumelira.yumebox.data.repository.OverrideRepository
 import com.github.yumelira.yumebox.data.store.ProxyDisplaySettingsStore
 import com.github.yumelira.yumebox.domain.model.ProxyDisplayMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
@@ -18,6 +18,7 @@ import timber.log.Timber
 
 class ProxyViewModel(
     private val clashManager: ClashManager,
+    private val overrideRepository: OverrideRepository,
     private val proxyDisplaySettingsStore: ProxyDisplaySettingsStore
 ) : ViewModel() {
 
@@ -56,29 +57,44 @@ class ProxyViewModel(
     fun patchMode(mode: TunnelState.Mode) {
         proxyDisplaySettingsStore.proxyMode.set(mode)
         viewModelScope.launch {
-            runCatching {
-                val persistOverride = Clash.queryOverride(Clash.OverrideSlot.Persist)
-                persistOverride.mode = mode
-                Clash.patchOverride(Clash.OverrideSlot.Persist, persistOverride)
-
-                val sessionOverride = Clash.queryOverride(Clash.OverrideSlot.Session)
-                sessionOverride.mode = mode
-                Clash.patchOverride(Clash.OverrideSlot.Session, sessionOverride)
-
-                clashManager.reloadCurrentProfile()
-                delay(100)
-                val modeName = when (mode) {
-                    TunnelState.Mode.Direct -> MLang.Proxy.Mode.Direct
-                    TunnelState.Mode.Global -> MLang.Proxy.Mode.Global
-                    TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
-                    else -> MLang.Proxy.Mode.Unknown
-                }
-                showMessage(MLang.Proxy.Mode.Switched.format(modeName))
-                clashManager.refreshProxyGroups()
-            }.onFailure { e ->
-                Timber.e(e, "代理模式切换失败：$mode")
-                showError(MLang.Proxy.Mode.SwitchFailed.format(e.message))
+            val persistResult = overrideRepository.updatePersist {
+                it.copy(mode = mode)
             }
+            if (persistResult.isFailure) {
+                val error = persistResult.exceptionOrNull()
+                Timber.e(error, "代理模式切换失败：$mode")
+                showError(MLang.Proxy.Mode.SwitchFailed.format(error?.message))
+                return@launch
+            }
+
+            val sessionResult = overrideRepository.updateSession {
+                it.copy(mode = mode)
+            }
+            if (sessionResult.isFailure) {
+                val error = sessionResult.exceptionOrNull()
+                Timber.e(error, "代理模式切换失败：$mode")
+                showError(MLang.Proxy.Mode.SwitchFailed.format(error?.message))
+                return@launch
+            }
+
+            val reloadResult = clashManager.reloadCurrentProfile()
+            if (reloadResult.isFailure) {
+                val error = reloadResult.exceptionOrNull()
+                Timber.e(error, "代理模式切换失败：$mode")
+                showError(MLang.Proxy.Mode.SwitchFailed.format(error?.message))
+                return@launch
+            }
+
+            // reloadCurrentProfile 已经触发了同步，等待一段时间确保完成
+            delay(500)
+            
+            val modeName = when (mode) {
+                TunnelState.Mode.Direct -> MLang.Proxy.Mode.Direct
+                TunnelState.Mode.Global -> MLang.Proxy.Mode.Global
+                TunnelState.Mode.Rule -> MLang.Proxy.Mode.Rule
+                else -> MLang.Proxy.Mode.Unknown
+            }
+            showMessage(MLang.Proxy.Mode.Switched.format(modeName))
         }
     }
 

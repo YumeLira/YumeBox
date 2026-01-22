@@ -1,5 +1,7 @@
 <Home Page>
 Home = {
+    Title = "YumeBox"
+
     Message = {
         ConfigSwitched = "Config switched"
         ConfigSwitchFailed = "Config switch failed: %s"

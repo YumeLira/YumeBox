@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.data.model.ThemeMode
 import com.github.yumelira.yumebox.data.store.AppSettingsStorage
 import com.github.yumelira.yumebox.data.store.Preference
@@ -60,6 +61,7 @@ class AppSettingsViewModel(
     fun onOneWordChange(text: String) = oneWord.set(text)
     fun onOneWordAuthorChange(author: String) = oneWordAuthor.set(author)
     fun onCustomUserAgentChange(userAgent: String) = customUserAgent.set(userAgent)
+    fun applyCustomUserAgent(userAgent: String) = Clash.setCustomUserAgent(userAgent)
 
     fun setOnboardingCompleted(completed: Boolean) = onboardingCompleted.set(completed)
     fun setPrivacyPolicyAccepted(accepted: Boolean) = privacyPolicyAccepted.set(accepted)

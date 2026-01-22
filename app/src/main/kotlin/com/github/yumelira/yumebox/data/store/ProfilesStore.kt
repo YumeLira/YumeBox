@@ -55,6 +55,9 @@ class ProfilesStore(
 
     fun getAllProfiles(): List<Profile> = _profiles.value
 
+    fun getProfileById(profileId: String): Profile? =
+        _profiles.value.firstOrNull { it.id == profileId }
+
     suspend fun addProfile(profile: Profile) {
         _profiles.add(profile)
     }

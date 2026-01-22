@@ -22,17 +22,19 @@ package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.core.model.TunnelState
+import com.github.yumelira.yumebox.data.repository.OverrideRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class OverrideViewModel : ViewModel() {
+class OverrideViewModel(
+    private val overrideRepository: OverrideRepository
+) : ViewModel() {
 
     companion object {
         private const val TAG = "OverrideViewModel"
@@ -52,9 +54,9 @@ class OverrideViewModel : ViewModel() {
 
     private fun loadConfiguration() {
         viewModelScope.launch {
-            runCatching {
-                _isLoading.value = true
-                val config = Clash.queryOverride(Clash.OverrideSlot.Persist)
+            _isLoading.value = true
+            val result = overrideRepository.loadPersist()
+            result.onSuccess { config ->
                 _configuration.value = config
             }.onFailure { e ->
                 Timber.tag(TAG).e(e, "加载覆写配置失败")
@@ -65,8 +67,8 @@ class OverrideViewModel : ViewModel() {
 
     fun resetConfiguration() {
         viewModelScope.launch {
-            runCatching {
-                Clash.clearOverride(Clash.OverrideSlot.Persist)
+            val result = overrideRepository.clearPersist()
+            result.onSuccess {
                 _configuration.value = ConfigurationOverride()
                 _hasChanges.value = false
             }.onFailure { e ->
@@ -370,9 +372,8 @@ class OverrideViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         if (_hasChanges.value) {
-            runCatching {
-                Clash.patchOverride(Clash.OverrideSlot.Persist, _configuration.value)
-            }.onFailure { e ->
+            val result = overrideRepository.savePersist(_configuration.value)
+            result.onFailure { e ->
                 Timber.tag(TAG).e(e, "自动保存配置失败")
             }
         }
