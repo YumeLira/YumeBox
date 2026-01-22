@@ -3,6 +3,9 @@ name: Smart Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: Smart-Release
   cancel-in-progress: true
