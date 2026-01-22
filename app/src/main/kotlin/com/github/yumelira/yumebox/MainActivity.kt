@@ -192,11 +192,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-@Destination<RootGraph>(start = true)
-fun MainScreen(navigator: DestinationsNavigator) {
+@Destination<RootGraph>
+fun MainScreen(
+    navigator: DestinationsNavigator,
+    initialPage: Int = 0,
+) {
     val activity = LocalActivity.current
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, 3), pageCount = { 4 })
     val hazeState = remember { HazeState() }
     val hazeStyle = HazeStyle(
         backgroundColor = MiuixTheme.colorScheme.background,

@@ -22,6 +22,7 @@ Settings = {
     
     More = {
         TrafficStatistics = "流量统计"
+        OnboardingWizard = "初始化向导"
         Logs = "日志"
         About = "关于"
     }

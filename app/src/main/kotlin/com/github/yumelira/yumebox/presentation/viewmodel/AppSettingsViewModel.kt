@@ -31,6 +31,8 @@ class AppSettingsViewModel(
     storage: AppSettingsStorage,
 ) : ViewModel() {
 
+    val onboardingCompleted: Preference<Boolean> = storage.onboardingCompleted
+    val privacyPolicyAccepted: Preference<Boolean> = storage.privacyPolicyAccepted
 
     val themeMode: Preference<ThemeMode> = storage.themeMode
     val colorTheme: Preference<AppColorTheme> = storage.colorTheme
@@ -58,4 +60,7 @@ class AppSettingsViewModel(
     fun onOneWordChange(text: String) = oneWord.set(text)
     fun onOneWordAuthorChange(author: String) = oneWordAuthor.set(author)
     fun onCustomUserAgentChange(userAgent: String) = customUserAgent.set(userAgent)
+
+    fun setOnboardingCompleted(completed: Boolean) = onboardingCompleted.set(completed)
+    fun setPrivacyPolicyAccepted(accepted: Boolean) = privacyPolicyAccepted.set(accepted)
 }

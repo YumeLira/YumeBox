@@ -27,8 +27,8 @@
 
 ## 使用方法
 
-- **安装**：前往 [安装](https://yume.mintlify.app/yumebox/guide/install)
-- **构建**：[跳转至构建章节](https://yume.mintlify.app/yumebox/guide/building)
+- **安装**：前往 [安装](https://yumebox.mintlify.app/guide/install)
+- **构建**：[跳转至构建章节](https://yumebox.mintlify.app/guide/building)
 
 
 

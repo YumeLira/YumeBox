@@ -22,6 +22,7 @@ Settings = {
     
     More = {
         TrafficStatistics = "Traffic Statistics"
+        OnboardingWizard = "Onboarding Wizard"
         Logs = "Logs"
         About = "About"
     }

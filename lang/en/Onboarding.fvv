@@ -1,0 +1,67 @@
+<Onboarding>
+Onboarding = {
+    Navigation = {
+        Next = "Next"
+        Start = "Get Started"
+    }
+
+    Welcome = {
+        Title = "Welcome to YumeBox"
+        Subtitle = "Open-source, free and secure beautiful proxy tool"
+    }
+
+    Permission = {
+        Title = "Grant Permissions"
+        Subtitle = "For a better experience, please grant the following permissions"
+
+        Common = {
+            Granted = "Granted"
+        }
+
+        Notification = {
+            Title = "Notification Permission"
+            SummaryNeed = "Show connection status and traffic notifications"
+            SummaryNotRequired = "Not required on your Android version"
+        }
+
+        AppList = {
+            Title = "App List Permission"
+            SummaryNeed = "Required for per-app proxy features"
+        }
+    }
+
+    Privacy = {
+        Title = "Privacy & Terms"
+        Subtitle = "We value your privacy. Please read carefully"
+        Policy = {
+            Title = "Privacy Policy"
+            Summary = "Tap to view"
+        }
+        Accept = {
+            Title = "I have read and agree to the privacy policy"
+        }
+        Error = {
+            NotAccepted = "Please read and accept the terms first"
+        }
+    }
+
+    Project = {
+        Title = "About Project"
+        Subtitle = "Open-source. Thanks for your support"
+        Github = {
+            Title = "GitHub Repo"
+            Summary = "github.com/YumeLira/YumeBox"
+        }
+        Community = {
+            Title = "Community"
+            Summary = "Join our community chat"
+        }
+    }
+
+    Sheet = {
+        PrivacyPolicyTitle = "Privacy Policy"
+        Close = "Close"
+        LoadFailed = "Failed to load policy content"
+    }
+}
+

@@ -29,8 +29,8 @@
 
 ## Usage
 
-- **Install**: Visit the [Installation](https://yume.mintlify.app/yumebox/guide/install) page
-- **Build**: See the [Build section](https://yume.mintlify.app/yumebox/guide/building)
+- **Install**: Visit the [Installation](https://yumebox.mintlify.app/guide/install) page
+- **Build**: See the [Build section](https://yumebox.mintlify.app/guide/building)
 
 ## Discussion
 

@@ -1,0 +1,67 @@
+<Onboarding>
+Onboarding = {
+    Navigation = {
+        Next = "下一步"
+        Start = "开始使用"
+    }
+
+    Welcome = {
+        Title = "欢迎使用 YumeBox"
+        Subtitle = "开源、自由、美观的代理工具"
+    }
+
+    Permission = {
+        Title = "授予应用权限"
+        Subtitle = "为了更好的体验，建议授予以下权限"
+
+        Common = {
+            Granted = "已授权"
+        }
+
+        Notification = {
+            Title = "通知权限"
+            SummaryNeed = "用于显示连接状态和流量通知"
+            SummaryNotRequired = "当前系统无需额外授权"
+        }
+
+        AppList = {
+            Title = "应用列表权限"
+            SummaryNeed = "用于分应用代理等功能"
+        }
+    }
+
+    Privacy = {
+        Title = "隐私与协议"
+        Subtitle = "我们重视您的隐私，请仔细阅读"
+        Policy = {
+            Title = "隐私政策"
+            Summary = "点击查看"
+        }
+        Accept = {
+            Title = "我已阅读并同意隐私政策"
+        }
+        Error = {
+            NotAccepted = "请先阅读并同意协议"
+        }
+    }
+
+    Project = {
+        Title = "关于项目"
+        Subtitle = "开源、自由，感谢您的支持"
+        Github = {
+            Title = "GitHub 仓库"
+            Summary = "github.com/YumeLira/YumeBox"
+        }
+        Community = {
+            Title = "反馈群组"
+            Summary = "加入我们的社区讨论"
+        }
+    }
+
+    Sheet = {
+        PrivacyPolicyTitle = "隐私政策"
+        Close = "关闭"
+        LoadFailed = "无法加载协议内容"
+    }
+}
+

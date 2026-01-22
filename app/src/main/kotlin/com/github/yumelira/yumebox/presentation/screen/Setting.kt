@@ -48,6 +48,7 @@ import com.github.yumelira.yumebox.presentation.viewmodel.SettingViewModel
 import com.github.yumelira.yumebox.presentation.webview.WebViewActivity
 import com.github.yumelira.yumebox.substore.SubStoreService
 import com.ramcosta.composedestinations.generated.destinations.AboutScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.ActivationWizardScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.AppSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.FeatureScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.LogScreenDestination

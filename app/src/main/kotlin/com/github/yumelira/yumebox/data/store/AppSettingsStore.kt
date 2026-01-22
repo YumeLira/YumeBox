@@ -27,8 +27,11 @@ import com.tencent.mmkv.MMKV
 
 class AppSettingsStorage(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
 
+    val onboardingCompleted by boolFlow(false)
+    val privacyPolicyAccepted by boolFlow(false)
+
     val themeMode by enumFlow(ThemeMode.Auto)
-    val colorTheme by enumFlow(AppColorTheme.Baima)
+    val colorTheme by enumFlow(AppColorTheme.ClassicMonochrome)
     val appLanguage by enumFlow(AppLanguage.System)
     val automaticRestart by boolFlow(false)
     val hideAppIcon by boolFlow(false)
