@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.presentation.screen
 
 import android.content.Context
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -362,11 +361,6 @@ private fun ProxyGroupSelectorContent(
     }
 
     var showContent by remember { mutableStateOf(false) }
-    val alpha by animateFloatAsState(
-        targetValue = if (showContent) 1f else 0f,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "contentAlpha"
-    )
 
     LaunchedEffect(shouldShowLoading) {
         if (shouldShowLoading) delay(450)
@@ -385,36 +379,38 @@ private fun ProxyGroupSelectorContent(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = minSheetHeight, max = maxSheetHeight),
+            .let { base ->
+                // IMPORTANT: 当需要显示 loading 时，固定到最终高度，避免 loading->内容切换时“往上顶一下”。
+                // 在 Dialog(WindowBottomSheet/SuperBottomSheet) 场景下，高度跳变会非常明显。
+                if (shouldShowLoading) {
+                    base.height(maxSheetHeight)
+                } else {
+                    base.heightIn(min = minSheetHeight, max = maxSheetHeight)
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         if (!showContent && shouldShowLoading) {
-            // 加载指示器使用固定高度 minSheetHeight，避免高度跳动
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(minSheetHeight),
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 InfiniteProgressIndicator()
             }
         } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(alpha)
-            ) {
-                ProxyNodeGrid(
-                    proxies = group.proxies,
-                    selectedProxyName = group.now,
-                    displayMode = displayMode,
-                    onProxyClick = { proxy: Proxy -> onProxyClick(proxy.name) },
-                    isDelayTesting = isDelayTesting,
-                    onDelayTestClick = onTestDelay,
-                    contentPadding = contentPadding,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            // IMPORTANT: 不要对整块列表套 alpha/graphicsLayer。
+            // Dialog(WindowBottomSheet) 场景下，这会导致滚动时更容易掉帧。
+            ProxyNodeGrid(
+                proxies = group.proxies,
+                selectedProxyName = group.now,
+                displayMode = displayMode,
+                onProxyClick = { proxy: Proxy -> onProxyClick(proxy.name) },
+                isDelayTesting = isDelayTesting,
+                onDelayTestClick = onTestDelay,
+                contentPadding = contentPadding,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

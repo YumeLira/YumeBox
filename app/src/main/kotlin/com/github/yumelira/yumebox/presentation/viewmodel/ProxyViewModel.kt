@@ -31,7 +31,7 @@ class ProxyViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, TunnelState.Mode.Rule)
 
     val displayMode: StateFlow<ProxyDisplayMode> = proxyDisplaySettingsStore.displayMode.state
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ProxyDisplayMode.DOUBLE_SIMPLE)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ProxyDisplayMode.SINGLE_DETAILED)
 
     val sortMode: StateFlow<ProxySortMode> = proxyDisplaySettingsStore.sortMode.state
         .stateIn(viewModelScope, SharingStarted.Eagerly, ProxySortMode.DEFAULT)

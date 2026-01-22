@@ -222,14 +222,12 @@ fun MainScreen(
                 val distance = abs(fromPage - toPage)
                 val durationMillis = when (distance) {
                     0 -> AnimationSpecs.DURATION_INSTANT
-                    1 -> AnimationSpecs.DURATION_STANDARD
-                    else -> (AnimationSpecs.DURATION_FAST + (distance - 1) * 60).coerceAtMost(
-                        AnimationSpecs.DURATION_SLOW
-                    )
+                    1 -> 360
+                    else -> (360 + (distance - 1) * 70).coerceAtMost(520)
                 }
                 tween<Float>(
                     durationMillis = durationMillis,
-                    easing = AnimationSpecs.EmphasizedDecelerate
+                    easing = AnimationSpecs.Legacy
                 )
             }
         }

@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.presentation.util.extractFlaggedName
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -64,38 +63,35 @@ internal fun ProxySelectableCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-
-    Card(modifier = modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = if (isSelected) {
-                        MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    } else {
-                        MiuixTheme.colorScheme.background
-                    },
-                    shape = RoundedCornerShape(ProxyCardDefaults.CornerRadius)
-                )
-                .clip(RoundedCornerShape(ProxyCardDefaults.CornerRadius))
-                .let {
-                    if (onClick != null) {
-                        it.clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = onClick
-                        )
-                    } else {
-                        it
-                    }
-                }
-                .padding(
-                    horizontal = ProxyCardDefaults.PaddingHorizontal,
-                    vertical = paddingVertical
-                ),
-            content = content
-        )
+    val shape = RoundedCornerShape(ProxyCardDefaults.CornerRadius)
+    val backgroundColor = if (isSelected) {
+        MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        MiuixTheme.colorScheme.background
     }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(backgroundColor)
+            .let {
+                if (onClick != null) {
+                    it.clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    it
+                }
+            }
+            .padding(
+                horizontal = ProxyCardDefaults.PaddingHorizontal,
+                vertical = paddingVertical,
+            ),
+        content = content,
+    )
 }
 
 @Composable
@@ -241,12 +237,15 @@ private fun ProxyDelayIndicator(
 ) {
     val slotModifier = Modifier.width(56.dp)
     if (isDelayTesting) {
-        Box(
-            modifier = slotModifier.height(14.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            LoadingDotsWave(color = MiuixTheme.colorScheme.primary)
-        }
+        Text(
+            text = "...",
+            style = MiuixTheme.textStyles.footnote1,
+            color = MiuixTheme.colorScheme.primary,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.End,
+            modifier = slotModifier,
+        )
         return
     }
 

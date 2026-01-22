@@ -22,9 +22,11 @@ package com.github.yumelira.yumebox.presentation.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -42,30 +44,92 @@ fun ProxyNodeGrid(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-    val columns = if (displayMode.isSingleColumn) 1 else 2
     val showDetail = displayMode.showDetail
+    val isSingleColumn = displayMode.isSingleColumn
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
+    if (isSingleColumn) {
+        LazyColumn(
+            modifier = modifier,
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            overscrollEffect = null,
+        ) {
+            items(
+                items = proxies,
+                key = { it.name },
+                contentType = { "ProxyNodeCard1" },
+            ) { proxy ->
+                ProxyNodeCard(
+                    proxy = proxy,
+                    isSelected = proxy.name == selectedProxyName,
+                    onClick = onProxyClick?.let { { it(proxy) } },
+                    isSingleColumn = true,
+                    showDetail = showDetail,
+                    isDelayTesting = isDelayTesting,
+                    onDelayTestClick = onDelayTestClick,
+                )
+            }
+        }
+        return
+    }
+
+    // NOTE: LazyVerticalGrid 在 Dialog/WindowBottomSheet 场景下双列更容易触发测量抖动/掉帧。
+    // 这里用单层 LazyColumn 手工拼 2 列，显著降低 layout/measure 开销。
+    val rowCount = (proxies.size + 1) / 2
+    LazyColumn(
         modifier = modifier,
         contentPadding = contentPadding,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        overscrollEffect = null,
     ) {
         items(
-            items = proxies,
-            key = { it.name },
-            contentType = { "ProxyNodeCard" }
-        ) { proxy ->
-            ProxyNodeCard(
-                proxy = proxy,
-                isSelected = proxy.name == selectedProxyName,
-                onClick = onProxyClick?.let { { it(proxy) } },
-                isSingleColumn = displayMode.isSingleColumn,
-                showDetail = showDetail,
-                isDelayTesting = isDelayTesting,
-                onDelayTestClick = onDelayTestClick,
-            )
+            rowCount,
+            key = { rowIndex ->
+                val i = rowIndex * 2
+                val left = proxies.getOrNull(i)?.name.orEmpty()
+                val right = proxies.getOrNull(i + 1)?.name.orEmpty()
+                "$left|$right"
+            },
+            contentType = { "ProxyRow2" },
+        ) { rowIndex ->
+            val i = rowIndex * 2
+            val left = proxies.getOrNull(i)
+            val right = proxies.getOrNull(i + 1)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (left != null) {
+                    ProxyNodeCard(
+                        proxy = left,
+                        isSelected = left.name == selectedProxyName,
+                        onClick = onProxyClick?.let { { it(left) } },
+                        isSingleColumn = false,
+                        showDetail = showDetail,
+                        isDelayTesting = isDelayTesting,
+                        onDelayTestClick = onDelayTestClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                if (right != null) {
+                    ProxyNodeCard(
+                        proxy = right,
+                        isSelected = right.name == selectedProxyName,
+                        onClick = onProxyClick?.let { { it(right) } },
+                        isSingleColumn = false,
+                        showDetail = showDetail,
+                        isDelayTesting = isDelayTesting,
+                        onDelayTestClick = onDelayTestClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }

@@ -28,6 +28,6 @@ import com.tencent.mmkv.MMKV
 class ProxyDisplaySettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalMmkv) {
 
     val sortMode by enumFlow(ProxySortMode.DEFAULT)
-    val displayMode by enumFlow(ProxyDisplayMode.DOUBLE_SIMPLE)
+    val displayMode by enumFlow(ProxyDisplayMode.SINGLE_DETAILED)
     val proxyMode by enumFlow(TunnelState.Mode.Rule)
 }
