@@ -10,8 +10,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.atomic.AtomicBoolean
+import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ProxyStateRepository(
     private val context: Context,
@@ -54,13 +55,21 @@ class ProxyStateRepository(
     private var autoSyncJob: Job? = null
 
     fun start(intervalMs: Long = 5000L) {
-        if (activeFlag.getAndSet(true)) return
+        if (activeFlag.getAndSet(true)) {
+            Timber.d("ProxyStateRepository already started")
+            return
+        }
 
+        Timber.d("ProxyStateRepository starting with interval ${intervalMs}ms")
         autoSyncJob = scope.launch {
             while (isActive && activeFlag.get()) {
                 delay(intervalMs)
-                syncFromCore()
+                val result = syncFromCore()
+                if (result.isFailure) {
+                    Timber.w("Auto sync failed: ${result.exceptionOrNull()?.message}")
+                }
             }
+            Timber.d("ProxyStateRepository auto-sync loop ended")
         }
     }
 
@@ -76,11 +85,16 @@ class ProxyStateRepository(
     }
 
     suspend fun syncFromCore(): Result<Unit> = withContext(Dispatchers.IO) {
-        if (!activeFlag.get()) return@withContext Result.failure(IllegalStateException("未启动"))
+        if (!activeFlag.get()) {
+            Timber.w("ProxyStateRepository syncFromCore called but not active")
+            return@withContext Result.failure(IllegalStateException("未启动"))
+        }
 
         _isSyncing.value = true
         try {
             val groupNames = Clash.queryGroupNames(excludeNotSelectable = false)
+            Timber.d("Syncing ${groupNames.size} proxy groups")
+            
             if (groupNames.isEmpty()) {
                 _proxyGroups.value = emptyList()
                 return@withContext Result.success(Unit)
@@ -97,15 +111,18 @@ class ProxyStateRepository(
                             now = group.now,
                             icon = group.icon,
                         )
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to query group: $name")
                         null
                     }
                 }
             }.awaitAll().filterNotNull()
 
             _proxyGroups.value = groups
+            Timber.d("Synced ${groups.size} proxy groups successfully")
             Result.success(Unit)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.e(e, "Sync from core failed")
             Result.failure(Exception("同步失败"))
         } finally {
             _isSyncing.value = false
