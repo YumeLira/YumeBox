@@ -1,4 +1,4 @@
-name: Smart Release
+name: Smart Build
 
 on:
   workflow_dispatch:
@@ -125,48 +125,7 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
 
-      - name: Delete existing Smart release assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # 获取 Smart release
-          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/Smart --jq '.id' 2>/dev/null || echo "")
-          
-          if [ -n "$RELEASE_ID" ]; then
-            echo "Found Smart release (ID: $RELEASE_ID), deleting assets..."
-            
-            # 获取所有资源并删除
-            gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --jq '.[].id' | while read ASSET_ID; do
-              echo "Deleting asset $ASSET_ID..."
-              gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID
-            done
-            
-            echo "All assets deleted"
-          else
-            echo "Smart release not found, will create new one"
-          fi
-
-      - name: Create or update Smart release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # 尝试获取 Smart release
-          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/Smart --jq '.id' 2>/dev/null || echo "")
-          
-          if [ -n "$RELEASE_ID" ]; then
-            echo "Updating existing Smart release..."
-            gh api -X PATCH repos/${{ github.repository }}/releases/$RELEASE_ID \
-              -f name="Smart" \
-              -f body="" \
-              -F prerelease=true
-          else
-            echo "Creating new Smart release..."
-            gh release create Smart \
-              --title "Smart" \
-              --notes "" \
-              --prerelease
-          fi
-
+      
       - name: Upload APKs to Smart release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
