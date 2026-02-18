@@ -2,7 +2,7 @@ name: PR Test
 
 on:
   pull_request:
-    branches: [ "Yume", "dev" ]
+    branches: [ "Yume", "Dev" ]
     paths-ignore:
       - '**.md'
       - 'docs/**'

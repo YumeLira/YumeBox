@@ -1,7 +1,6 @@
 import requests
 import os
 import glob
-import json
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
@@ -15,6 +14,21 @@ COMMIT_SHA = os.environ.get("COMMIT_SHA", "")
 REPOSITORY = os.environ.get("REPOSITORY", "")
 RUN_ID = os.environ.get("RUN_ID", "")
 SERVER_URL = os.environ.get("SERVER_URL", "https://github.com")
+
+
+def md_escape(text):
+    if not text:
+        return ""
+    escaped = text.replace("\\", "\\\\")
+    for ch in ["_", "*", "`", "["]:
+        escaped = escaped.replace(ch, f"\\{ch}")
+    return escaped
+
+
+def code_safe(text):
+    if not text:
+        return ""
+    return text.replace("`", "'")
 
 
 def get_caption():
@@ -35,19 +49,33 @@ def get_caption():
     elif EVENT_NAME == "workflow_dispatch":
         trigger_label = "Manual"
 
-    action_url = ""
-    if REPOSITORY and RUN_ID:
-        action_url = f"{SERVER_URL}/{REPOSITORY}/actions/runs/{RUN_ID}"
-    else:
-        action_url = "(unavailable)"
+    action_url = f"{SERVER_URL}/{REPOSITORY}/actions/runs/{RUN_ID}" if REPOSITORY and RUN_ID else ""
+    commit_url = f"{SERVER_URL}/{REPOSITORY}/commit/{COMMIT_SHA}" if REPOSITORY and COMMIT_SHA else ""
+    commit_short = COMMIT_SHA[:7] if COMMIT_SHA else "unknown"
+    run_text = RUN_NUMBER if RUN_NUMBER else "?"
 
-    msg = f"""**{TITLE} [{workflow_label}]**
-Trigger: {trigger_label}
-Workflow: {WORKFLOW_NAME}
-Branch: {BRANCH}
-Run: #{RUN_NUMBER}
-Commit: `{COMMIT_SHA[:7] if COMMIT_SHA else "unknown"}`
-Action: {action_url}"""
+    display_title = TITLE
+    if workflow_label == "Test" and "test" not in title_lower:
+        display_title = f"{TITLE} Test"
+
+    lines = [
+        f"*{md_escape(display_title)}*",
+        "```",
+        f"类型: {code_safe(workflow_label)}",
+        f"触发: {code_safe(trigger_label)}",
+        f"分支: {code_safe(BRANCH)}",
+        "```",
+    ]
+
+    if action_url:
+        lines.append(f"• 下载: [Artifacts / Logs]({action_url})")
+
+    if commit_url:
+        lines.append(f"• Commit: [`{code_safe(commit_short)}`]({commit_url})")
+    else:
+        lines.append(f"• Commit: `{code_safe(commit_short)}`")
+
+    msg = "\n".join(lines)
     return msg
 
 
@@ -68,9 +96,9 @@ def check_environ():
 
 def find_apk_files():
     patterns = [
-        "./app/build/outputs/apk/release/*arm64-v8a*.apk",
-        "app/build/outputs/apk/release/*arm64-v8a*.apk",
-        "/github/workspace/app/build/outputs/apk/release/*arm64-v8a*.apk"
+        "./app/build/outputs/apk/release/*.apk",
+        "app/build/outputs/apk/release/*.apk",
+        "/github/workspace/app/build/outputs/apk/release/*.apk"
     ]
 
     files = []
@@ -83,7 +111,7 @@ def find_apk_files():
     files = list(set(files))
 
     if not files:
-        print("[-] No arm64-v8a APK files found!")
+        print("[-] No APK files found!")
         exit(1)
 
     print(f"[+] Total files to upload: {len(files)}")
@@ -112,7 +140,7 @@ def send_files_via_bot_api():
         data = {
             'chat_id': CHAT_ID,
             'caption': caption,
-            'parse_mode': 'markdown'
+            'parse_mode': 'Markdown'
         }
 
         if MESSAGE_THREAD_ID:

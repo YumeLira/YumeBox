@@ -2,7 +2,7 @@ name: Build YumeBox
 
 on:
   push:
-    branches: [ "Yume", "dev", "ci" ]
+    branches: [ "Yume", "Dev" ]
     paths-ignore:
       - '**.md'
       - 'docs/**'

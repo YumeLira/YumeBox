@@ -47,6 +47,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.github.yumelira.yumebox.MainActivity
+import com.github.yumelira.yumebox.WebViewActivity
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.ProfileLink
@@ -56,7 +57,6 @@ import com.github.yumelira.yumebox.presentation.icon.yume.*
 import com.github.yumelira.yumebox.presentation.theme.LocalSpacing
 import com.github.yumelira.yumebox.presentation.viewmodel.HomeViewModel
 import com.github.yumelira.yumebox.presentation.viewmodel.ProfilesViewModel
-import com.github.yumelira.yumebox.WebViewActivity
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -71,7 +71,10 @@ import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.extra.*
+import top.yukonga.miuix.kmp.extra.WindowBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.extra.WindowDropdown
+import top.yukonga.miuix.kmp.extra.WindowSpinner
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -724,7 +727,7 @@ private fun AddProfileSheet(
                         val stepProgress =
                             kotlin.math.min(displayedProgress + (i * 3), actualProgress)
                         displayedProgress = stepProgress
-                        delay(80)
+                        delay(40)
                     }
                 } else {
                     displayedProgress = actualProgress
@@ -738,7 +741,7 @@ private fun AddProfileSheet(
             if (progress.percent == 100 && displayedProgress == 100 && !hasShownCompleteAnimation) {
                 hasShownCompleteAnimation = true
 
-                delay(300)
+                delay(100)
 
                 onDownloadComplete()
             }
