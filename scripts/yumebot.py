@@ -61,19 +61,19 @@ def get_caption():
     lines = [
         f"*{md_escape(display_title)}*",
         "```",
-        f"类型: {code_safe(workflow_label)}",
-        f"触发: {code_safe(trigger_label)}",
-        f"分支: {code_safe(BRANCH)}",
+        f"Type: {code_safe(workflow_label)}",
+        f"Trigger: {code_safe(trigger_label)}",
+        f"Branch: {code_safe(BRANCH)}",
         "```",
     ]
 
     if action_url:
-        lines.append(f"• 下载: [Artifacts / Logs]({action_url})")
+        lines.append(f"• Download: [workpiece]({action_url})")
 
     if commit_url:
         lines.append(f"• Commit: [`{code_safe(commit_short)}`]({commit_url})")
     else:
-        lines.append(f"• Commit: `{code_safe(commit_short)}`")
+        lines.append(f"• Commit: {code_safe(commit_short)}")
 
     msg = "\n".join(lines)
     return msg
@@ -96,9 +96,9 @@ def check_environ():
 
 def find_apk_files():
     patterns = [
-        "./app/build/outputs/apk/release/*.apk",
-        "app/build/outputs/apk/release/*.apk",
-        "/github/workspace/app/build/outputs/apk/release/*.apk"
+        "./app/build/outputs/apk/release/*arm64-v8a*.apk",
+        "app/build/outputs/apk/release/*arm64-v8a*.apk",
+        "/github/workspace/app/build/outputs/apk/release/*arm64-v8a*.apk"
     ]
 
     files = []
