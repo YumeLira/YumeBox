@@ -1,0 +1,2 @@
+# YumeBox
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e93f454200d64ef3b536871ea8c4f2c9)](https://app.codacy.com/gh/YumeLira/YumeBox?utm_source=github.com&utm_medium=referral&utm_content=YumeLira/YumeBox&utm_campaign=Badge_Grade)
