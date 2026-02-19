@@ -28,6 +28,10 @@ AccessControl = {
         ImportSuccess = "导入成功：%d 个包名"
         ExportSuccess = "已复制 %d 个包名到剪贴板"
         ImportFailed = "导入失败"
+        RegionQuickSelect = "地区快捷选择"
+        ChinaApps = "中国应用"
+        OverseasApps = "非中国应用"
+        RegionSelectResult = "已按「%s」快捷选择，共 %d 个"
     }
     
     SortMode = {

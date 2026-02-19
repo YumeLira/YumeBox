@@ -190,17 +190,6 @@ fun NetworkSettingsScreen(
                         }
                     )
                 }
-
-
-                if (uiState.needsRestart && serviceState == ServiceState.Running) {
-                    Card {
-                        SuperArrow(
-                            title = MLang.NetworkSettings.RestartService.Title,
-                            summary = MLang.NetworkSettings.RestartService.Summary,
-                            onClick = { viewModel.restartService() }
-                        )
-                    }
-                }
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }

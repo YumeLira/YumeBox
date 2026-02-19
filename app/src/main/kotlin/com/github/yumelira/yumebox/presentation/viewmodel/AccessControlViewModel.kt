@@ -46,6 +46,7 @@ class AccessControlViewModel(
         val packageName: String,
         val label: String,
         val isSystemApp: Boolean,
+        val isChinaApp: Boolean,
         val isSelected: Boolean,
         val installTime: Long = 0L,
         val updateTime: Long = 0L,
@@ -74,7 +75,6 @@ class AccessControlViewModel(
         val searchQuery: String = "",
         val showSystemApps: Boolean = false,
         val sortMode: SortMode = SortMode.LABEL,
-        val descending: Boolean = false,
         val selectedFirst: Boolean = true,
         val needsMiuiPermission: Boolean = false,
     )
@@ -132,7 +132,6 @@ class AccessControlViewModel(
                         state.searchQuery,
                         state.showSystemApps,
                         state.sortMode,
-                        state.descending,
                         state.selectedFirst
                     )
                 )
@@ -152,6 +151,7 @@ class AccessControlViewModel(
                 packageName = appInfo.packageName,
                 label = appInfo.loadLabel(pm).toString(),
                 isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                isChinaApp = isChinaPackage(appInfo.packageName),
                 isSelected = selectedPackages.contains(appInfo.packageName),
                 installTime = pkgInfo?.firstInstallTime ?: 0L,
                 updateTime = pkgInfo?.lastUpdateTime ?: 0L
@@ -164,8 +164,8 @@ class AccessControlViewModel(
         query: String,
         showSystemApps: Boolean,
         sortMode: SortMode = SortMode.LABEL,
+        selectedFirst: Boolean = true,
         descending: Boolean = false,
-        selectedFirst: Boolean = true
     ): List<AppInfo> {
         val filtered = apps.filter { app ->
             val matchesQuery = query.isEmpty() ||
@@ -197,7 +197,6 @@ class AccessControlViewModel(
                     query,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -213,7 +212,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     mode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -223,14 +221,13 @@ class AccessControlViewModel(
     fun onDescendingChange(desc: Boolean) {
         _uiState.update { state ->
             state.copy(
-                descending = desc,
                 filteredApps = filterApps(
-                    state.apps,
-                    state.searchQuery,
-                    state.showSystemApps,
-                    state.sortMode,
-                    desc,
-                    state.selectedFirst
+                    apps = state.apps,
+                    query = state.searchQuery,
+                    showSystemApps = state.showSystemApps,
+                    sortMode = state.sortMode,
+                    selectedFirst = state.selectedFirst,
+                    descending = desc,
                 )
             )
         }
@@ -245,7 +242,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     selectedFirst
                 )
             )
@@ -261,7 +257,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     show,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -292,7 +287,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -324,7 +318,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -354,7 +347,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -385,12 +377,56 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
         }
         repository.accessControlPackages.set(_uiState.value.selectedPackages)
+    }
+
+    fun selectChinaAppsInCurrentList(): Int {
+        return applyRegionalSelectionInCurrentList(selectChina = true)
+    }
+
+    fun selectNonChinaAppsInCurrentList(): Int {
+        return applyRegionalSelectionInCurrentList(selectChina = false)
+    }
+
+    private fun applyRegionalSelectionInCurrentList(selectChina: Boolean): Int {
+        var selectedCount = 0
+        _uiState.update { state ->
+            val currentPackages = state.filteredApps.map { it.packageName }.toSet()
+            val targetPackages = state.filteredApps
+                .filter { it.isChinaApp == selectChina }
+                .mapTo(mutableSetOf()) { it.packageName }
+            selectedCount = targetPackages.size
+
+            val newSelectedPackages = state.selectedPackages
+                .minus(currentPackages)
+                .plus(targetPackages)
+
+            val newApps = state.apps.map { app ->
+                if (app.packageName in currentPackages) {
+                    app.copy(isSelected = app.packageName in targetPackages)
+                } else {
+                    app
+                }
+            }
+
+            state.copy(
+                selectedPackages = newSelectedPackages,
+                apps = newApps,
+                filteredApps = filterApps(
+                    newApps,
+                    state.searchQuery,
+                    state.showSystemApps,
+                    state.sortMode,
+                    state.selectedFirst
+                )
+            )
+        }
+        repository.accessControlPackages.set(_uiState.value.selectedPackages)
+        return selectedCount
     }
 
     fun exportPackages(): String {
@@ -423,7 +459,6 @@ class AccessControlViewModel(
                     state.searchQuery,
                     state.showSystemApps,
                     state.sortMode,
-                    state.descending,
                     state.selectedFirst
                 )
             )
@@ -431,5 +466,113 @@ class AccessControlViewModel(
 
         repository.accessControlPackages.set(_uiState.value.selectedPackages)
         return packages.intersect(_uiState.value.apps.map { it.packageName }.toSet()).size
+    }
+
+    private fun isChinaPackage(packageName: String): Boolean {
+        val normalized = packageName.lowercase()
+        skipPrefixList.forEach {
+            if (normalized == it || normalized.startsWith("$it.")) {
+                return false
+            }
+        }
+        if (normalized.startsWith("cn.") || normalized.contains(".cn.") || normalized.endsWith(".cn")) {
+            return true
+        }
+        return normalized.matches(chinaAppRegex)
+    }
+
+    companion object {
+        private val skipPrefixList = listOf(
+            "com.google",
+            "com.android.chrome",
+            "com.android.vending",
+            "com.microsoft",
+            "com.apple",
+            "com.zhiliaoapp.musically",
+            "com.android.providers.downloads",
+        )
+
+        private val chinaAppPrefixList = listOf(
+            "com.tencent",
+            "com.tencent.mobileqq",
+            "com.tencent.mm",
+            "com.tencent.qqlive",
+            "com.tencent.news",
+            "com.tencent.wework",
+            "com.tencent.weishi",
+            "com.tencent.karaoke",
+            "com.tencent.qqmusic",
+            "com.alibaba",
+            "com.alibaba.android",
+            "com.alibaba.wireless",
+            "com.alibaba.rimet",
+            "com.umeng",
+            "com.qihoo",
+            "com.ali",
+            "com.alipay",
+            "com.amap",
+            "com.sina",
+            "com.weibo",
+            "com.sankuai",
+            "com.sankuai.meituan",
+            "com.sankuai.meituan.takeoutnew",
+            "com.dianping",
+            "com.jingdong",
+            "com.xunmeng",
+            "com.xingin",
+            "com.zhihu",
+            "com.bilibili",
+            "com.coolapk",
+            "tv.danmaku",
+            "com.kuaishou",
+            "com.smile.gifmaker",
+            "com.ss.android",
+            "com.ss.android.ugc",
+            "com.ss.android.article",
+            "com.qiyi",
+            "com.youku",
+            "com.youku.phone",
+            "com.sohu",
+            "com.autonavi",
+            "com.sogou",
+            "com.sogou.inputmethod",
+            "com.iflytek",
+            "com.iflytek.inputmethod",
+            "com.kingsoft",
+            "com.qzone",
+            "com.vivo",
+            "com.xiaomi",
+            "com.huawei",
+            "com.taobao",
+            "com.taobao.idlefish",
+            "com.secneo",
+            "s.h.e.l.l",
+            "com.stub",
+            "com.kiwisec",
+            "com.secshell",
+            "com.wrapper",
+            "cn.securitystack",
+            "com.mogosec",
+            "com.secoen",
+            "com.netease",
+            "com.mx",
+            "com.qq.e",
+            "com.baidu",
+            "com.bytedance",
+            "com.bugly",
+            "com.miui",
+            "com.oppo",
+            "com.coloros",
+            "com.iqoo",
+            "com.meizu",
+            "com.gionee",
+            "com.oplus",
+            "andes.oplus",
+            "com.unionpay",
+        )
+
+        private val chinaAppRegex by lazy {
+            ("(" + chinaAppPrefixList.joinToString("|").replace(".", "\\.") + ").*").toRegex()
+        }
     }
 }

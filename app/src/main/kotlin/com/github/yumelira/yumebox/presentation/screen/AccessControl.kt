@@ -35,35 +35,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.DpSize
@@ -84,21 +66,10 @@ import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Checkbox
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.InputField
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SearchBar
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.extra.WindowDropdown
+import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -226,21 +197,10 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                             onCheckedChange = { viewModel.onShowSystemAppsChange(it) }
                         )
                         SuperSwitch(
-                            title = MLang.AccessControl.Settings.DescendingOrder,
-                            checked = uiState.descending,
-                            onCheckedChange = { viewModel.onDescendingChange(it) }
-                        )
-                        SuperSwitch(
                             title = MLang.AccessControl.Settings.SelectedFirst,
                             checked = uiState.selectedFirst,
                             onCheckedChange = { viewModel.onSelectedFirstChange(it) }
                         )
-                    }
-
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    top.yukonga.miuix.kmp.basic.Card {
                         WindowDropdown(
                             title = MLang.AccessControl.Settings.SortMode,
                             summary = MLang.AccessControl.Settings.SortModeCurrent.format(uiState.sortMode.displayName),
@@ -267,6 +227,34 @@ fun AccessControlScreen(navigator: DestinationsNavigator) {
                                     1 -> viewModel.deselectAll()
                                     2 -> viewModel.invertSelection()
                                 }
+                            }
+                        )
+                        WindowDropdown(
+                            title = MLang.AccessControl.Settings.RegionQuickSelect,
+                            items = listOf(
+                                MLang.AccessControl.Settings.ChinaApps,
+                                MLang.AccessControl.Settings.OverseasApps,
+                            ),
+                            selectedIndex = 0,
+                            onSelectedIndexChange = { index ->
+                                val selectedCount = when (index) {
+                                    0 -> viewModel.selectChinaAppsInCurrentList()
+                                    1 -> viewModel.selectNonChinaAppsInCurrentList()
+                                    else -> 0
+                                }
+                                val label = when (index) {
+                                    0 -> MLang.AccessControl.Settings.ChinaApps
+                                    1 -> MLang.AccessControl.Settings.OverseasApps
+                                    else -> ""
+                                }
+                                Toast.makeText(
+                                    context,
+                                    MLang.AccessControl.Settings.RegionSelectResult.format(
+                                        label,
+                                        selectedCount
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         )
                         WindowDropdown(

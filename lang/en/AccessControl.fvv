@@ -28,6 +28,10 @@ AccessControl = {
         ImportSuccess = "Imported: %d package names"
         ExportSuccess = "Copied %d package names to clipboard"
         ImportFailed = "Import failed"
+        RegionQuickSelect = "Region Quick Select"
+        ChinaApps = "China Apps"
+        OverseasApps = "Non-China Apps"
+        RegionSelectResult = "Quick selected by \"%s\", total %d"
     }
     
     SortMode = {
