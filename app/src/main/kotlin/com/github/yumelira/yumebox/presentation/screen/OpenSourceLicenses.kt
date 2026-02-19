@@ -160,13 +160,13 @@ private fun LicenseChip(licenseName: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(MiuixTheme.colorScheme.primaryContainer)
+            .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
             text = licenseName,
             style = MiuixTheme.textStyles.body2,
-            color = MiuixTheme.colorScheme.onPrimaryContainer
+            color = MiuixTheme.colorScheme.primary
         )
     }
 }

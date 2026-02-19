@@ -14,6 +14,7 @@ class AppSettingsRepository(
 
     val themeMode: Preference<ThemeMode> = storage.themeMode
     val colorTheme: Preference<AppColorTheme> = storage.colorTheme
+    val themeSeedColorArgb: Preference<Long> = storage.themeSeedColorArgb
     val automaticRestart: Preference<Boolean> = storage.automaticRestart
     val hideAppIcon: Preference<Boolean> = storage.hideAppIcon
     val showTrafficNotification: Preference<Boolean> = storage.showTrafficNotification

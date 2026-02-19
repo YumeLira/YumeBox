@@ -35,6 +35,7 @@ internal val LocalPlatformSystemUiEffect = compositionLocalOf<@Composable () -> 
 fun YumeTheme(
     themeMode: ThemeMode? = null,
     colorTheme: AppColorTheme = AppColorTheme.ClassicMonochrome,
+    themeSeedColorArgb: Long = DEFAULT_THEME_SEED_ARGB,
     spacing: Spacing = Spacing(),
     radii: Radii = Radii(),
     content: @Composable () -> Unit,
@@ -46,8 +47,12 @@ fun YumeTheme(
         ThemeMode.Light -> false
         ThemeMode.Dark -> true
     }
-    val colors = remember(colorTheme, isDark) {
-        colorSchemeForTheme(colorTheme, isDark)
+    val colors = remember(colorTheme, isDark, themeSeedColorArgb) {
+        if (isDefaultThemeSeedArgb(themeSeedColorArgb)) {
+            colorSchemeForTheme(colorTheme, isDark)
+        } else {
+            colorSchemeFromSeed(colorFromArgb(themeSeedColorArgb), isDark)
+        }
     }
 
     CompositionLocalProvider(

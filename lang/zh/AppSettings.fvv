@@ -30,15 +30,13 @@ AppSettings = {
         ThemeModeLight = "浅色"
         ThemeModeDark = "深色"
         
-        ColorThemeTitle = "配色方案"
-        ColorThemeSummary = "选择品牌色风格，默认为极简黑白"
-        ColorMinimal = "极简黑白"
-        ColorClassic = "柏码经典"
-        ColorOcean = "海洋之歌"
-        ColorFresh = "清新晨露"
-        ColorPrincess = "小小公主"
-        ColorMystery = "神秘世界"
-        ColorGolden = "金色时光"
+        ColorThemeTitle = "主题配色"
+        ColorThemeSummary = "点击选择主题色，并自动推导黑白主题配色"
+        ColorThemePickerTitle = "选择主题色"
+        ColorThemeCodeLabel = "主题色代码（#RRGGBB）"
+        ColorThemeDefaultSummary = "默认黑白主题"
+        ColorThemeCustomSummary = "当前主题色：%s"
+        ColorThemeResetDefault = "恢复"
         
         FloatingNavbarTitle = "浮动导航栏"
         FloatingNavbarSummary = "使用浮动样式的底部导航栏"
@@ -84,4 +82,10 @@ AppSettings = {
         AuthorTitle = "编辑作者"
         UserAgentTitle = "编辑 User-Agent"
     }
+
+    Button = {
+        Cancel = "取消"
+        Apply = "应用"
+    }
 }
+

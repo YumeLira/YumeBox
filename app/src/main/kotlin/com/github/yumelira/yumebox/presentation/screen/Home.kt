@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.AppConstants
+import com.github.yumelira.yumebox.domain.model.TrafficData
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
 import com.github.yumelira.yumebox.presentation.component.TopBar
@@ -125,7 +126,7 @@ fun HomePager(mainInnerPadding: PaddingValues) {
                                 )
 
                                 HomeDisplayState.Running -> HomeRunningContent(
-                                    trafficNow = com.github.yumelira.yumebox.domain.model.TrafficData.from(trafficNow),
+                                    trafficNow = TrafficData.from(trafficNow),
                                     profileName = currentProfile?.name,
                                     tunnelMode = null,
                                     serverName = selectedServerName,

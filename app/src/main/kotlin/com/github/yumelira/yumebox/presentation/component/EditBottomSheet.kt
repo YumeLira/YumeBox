@@ -67,7 +67,7 @@ fun TextEditBottomSheet(
                         onConfirm(textFieldValue.value.text)
                         show.value = false
                     }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()
-                ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.background) }
+                ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary) }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -101,7 +101,7 @@ fun WarningBottomSheet(
                     onConfirm()
                     show.value = false
                 }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()
-            ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.background) }
+            ) { Text(MLang.Component.Button.Confirm, color = MiuixTheme.colorScheme.onPrimary) }
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

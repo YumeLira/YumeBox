@@ -97,7 +97,7 @@ private fun CircularIcon(
             Icon(
                 imageVector = imageVector,
                 contentDescription = contentDescription,
-                tint = MiuixTheme.colorScheme.background,
+                tint = MiuixTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .size(20.dp)
                     .graphicsLayer(

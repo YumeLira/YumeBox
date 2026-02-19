@@ -30,15 +30,13 @@ AppSettings = {
         ThemeModeLight = "Light"
         ThemeModeDark = "Dark"
         
-        ColorThemeTitle = "Color Theme"
-        ColorThemeSummary = "Select brand color style, default is minimal black & white"
-        ColorMinimal = "Minimal B&W"
-        ColorClassic = "Classic"
-        ColorOcean = "Ocean Song"
-        ColorFresh = "Morning Dew"
-        ColorPrincess = "Little Princess"
-        ColorMystery = "Mysterious World"
-        ColorGolden = "Golden Time"
+        ColorThemeTitle = "Theme Palette"
+        ColorThemeSummary = "Pick a seed color and auto-derive monochrome theme colors"
+        ColorThemePickerTitle = "Pick Theme Color"
+        ColorThemeCodeLabel = "Theme Color Code (#RRGGBB)"
+        ColorThemeDefaultSummary = "Default monochrome theme"
+        ColorThemeCustomSummary = "Current theme color: %s"
+        ColorThemeResetDefault = "Restore"
         
         FloatingNavbarTitle = "Floating Navbar"
         FloatingNavbarSummary = "Use floating style bottom navigation bar"
@@ -83,4 +81,10 @@ AppSettings = {
         AuthorTitle = "Edit Author"
         UserAgentTitle = "Edit User-Agent"
     }
+
+    Button = {
+        Cancel = "Cancel"
+        Apply = "Apply"
+    }
 }
+

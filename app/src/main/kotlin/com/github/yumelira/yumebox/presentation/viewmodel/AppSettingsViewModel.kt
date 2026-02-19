@@ -36,6 +36,7 @@ class AppSettingsViewModel(
 
     val themeMode: Preference<ThemeMode> = repository.themeMode
     val colorTheme: Preference<AppColorTheme> = repository.colorTheme
+    val themeSeedColorArgb: Preference<Long> = repository.themeSeedColorArgb
     val automaticRestart: Preference<Boolean> = repository.automaticRestart
     val hideAppIcon: Preference<Boolean> = repository.hideAppIcon
     val showTrafficNotification: Preference<Boolean> = repository.showTrafficNotification
@@ -52,6 +53,8 @@ class AppSettingsViewModel(
 
     fun onThemeModeChange(mode: ThemeMode) = themeMode.set(mode)
     fun onColorThemeChange(theme: AppColorTheme) = colorTheme.set(theme)
+    fun onThemeSeedColorChange(argb: Long) = themeSeedColorArgb.set(argb)
+    fun resetThemeSeedColor() = themeSeedColorArgb.set(0xFFFFFFFFL)
     fun onBottomBarAutoHideChange(enabled: Boolean) = bottomBarAutoHide.set(enabled)
     fun onAutomaticRestartChange(enabled: Boolean) = automaticRestart.set(enabled)
     fun onHideAppIconChange(hide: Boolean) = hideAppIcon.set(hide)

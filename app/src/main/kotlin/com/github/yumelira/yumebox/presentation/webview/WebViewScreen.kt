@@ -41,6 +41,7 @@ fun WebViewScreen(
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
     val themeMode = appSettingsViewModel.themeMode.state.collectAsState().value
     val colorTheme = appSettingsViewModel.colorTheme.state.collectAsState().value
+    val themeSeedColorArgb = appSettingsViewModel.themeSeedColorArgb.state.collectAsState().value
 
     BackHandler {
         onBack?.invoke() ?: activity?.finish()
@@ -49,9 +50,11 @@ fun WebViewScreen(
     ProvideAndroidPlatformTheme {
         YumeTheme(
             themeMode = themeMode,
-            colorTheme = colorTheme
+            colorTheme = colorTheme,
+            themeSeedColorArgb = themeSeedColorArgb
         ) {
             LocalWebView(initialUrl = initialUrl)
         }
     }
 }
+

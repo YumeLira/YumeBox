@@ -20,18 +20,11 @@
 
 package com.github.yumelira.yumebox.presentation.screen.home
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -93,7 +86,10 @@ fun ProxyControlButton(
                 coroutineScope.launch {
                     scaleAnim.animateTo(
                         targetValue = 0.90f,
-                        animationSpec = tween(AnimationSpecs.DURATION_INSTANT, easing = AnimationSpecs.EmphasizedAccelerate)
+                        animationSpec = tween(
+                            AnimationSpecs.DURATION_INSTANT,
+                            easing = AnimationSpecs.EmphasizedAccelerate
+                        )
                     )
                     scaleAnim.animateTo(
                         targetValue = 1.02f,
