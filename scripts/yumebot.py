@@ -60,20 +60,18 @@ def get_caption():
 
     lines = [
         f"*{md_escape(display_title)}*",
-        "```",
-        f"Type: {code_safe(workflow_label)}",
-        f"Trigger: {code_safe(trigger_label)}",
-        f"Branch: {code_safe(BRANCH)}",
-        "```",
+        f"*• Type*: {code_safe(workflow_label)}",
+        f"*• Trigger*: {code_safe(trigger_label)}",
+        f"*• Branch*: {code_safe(BRANCH)}",
     ]
 
     if action_url:
-        lines.append(f"• Download: [workpiece]({action_url})")
+        lines.append(f"*• Download*: [workpiece]({action_url})")
 
     if commit_url:
-        lines.append(f"• Commit: [`{code_safe(commit_short)}`]({commit_url})")
+        lines.append(f"*• Commit*: [{code_safe(commit_short)}]({commit_url})")
     else:
-        lines.append(f"• Commit: {code_safe(commit_short)}")
+        lines.append(f"*• Commit*: {code_safe(commit_short)}")
 
     msg = "\n".join(lines)
     return msg
