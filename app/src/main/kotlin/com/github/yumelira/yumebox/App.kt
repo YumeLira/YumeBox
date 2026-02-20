@@ -28,6 +28,7 @@ import com.github.yumelira.yumebox.core.Global
 import com.github.yumelira.yumebox.data.repository.TrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.FeatureStore
 import com.github.yumelira.yumebox.di.appModule
+import com.github.yumelira.yumebox.update.EmasUpdateManager
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,14 @@ class App : Application() {
         }
 
         PlatformIdentifier.getPlatformIdentifier()
+
+        EmasUpdateManager.init(
+            application = this,
+            appKey = BuildConfig.EMAS_APP_KEY,
+            appSecret = BuildConfig.EMAS_APP_SECRET,
+            channelId = BuildConfig.EMAS_CHANNEL_ID,
+            enableCustomDialog = true,
+        )
     }
 
     private fun extractGeoFiles() {

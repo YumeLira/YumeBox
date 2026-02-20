@@ -135,6 +135,13 @@ jobs:
           EOF
           fi
 
+      - name: Inject aliyun-emas-services.json
+        run: |
+          if [ -n "${{ secrets.ALIYUN_SERVICES_JSON }}" ]; then
+            echo "Using real aliyun-emas-services.json from secrets"
+            echo "${{ secrets.ALIYUN_SERVICES_JSON }}" | base64 --decode > app/aliyun-emas-services.json
+          fi
+
       - name: Build Release APKs
         run: |
           chmod +x gradlew

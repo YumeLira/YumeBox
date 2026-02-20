@@ -53,6 +53,32 @@ Component = {
     Loading = {
         Starting = "启动中..."
     }
+
+    Update = {
+        Title = {
+            Available = "发现新版本"
+            ForceCancel = "强制更新提示"
+            Install = "安装更新"
+        }
+        Message = {
+            Available = "检测到可用更新"
+            CoverDesc = "更新封面"
+            CurrentVersion = "当前版本"
+            RemoteVersion = "推送版本"
+            Updating = "正在更新"
+            Waiting = "等待下载开始..."
+            Preparing = "正在准备下载..."
+            Downloading = "正在下载更新包..."
+            Verifying = "正在校验安装包..."
+            Finished = "下载完成，等待安装确认"
+            Error = "下载失败，请稍后重试"
+            DownloadingWithProgress = "正在下载更新包 %d%%"
+            DownloadErrorWithCode = "下载失败(%d): %s"
+            VerifyFailed = "安装包校验失败，请重试"
+            DownloadReady = "下载完成，准备安装"
+            Close = "知道了"
+        }
+    }
     
     ConfigInput = {
         PortLabel = "端口号 (留空表示不修改)"

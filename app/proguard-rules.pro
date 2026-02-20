@@ -333,3 +333,35 @@
 # - If you encounter issues with specific features, add targeted -keep rules
 # - For smaller APK size, comment out unnecessary -keep rules (but test first)
 # - The -assumenosideeffects rules optimize away null checks and debugging code
+
+# ========================================
+# EMAS Update SDK
+# ========================================
+-keepclassmembers class * {
+    @com.google.inject.Inject <init>(...);
+}
+-keepclassmembers class * {
+    void *(**On*Event);
+}
+-keepclassmembers class ** {
+    public <init>(android.content.Context);
+}
+-keepclassmembernames class **.R$* {*;}
+-keepclassmembernames class **.R {*;}
+-keepclassmembers class **{
+    public static final <fields>;
+}
+-keep class com.taobao.update.apk.MainUpdateData { *; }
+-keep class com.taobao.update.apk.ApkUpdater { *; }
+-keep class com.taobao.update.common.framework.** { *; }
+-keep class com.taobao.update.common.utils.** { *; }
+-keep class com.taobao.update.common.dialog.** { *; }
+-keep class com.taobao.update.common.Config { *; }
+-keep class com.taobao.update.common.dialog.CustomUpdateInfo {
+    public <methods>;
+}
+-keep interface com.taobao.update.common.dialog.UpdateNotifyListener { *; }
+-dontwarn mtopsdk.mtop.intf.Mtop
+-dontwarn com.alibaba.mtl.appmonitor.AppMonitor
+-dontwarn com.alibaba.mtl.appmonitor.AppMonitor$Alarm
+-dontwarn com.taobao.orange.OrangeConfig

@@ -53,6 +53,32 @@ Component = {
     Loading = {
         Starting = "Starting..."
     }
+
+    Update = {
+        Title = {
+            Available = "New Version Available"
+            ForceCancel = "Mandatory Update"
+            Install = "Install Update"
+        }
+        Message = {
+            Available = "A new update is available"
+            CoverDesc = "Update cover"
+            CurrentVersion = "Current Version"
+            RemoteVersion = "Target Version"
+            Updating = "Updating"
+            Waiting = "Waiting for download..."
+            Preparing = "Preparing download..."
+            Downloading = "Downloading update package..."
+            Verifying = "Verifying update package..."
+            Finished = "Download complete, waiting for install confirmation"
+            Error = "Download failed, please try again later"
+            DownloadingWithProgress = "Downloading update package %d%%"
+            DownloadErrorWithCode = "Download failed (%d): %s"
+            VerifyFailed = "Package verification failed, please retry"
+            DownloadReady = "Download complete, ready to install"
+            Close = "Got it"
+        }
+    }
     
     ConfigInput = {
         PortLabel = "Port (leave empty to not modify)"

@@ -28,6 +28,8 @@ About = {
     }
     
     License = {
+        CheckUpdate = "检查更新"
+        CheckUpdateSummary = "手动触发一次云发布更新检查"
         Libraries = "引用库"
         LibrariesSummary = "View all third-party libraries used in this app"
         AgplName = "GNU Affero General Public License v3.0"

@@ -1,6 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.tasks.MergeSourceSetFolders
+import groovy.json.JsonSlurper
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -70,6 +71,24 @@ val jvmVersion = jvmVersionNumber.toString()
 val javaVersion = JavaVersion.toVersion(jvmVersionNumber) ?: JavaVersion.VERSION_17
 val appAbiList = gropify.abi.app.list.split(",").map { it.trim() }
 val localeList = gropify.locale.app.list.split(",").map { it.trim() }
+val emasConfigFile = layout.projectDirectory.file("aliyun-emas-services.json").asFile
+val emasConfigMap: Map<*, *> = runCatching {
+    if (!emasConfigFile.exists()) emptyMap<String, Any?>()
+    else {
+        val root = JsonSlurper().parse(emasConfigFile) as? Map<*, *> ?: emptyMap<Any, Any>()
+        root["config"] as? Map<*, *> ?: emptyMap<Any, Any>()
+    }
+}.getOrDefault(emptyMap<String, Any?>())
+
+fun emasConfigValue(key: String, fallbackProperty: String, defaultValue: String = ""): String {
+    val fromJson = emasConfigMap[key]?.toString().orEmpty()
+    if (fromJson.isNotBlank()) return fromJson
+    return (project.findProperty(fallbackProperty) as? String)?.takeIf { it.isNotBlank() } ?: defaultValue
+}
+
+val emasAppKey = emasConfigValue("emas.appKey", "emas.appKey")
+val emasAppSecret = emasConfigValue("emas.appSecret", "emas.appSecret")
+val emasChannelId = emasConfigValue("emas.channelId", "emas.channelId", "official")
 
 android {
     namespace = appNamespace
@@ -87,6 +106,9 @@ android {
 
         // Clarity Analytics Configuration
         buildConfigField("String", "CLARITY_PROJECT_ID", "\"${project.findProperty("clarity.projectId") ?: ""}\"")
+        buildConfigField("String", "EMAS_APP_KEY", "\"$emasAppKey\"")
+        buildConfigField("String", "EMAS_APP_SECRET", "\"$emasAppSecret\"")
+        buildConfigField("String", "EMAS_CHANNEL_ID", "\"$emasChannelId\"")
 
         // Specify supported locales
         resourceConfigurations.addAll(localeList)
@@ -210,7 +232,6 @@ dependencies {
 
     // Project dependencies
     implementation(project(":core"))
-    implementation(project(":hideapi"))
 
     // Compose dependencies (using Jetpack Compose BOM for version management)
     val composeBom = platform("androidx.compose:compose-bom:2025.01.00")
@@ -292,6 +313,12 @@ dependencies {
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+
+    val updateVersion = "1.3.0-open"
+    implementation("com.taobao.android:update-main:$updateVersion")
+    implementation("com.taobao.android:update-common:$updateVersion")
+    implementation("com.taobao.android:update-datasource:$updateVersion")
+    implementation("com.taobao.android:update-adapter:$updateVersion")
 }
 
 ksp {

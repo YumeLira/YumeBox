@@ -200,6 +200,16 @@
         </provider>
 
         <provider
+                android:name="com.taobao.update.provider.UpdateProvider"
+                android:authorities="${applicationId}.update.provider"
+                android:exported="false"
+                android:grantUriPermissions="true">
+            <meta-data
+                    android:name="android.support.FILE_PROVIDER_PATHS"
+                    android:resource="@xml/apk_paths"/>
+        </provider>
+
+        <provider
                 android:name=".service.StatusProvider"
                 android:authorities="${applicationId}.status"
                 android:enabled="true"

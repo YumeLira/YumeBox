@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.BuildConfig
@@ -42,6 +41,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.OpenSourceLicensesScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.github.yumelira.yumebox.update.EmasUpdateManager
 import dev.oom_wg.purejoy.mlang.MLang
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperArrow
@@ -53,7 +53,6 @@ fun AboutScreen(navigator: DestinationsNavigator) {
 
     val scrollBehavior = MiuixScrollBehavior()
     var coreVersion by remember { mutableStateOf(MLang.About.App.VersionLoading) }
-    LocalContext.current
 
     LaunchedEffect(Unit) {
         coreVersion = try {
@@ -121,6 +120,13 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 SmallTitle(MLang.About.Section.More)
 
                 Card {
+                 SuperArrow(
+                        title = MLang.About.License.CheckUpdate,
+                        summary = MLang.About.License.CheckUpdateSummary,
+                        onClick = {
+                            EmasUpdateManager.startManualUpdate(async = true)
+                        }
+                    )
                     LinkItem(
                         title = MLang.About.Link.TelegramGroup, url = "https://t.me/OOM_Group", showArrow = true
                     )

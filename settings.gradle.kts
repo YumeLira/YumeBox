@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+
 rootProject.name = "YumeBox"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
@@ -12,8 +13,9 @@ pluginManagement {
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
-
         maven("https://jitpack.io")
+        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
+
         maven("https://oom-maven.sawahara.host") {
             content {
                 includeGroupAndSubgroups("ren.shiror")
@@ -33,6 +35,8 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://jitpack.io")
         maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
+        maven ("https://maven.aliyun.com/nexus/content/repositories/releases/")
+
         maven("https://oom-maven.sawahara.host") {
             content {
                 includeGroupAndSubgroups("ren.shiror")
@@ -79,9 +83,6 @@ gropify {
     projects(":core", ":extension") {
         android { isEnabled = false }
     }
-    projects(":hideapi") {
-        android { isEnabled = false }
-    }
 }
 
-include(":core", ":extension", ":hideapi", ":app")
+include(":core", ":extension", ":app")
