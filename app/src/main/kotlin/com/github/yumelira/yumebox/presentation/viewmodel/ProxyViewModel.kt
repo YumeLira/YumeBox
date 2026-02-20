@@ -28,6 +28,7 @@ class ProxyViewModel(
     private companion object {
         const val PROXY_REFRESH_IDLE_MS = 1500L
         const val PROXY_REFRESH_TESTING_MS = 400L
+        const val PROXY_TESTING_SORT_HOLD_MS = 2200L
     }
 
     private val _uiState = MutableStateFlow(ProxyUiState())
@@ -57,12 +58,20 @@ class ProxyViewModel(
     private var externalSelectionSyncJob: Job? = null
 
     val sortedProxyGroups: StateFlow<List<ProxyGroupInfo>> =
-        combine(proxyGroups, sortMode) { groups, mode ->
+        combine(proxyGroups, sortMode, testingGroupNames) { groups, mode, testingNames ->
             if (mode == ProxySortMode.DEFAULT) {
                 groups
             } else {
                 groups.map { group ->
-                    group.copy(proxies = sortProxies(group.proxies, mode))
+                    val shouldFreezeLatencySort =
+                        mode == ProxySortMode.BY_LATENCY && testingNames.contains(group.name)
+                    group.copy(
+                        proxies = if (shouldFreezeLatencySort) {
+                            group.proxies
+                        } else {
+                            sortProxies(group.proxies, mode)
+                        }
+                    )
                 }
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -143,6 +152,7 @@ class ProxyViewModel(
             }
 
             if (testingTargets.isNotEmpty()) {
+                delay(PROXY_TESTING_SORT_HOLD_MS)
                 _testingGroupNames.update { it - testingTargets }
             }
             setLoading(false)
@@ -187,7 +197,21 @@ class ProxyViewModel(
     private fun sortProxies(proxies: List<Proxy>, sortMode: ProxySortMode): List<Proxy> = when (sortMode) {
         ProxySortMode.DEFAULT -> proxies
         ProxySortMode.BY_NAME -> proxies.sortedBy { it.name }
-        ProxySortMode.BY_LATENCY -> proxies.sortedWith(compareBy { if (it.delay > 0) it.delay else Int.MAX_VALUE })
+        ProxySortMode.BY_LATENCY -> {
+            val originalIndex = proxies.withIndex().associate { (index, proxy) -> proxy.name to index }
+            proxies.sortedWith(
+                compareBy<Proxy>(
+                    { proxy ->
+                        when {
+                            proxy.delay > 0 -> proxy.delay
+                            proxy.delay < 0 -> Int.MAX_VALUE - 1
+                            else -> Int.MAX_VALUE
+                        }
+                    },
+                    { proxy -> originalIndex[proxy.name] ?: Int.MAX_VALUE }
+                )
+            )
+        }
     }
 
     private fun setLoading(loading: Boolean) {

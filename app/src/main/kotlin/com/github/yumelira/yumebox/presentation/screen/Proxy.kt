@@ -60,6 +60,7 @@ import com.ramcosta.composedestinations.generated.destinations.ProxyNodeScreenDe
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.WindowBottomSheet
@@ -113,6 +114,15 @@ fun ProxyPager(
         derivedStateOf {
             val name = sheetGroupName ?: return@derivedStateOf null
             proxyGroupsByName[name]
+        }
+    }
+    LaunchedEffect(showGroupBottomSheet.value) {
+        if (!showGroupBottomSheet.value) {
+            delay(220)
+            if (!showGroupBottomSheet.value) {
+                sheetGroupName = null
+                showSortPopup.value = false
+            }
         }
     }
 
@@ -206,7 +216,6 @@ fun ProxyPager(
             onDismissRequest = {
                 showSortPopup.value = false
                 showGroupBottomSheet.value = false
-                sheetGroupName = null
             },
             insideMargin = DpSize(16.dp, 16.dp),
         ) {

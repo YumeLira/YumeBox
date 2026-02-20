@@ -18,6 +18,8 @@ import com.github.yumelira.yumebox.BuildConfig
 import com.github.yumelira.yumebox.R
 import com.github.yumelira.yumebox.update.*
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -41,16 +43,27 @@ fun EmasUpdateDialogHost() {
 private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
     val show = remember(event) { mutableStateOf(true) }
     val latestEvent = rememberUpdatedState(event)
+    val scope = rememberCoroutineScope()
     val progress by EmasUpdateDialogBridge.progress.collectAsState()
     var viewState by remember(event) { mutableStateOf(UpdateViewState.DETAIL) }
     var updateConfirmed by remember(event) { mutableStateOf(false) }
+    var dismissing by remember(event) { mutableStateOf(false) }
+
+    val dismissSheet: (Boolean) -> Unit = { shouldCancel ->
+        if (!dismissing) {
+            dismissing = true
+            show.value = false
+            if (shouldCancel) latestEvent.value.onCancel()
+            scope.launch {
+                delay(220)
+                EmasUpdateDialogBridge.dismiss()
+            }
+        }
+    }
 
     val dismissWithCancel = {
-        show.value = false
-        if (!(event.type == EmasUpdateDialogType.UPDATE_AVAILABLE && updateConfirmed)) {
-            latestEvent.value.onCancel()
-        }
-        EmasUpdateDialogBridge.dismiss()
+        val shouldCancel = !(event.type == EmasUpdateDialogType.UPDATE_AVAILABLE && updateConfirmed)
+        dismissSheet(shouldCancel)
     }
 
     WindowBottomSheet(
@@ -83,8 +96,7 @@ private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
                                 updateConfirmed = true
                                 viewState = UpdateViewState.DOWNLOADING
                             } else {
-                                show.value = false
-                                EmasUpdateDialogBridge.dismiss()
+                                dismissSheet(false)
                             }
                         }
                     )
@@ -94,8 +106,7 @@ private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
                     DownloadingContent(
                         progress = progress,
                         onClose = {
-                            show.value = false
-                            EmasUpdateDialogBridge.dismiss()
+                            dismissSheet(false)
                         }
                     )
                 }

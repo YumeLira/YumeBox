@@ -339,11 +339,19 @@ class ProfilesViewModel(
     fun reorderProfiles(from: Int, to: Int) {
         viewModelScope.launch {
             try {
-                // TODO: 实现配置排序逻辑
-                // CMFA 使用 MMKV 存储顺序，需要在 service 模块实现
+                val current = _profiles.value
+                if (from !in current.indices || to !in current.indices || from == to) return@launch
+
+                val reordered = current.toMutableList()
+                val moved = reordered.removeAt(from)
+                reordered.add(to, moved)
+
+                _profiles.value = reordered
+                profilesRepository.reorderProfiles(reordered.map { it.uuid })
                 Timber.d("Reorder profiles: $from -> $to")
             } catch (e: Exception) {
                 Timber.e(e, "Failed to reorder profiles")
+                refreshProfiles()
             }
         }
     }
