@@ -351,6 +351,20 @@
 -keepclassmembers class **{
     public static final <fields>;
 }
+
+-keep class com.taobao.update.** { *; }
+-keep class com.alibaba.sdk.android.update.** { *; }
+-keep class mtopsdk.** { *; }
+-keep class com.taobao.accs.** { *; }
+
+-keepattributes InnerClasses
+-keepattributes Signature
+-keepattributes EnclosingMethod
+
+-keepclassmembers class * {
+    public <init>();
+}
+
 -keep class com.taobao.update.apk.MainUpdateData { *; }
 -keep class com.taobao.update.apk.ApkUpdater { *; }
 -keep class com.taobao.update.common.framework.** { *; }
@@ -362,6 +376,4 @@
 }
 -keep interface com.taobao.update.common.dialog.UpdateNotifyListener { *; }
 -dontwarn mtopsdk.mtop.intf.Mtop
--dontwarn com.alibaba.mtl.appmonitor.AppMonitor
--dontwarn com.alibaba.mtl.appmonitor.AppMonitor$Alarm
--dontwarn com.taobao.orange.OrangeConfig
+-dontwarn com.taobao.update.**
