@@ -37,12 +37,14 @@ import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 val LocalPagerState = compositionLocalOf<PagerState> { error("LocalPagerState is not provided") }
 val LocalHandlePageChange = compositionLocalOf<(Int) -> Unit> { error("LocalHandlePageChange is not provided") }
@@ -96,38 +98,50 @@ fun BottomBar(
             style = hazeStyle
             blurRadius = 30.dp
             noiseFactor = 0f
+            progressive = HazeProgressive.verticalGradient(
+                startIntensity = 0f,
+                endIntensity = 1f,
+                preferPerformance = true,
+            )
         }
+        val colorScheme = MiuixTheme.colorScheme
+        val bottomBarColorScheme = colorScheme.copy(
+            onSurfaceContainer = colorScheme.primary,
+            onSurfaceContainerVariant = colorScheme.primary.copy(alpha = 0.3f),
+        )
 
-        if (bottomBarFloating) {
-            FloatingNavigationBar(
-                modifier = modifier,
-                color = Color.Transparent,
-                showDivider = showDivider,
-                mode = NavigationDisplayMode.IconOnly,
-            ) {
-                BottomBarDestination.entries.forEachIndexed { index, destination ->
-                    FloatingNavigationBarItem(
-                        selected = page == index,
-                        onClick = { onItemClick(index) },
-                        icon = destination.icon,
-                        label = destination.label,
-                    )
+        MiuixTheme(colors = bottomBarColorScheme) {
+            if (bottomBarFloating) {
+                FloatingNavigationBar(
+                    modifier = modifier,
+                    color = Color.Transparent,
+                    showDivider = showDivider,
+                    mode = NavigationDisplayMode.IconOnly,
+                ) {
+                    BottomBarDestination.entries.forEachIndexed { index, destination ->
+                        FloatingNavigationBarItem(
+                            selected = page == index,
+                            onClick = { onItemClick(index) },
+                            icon = destination.icon,
+                            label = destination.label,
+                        )
+                    }
                 }
-            }
-        } else {
-            NavigationBar(
-                modifier = modifier,
-                color = Color.Transparent,
-                showDivider = showDivider,
-                mode = if (iconWithSelectedLabel) NavigationDisplayMode.IconWithSelectedLabel else NavigationDisplayMode.IconAndText,
-            ) {
-                BottomBarDestination.entries.forEachIndexed { index, destination ->
-                    NavigationBarItem(
-                        selected = page == index,
-                        onClick = { onItemClick(index) },
-                        icon = destination.icon,
-                        label = destination.label,
-                    )
+            } else {
+                NavigationBar(
+                    modifier = modifier,
+                    color = Color.Transparent,
+                    showDivider = showDivider,
+                    mode = if (iconWithSelectedLabel) NavigationDisplayMode.IconWithSelectedLabel else NavigationDisplayMode.IconAndText,
+                ) {
+                    BottomBarDestination.entries.forEachIndexed { index, destination ->
+                        NavigationBarItem(
+                            selected = page == index,
+                            onClick = { onItemClick(index) },
+                            icon = destination.icon,
+                            label = destination.label,
+                        )
+                    }
                 }
             }
         }
