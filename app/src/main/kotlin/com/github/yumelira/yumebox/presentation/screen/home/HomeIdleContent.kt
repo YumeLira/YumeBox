@@ -20,17 +20,17 @@
 
 package com.github.yumelira.yumebox.presentation.screen.home
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.common.AppConstants
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -40,29 +40,80 @@ fun HomeIdleContent(
     author: String,
     modifier: Modifier = Modifier
 ) {
+    val accentColor = MiuixTheme.colorScheme.primary
+    val authorColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 100.dp),
-        verticalArrangement = Arrangement.spacedBy(36.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(top = 122.dp, bottom = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = "\"$oneWord\"",
-            style = MiuixTheme.textStyles.headline1.copy(
-                fontSize = AppConstants.UI.QUOTE_FONT_SIZE,
-                lineHeight = AppConstants.UI.QUOTE_LINE_HEIGHT,
-                letterSpacing = 1.sp
-            ),
-            color = MiuixTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "— $author",
-            style = MiuixTheme.textStyles.title2.copy(
-                fontSize = AppConstants.UI.AUTHOR_FONT_SIZE
-            ),
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp, start = 8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .width(2.dp)
+                            .height(36.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.58f),
+                                        Color.Transparent,
+                                    )
+                                )
+                            )
+                    )
+                    Text(
+                        text = oneWord,
+                        style = MiuixTheme.textStyles.headline1.copy(
+                            fontSize = 28.sp,
+                            lineHeight = 50.sp,
+                            letterSpacing = 0.8.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        color = MiuixTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(30.dp)
+                    .height(1.dp)
+                    .background(authorColor.copy(alpha = 0.35f))
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = author,
+                style = MiuixTheme.textStyles.title3.copy(
+                    fontSize = 15.sp,
+                    letterSpacing = 1.6.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = authorColor,
+            )
+        }
     }
 }

@@ -153,7 +153,7 @@ fun ProxyControlButton(
                 Icon(
                     imageVector = if (running) Yume.Square else Yume.Play,
                     contentDescription = null,
-                    tint = MiuixTheme.colorScheme.onSurface
+                    tint = MiuixTheme.colorScheme.primary
                 )
             }
         }
