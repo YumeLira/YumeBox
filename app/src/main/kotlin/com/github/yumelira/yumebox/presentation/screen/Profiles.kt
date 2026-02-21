@@ -24,7 +24,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
@@ -78,8 +76,6 @@ import top.yukonga.miuix.kmp.extra.WindowSpinner
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import java.io.File
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -234,24 +230,13 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     profilesViewModel.reorderProfiles(from.index, to.index)
                 }
 
-            val bottomBarScrollBehavior = LocalBottomBarScrollBehavior.current
-
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection).let { mod ->
-                        if (bottomBarScrollBehavior != null) {
-                            mod.nestedScroll(bottomBarScrollBehavior.nestedScrollConnection)
-                        } else mod
-                    },
-                contentPadding = PaddingValues(
+            ScreenLazyColumn(
+                lazyListState = lazyListState,
+                scrollBehavior = scrollBehavior,
+                innerPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding() + 20.dp,
                     bottom = innerPadding.calculateBottomPadding() + mainInnerPadding.calculateBottomPadding() + LocalSpacing.current.md,
                 ),
-                overscrollEffect = null,
             ) {
                 items(
                     items = profiles,

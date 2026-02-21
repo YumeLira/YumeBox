@@ -187,6 +187,7 @@ fun ProxyPager(
             title = MLang.Proxy.Settings.Title,
             onDismissRequest = { showSettingsBottomSheet.value = false },
             insideMargin = DpSize(32.dp, 16.dp),
+            enableNestedScroll = false
         ) {
             ProxySettingsContent(
                 proxyViewModel = proxyViewModel, onDismiss = { showSettingsBottomSheet.value = false })
@@ -218,6 +219,7 @@ fun ProxyPager(
                 showGroupBottomSheet.value = false
             },
             insideMargin = DpSize(16.dp, 16.dp),
+            enableNestedScroll = false
         ) {
             val group = sheetGroup ?: return@WindowBottomSheet
             NodeSheetContent(

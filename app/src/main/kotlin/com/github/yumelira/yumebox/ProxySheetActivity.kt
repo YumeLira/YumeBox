@@ -174,6 +174,7 @@ private fun ProxySheet(
             dismissSheet()
         },
         insideMargin = DpSize(16.dp, 16.dp),
+        enableNestedScroll = false
     ) {
         AnimatedContent(
             targetState = selectedGroupName,
