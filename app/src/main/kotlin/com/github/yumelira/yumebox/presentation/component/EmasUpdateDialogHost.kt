@@ -18,7 +18,6 @@ import com.github.yumelira.yumebox.BuildConfig
 import com.github.yumelira.yumebox.R
 import com.github.yumelira.yumebox.update.*
 import dev.oom_wg.purejoy.mlang.MLang
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -34,7 +33,15 @@ private enum class UpdateViewState {
 @Composable
 fun EmasUpdateDialogHost() {
     val event by EmasUpdateDialogBridge.event.collectAsState()
-    event?.let { eventData ->
+    var eventSnapshot by remember { mutableStateOf<EmasUpdateDialogEvent?>(null) }
+
+    LaunchedEffect(event) {
+        if (event != null) {
+            eventSnapshot = event
+        }
+    }
+
+    eventSnapshot?.let { eventData ->
         EmasUpdateSheet(event = eventData)
     }
 }
@@ -54,10 +61,7 @@ private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
             dismissing = true
             show.value = false
             if (shouldCancel) latestEvent.value.onCancel()
-            scope.launch {
-                delay(220)
-                EmasUpdateDialogBridge.dismiss()
-            }
+            scope.launch { EmasUpdateDialogBridge.dismiss() }
         }
     }
 
@@ -87,8 +91,12 @@ private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
         ) { state ->
             when (state) {
                 UpdateViewState.DETAIL -> {
-                    DetailByType(
-                        event = event,
+                    UpdateDetailContent(
+                        type = event.type,
+                        message = event.message,
+                        remoteVersion = event.remoteVersion,
+                        cancelText = event.cancelText,
+                        confirmText = event.confirmText,
                         onCancel = dismissWithCancel,
                         onConfirm = {
                             latestEvent.value.onConfirm()
@@ -116,34 +124,8 @@ private fun EmasUpdateSheet(event: EmasUpdateDialogEvent) {
 }
 
 @Composable
-private fun DetailByType(
-    event: EmasUpdateDialogEvent,
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    if (event.type == EmasUpdateDialogType.UPDATE_AVAILABLE) {
-        UpdateAvailableContent(
-            message = event.message,
-            remoteVersion = event.remoteVersion,
-            cancelText = event.cancelText,
-            confirmText = event.confirmText,
-            onCancel = onCancel,
-            onConfirm = onConfirm,
-        )
-        return
-    }
-
-    SimpleMessageContent(
-        message = event.message,
-        cancelText = event.cancelText,
-        confirmText = event.confirmText,
-        onCancel = onCancel,
-        onConfirm = onConfirm,
-    )
-}
-
-@Composable
-private fun UpdateAvailableContent(
+private fun UpdateDetailContent(
+    type: EmasUpdateDialogType,
     message: String,
     remoteVersion: String,
     cancelText: String,
@@ -152,36 +134,19 @@ private fun UpdateAvailableContent(
     onConfirm: () -> Unit,
 ) {
     Column {
-        UpdateCover()
-        Spacer(modifier = Modifier.height(16.dp))
-        VersionCompareCard(remoteVersion = remoteVersion)
-        Spacer(modifier = Modifier.height(16.dp))
-        ActionButtons(
-            cancelText = cancelText,
-            confirmText = confirmText,
-            onCancel = onCancel,
-            onConfirm = onConfirm,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun SimpleMessageContent(
-    message: String,
-    cancelText: String,
-    confirmText: String,
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    Column {
-        Text(
-            text = message.ifBlank { MLang.Component.Update.Message.Available },
-            style = MiuixTheme.textStyles.body1,
-            color = MiuixTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (type == EmasUpdateDialogType.UPDATE_AVAILABLE) {
+            UpdateCover()
+            Spacer(modifier = Modifier.height(16.dp))
+            VersionCompareCard(remoteVersion = remoteVersion)
+        } else {
+            Text(
+                text = message.ifBlank { MLang.Component.Update.Message.Available },
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         ActionButtons(
             cancelText = cancelText,
