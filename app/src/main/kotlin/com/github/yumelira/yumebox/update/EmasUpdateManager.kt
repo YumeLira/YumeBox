@@ -90,35 +90,57 @@ object EmasUpdateManager {
             return
         }
 
+        var step = "init"
         try {
+            step = "UpdateDataSource.init"
             UpdateDataSource.getInstance().init(application, appKey, appSecret, channelId)
+            step = "UpdateRuntime.init"
             UpdateRuntime.init()
+            step = "ApkUpdater.create"
             val apkUpdater = ApkUpdater()
+            step = "bindLog"
             bindLog(apkUpdater)
+            step = "bindDownloadListener"
             bindDownloadListener(apkUpdater)
+            step = "bindResultListener"
             bindResultListener(apkUpdater)
             if (enableCustomDialog) {
+                step = "bindDialogListeners"
                 bindDialogListeners(apkUpdater)
             } else {
+                step = "clearDialogListeners"
                 apkUpdater.setUpdateNotifyListener(null)
                 apkUpdater.setCancelUpdateNotifyListener(null)
                 apkUpdater.setInstallUpdateNotifyListener(null)
             }
+            step = "enableCache"
             UpdateDataSource.getInstance().setEnableCache(true)
+            step = "setCacheValidTime"
             UpdateDataSource.getInstance().setCacheValidTime(12 * 60 * 60 * 1000L)
+            step = "startUpdate"
             UpdateDataSource.getInstance().startUpdate(false)
             initialized = true
             Timber.i("EMAS update initialized")
-        } catch (e: Exception) {
-            Timber.e(e, "EMAS update init failed")
+        } catch (e: IllegalArgumentException) {
+            Timber.e(e, "EMAS update init failed at step=$step (invalid argument)")
+        } catch (e: IllegalStateException) {
+            Timber.e(e, "EMAS update init failed at step=$step (invalid state)")
+        } catch (e: SecurityException) {
+            Timber.e(e, "EMAS update init failed at step=$step (security)")
         }
     }
 
     fun startManualUpdate(async: Boolean = true) {
+        if (!initialized) {
+            Timber.w("EMAS manual update skipped: manager is not initialized")
+            return
+        }
         try {
             UpdateDataSource.getInstance().startManualUpdate(!async)
-        } catch (e: Exception) {
-            Timber.e(e, "EMAS manual update failed")
+        } catch (e: IllegalStateException) {
+            Timber.e(e, "EMAS manual update failed (invalid state)")
+        } catch (e: SecurityException) {
+            Timber.e(e, "EMAS manual update failed (security)")
         }
     }
 
