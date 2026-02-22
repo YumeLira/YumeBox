@@ -4,29 +4,13 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
@@ -37,7 +21,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.util.lerp as lerpFloat
 import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.presentation.component.CenteredText
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
@@ -55,13 +38,11 @@ import dev.chrisbanes.haze.hazeSource
 import dev.oom_wg.purejoy.mlang.MLang
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.ui.util.lerp as lerpFloat
 
 private const val NODE_TRANSFORM_DURATION_MS = 520
 private const val NODE_CONTENT_REVEAL_THRESHOLD = 0.999f
@@ -259,64 +240,83 @@ fun ProxyNodePage(
                             )
                         },
                     ) { innerPadding ->
-                        Column(
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(innerPadding),
                         ) {
-                            NodeTabs(
-                                groups = proxyGroups,
-                                selectedIndex = selectedIndex,
-                                onSelect = { index ->
-                                    if (index in proxyGroups.indices) {
-                                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
-                                    }
-                                },
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .nestedScroll(scrollBehavior.nestedScrollConnection)
-                                    .let { mod ->
-                                        if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
-                                    },
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
                             ) {
-                                if (proxyGroups.isEmpty()) {
-                                    CenteredText(
-                                        firstLine = MLang.Proxy.Empty.NoNodes,
-                                        secondLine = MLang.Proxy.Empty.Hint,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                } else {
-                                    HorizontalPager(
-                                        state = pagerState,
-                                        modifier = Modifier.fillMaxSize(),
-                                    ) { page ->
-                                        val group = proxyGroups.getOrNull(page) ?: return@HorizontalPager
-                                        NodeList(
-                                            group = group,
-                                            displayMode = displayMode,
-                                            onProxyClick = { proxyName ->
-                                                if (group.type == Proxy.Type.Selector) {
-                                                    proxyViewModel.selectProxy(group.name, proxyName)
-                                                } else {
-                                                    proxyViewModel.testDelay(group.name)
-                                                }
-                                            },
-                                            isDelayTesting = testingGroupNames.contains(group.name),
-                                            onTestDelay = { proxyViewModel.testDelay(group.name) },
-                                            listStateKeyPrefix = "node_page",
-                                            contentPadding = PaddingValues(
-                                                start = 16.dp,
-                                                end = 16.dp,
-                                                top = 0.dp,
-                                                bottom = 16.dp,
-                                            ),
+                                NodeTabs(
+                                    groups = proxyGroups,
+                                    selectedIndex = selectedIndex,
+                                    onSelect = { index ->
+                                        if (index in proxyGroups.indices) {
+                                            coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    },
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                                        .let { mod ->
+                                            if (topBarHazeState != null) mod.hazeSource(state = topBarHazeState) else mod
+                                        },
+                                ) {
+                                    if (proxyGroups.isEmpty()) {
+                                        CenteredText(
+                                            firstLine = MLang.Proxy.Empty.NoNodes,
+                                            secondLine = MLang.Proxy.Empty.Hint,
                                             modifier = Modifier.fillMaxSize(),
                                         )
+                                    } else {
+                                        HorizontalPager(
+                                            state = pagerState,
+                                            modifier = Modifier.fillMaxSize(),
+                                        ) { page ->
+                                            val group = proxyGroups.getOrNull(page) ?: return@HorizontalPager
+                                            NodeList(
+                                                group = group,
+                                                displayMode = displayMode,
+                                                onProxyClick = { proxyName ->
+                                                    if (group.type == Proxy.Type.Selector) {
+                                                        proxyViewModel.selectProxy(group.name, proxyName)
+                                                    } else {
+                                                        proxyViewModel.testDelay(group.name)
+                                                    }
+                                                },
+                                                isDelayTesting = testingGroupNames.contains(group.name),
+                                                onTestDelay = { proxyViewModel.testDelay(group.name) },
+                                                listStateKeyPrefix = "node_page",
+                                                contentPadding = PaddingValues(
+                                                    start = 16.dp,
+                                                    end = 16.dp,
+                                                    top = 0.dp,
+                                                    bottom = 92.dp,
+                                                ),
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
                                     }
                                 }
+                            }
+
+                            FloatingActionButton(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(end = 20.dp, bottom = 20.dp),
+                                onClick = {
+                                    selectedGroup?.let { proxyViewModel.testDelay(it.name) }
+                                },
+                            ) {
+                                Icon(
+                                    Yume.Speed,
+                                    contentDescription = MLang.Proxy.Action.Test,
+                                    tint = MiuixTheme.colorScheme.surface,
+                                )
                             }
                         }
                     }

@@ -17,7 +17,7 @@ import (
 )
 
 var processors = []processor{
-	patchExternalController, // must before patchOverride, so we only apply ExternalController in Override settings
+	patchExternalController, // keep hook order; persist/session override still applies after this
 	patchOverride,
 	patchGeneral,
 	patchProfile,
@@ -42,9 +42,8 @@ func patchOverride(cfg *config.RawConfig, _ string) error {
 }
 
 func patchExternalController(cfg *config.RawConfig, _ string) error {
-	cfg.ExternalController = ""
-	cfg.ExternalControllerTLS = ""
-
+	// Preserve profile-defined external controller values.
+	// Persist/session override is applied in patchOverride() right after this.
 	return nil
 }
 

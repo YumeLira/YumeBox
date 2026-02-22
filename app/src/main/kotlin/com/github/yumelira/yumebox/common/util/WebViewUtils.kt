@@ -25,6 +25,10 @@ import com.github.yumelira.yumebox.substore.SubStorePaths
 import java.io.File
 
 object WebViewUtils {
+    private val ONLINE_PANEL_URLS = listOf(
+        "https://board.zash.run.place",
+        "https://metacubex.github.io/metacubexd"
+    )
 
     fun checkLocalResources(): Boolean {
         val distDir = SubStorePaths.frontendDir
@@ -49,49 +53,7 @@ object WebViewUtils {
     fun getLocalBaseUrl(context: Context): String = getLocalBaseUrl()
 
 
-    fun getPanelUrl(context: Context, panelType: Int): String {
-        val panelNames = listOf("zashboard", "metacubexd")
-        if (panelType < 0 || panelType >= panelNames.size) {
-            return ""
-        }
-
-        val panelName = panelNames[panelType]
-        val filesDir = context.filesDir.absolutePath
-        val panelDir = File("$filesDir/panel/$panelName")
-
-        if (!panelDir.exists()) {
-            return ""
-        }
-
-
-        val entryFile = findPanelEntryFile(panelDir)
-        return if (entryFile != null) {
-            "file://${entryFile.absolutePath}"
-        } else {
-            ""
-        }
-    }
-
-    private fun findPanelEntryFile(panelDir: File): File? {
-
-        val entryFiles = listOf("index.html", "main.html", "app.html")
-
-        for (entryFile in entryFiles) {
-            val file = File(panelDir, entryFile)
-            if (file.exists()) {
-                return file
-            }
-        }
-
-        val distDir = File(panelDir, "dist")
-        if (distDir.exists()) {
-            for (entryFile in entryFiles) {
-                val file = File(distDir, entryFile)
-                if (file.exists()) {
-                    return file
-                }
-            }
-        }
-        return null
+    fun getPanelUrl(panelType: Int): String {
+        return ONLINE_PANEL_URLS.getOrElse(panelType) { "" }
     }
 }

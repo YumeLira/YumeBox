@@ -28,6 +28,7 @@ class FeatureStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = externalM
     val backendPort by intFlow(8081)
     val frontendPort by intFlow(8080)
     val selectedPanelType by intFlow(0)
+    val panelOpenMode by enumFlow(LinkOpenMode.IN_APP)
     val showWebControlInProxy by boolFlow(false)
 
 

@@ -25,8 +25,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import com.github.yumelira.yumebox.common.util.WebViewUtils.getPanelUrl
 import com.github.yumelira.yumebox.common.util.openUrl
 import com.github.yumelira.yumebox.data.model.AutoCloseMode
+import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
 import com.ramcosta.composedestinations.annotation.Destination
@@ -34,11 +36,12 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.extra.SuperArrow
-import top.yukonga.miuix.kmp.extra.WindowDropdown
 import top.yukonga.miuix.kmp.extra.SuperSwitch
+import top.yukonga.miuix.kmp.extra.WindowDropdown
 
 @Composable
 @Destination<RootGraph>
@@ -56,10 +59,6 @@ fun FeatureScreen(
     val host = if (allowLanAccess) "0.0.0.0" else "127.0.0.1"
     val frontendUrl = "http://${host}:${frontendPort}"
 
-
-    val isDownloadingPanel by viewModel.isDownloadingPanel.collectAsState()
-
-
     val isDownloadingSubStoreFrontend by viewModel.isDownloadingSubStoreFrontend.collectAsState()
     val isDownloadingSubStoreBackend by viewModel.isDownloadingSubStoreBackend.collectAsState()
 
@@ -69,14 +68,12 @@ fun FeatureScreen(
 
 
     val selectedPanelType by viewModel.selectedPanelType.state.collectAsState()
-    val panelInstallStatus by viewModel.panelInstallStatus.collectAsState()
-
+    val panelOpenMode by viewModel.panelOpenMode.state.collectAsState()
 
     val panelDisplayNames = listOf("Zashboard", "MetaCubeXD")
 
 
     LaunchedEffect(Unit) {
-        viewModel.initializePanelPaths()
         viewModel.initializeSubStoreStatus()
     }
 
@@ -128,29 +125,27 @@ fun FeatureScreen(
                 }
             }
             item {
-                val isPanelInstalled: Boolean =
-                    if (selectedPanelType < panelInstallStatus.size) {
-                        panelInstallStatus[selectedPanelType]
-                    } else {
-                        false
-                    }
-                val statusText =
-                    if (isPanelInstalled) MLang.Feature.Panel.Installed else MLang.Feature.Panel.NotInstalled
                 val currentPanelName =
                     if (selectedPanelType < panelDisplayNames.size) {
                         panelDisplayNames[selectedPanelType]
                     } else {
                         MLang.Feature.Panel.Unknown
                     }
-
-                val downloadButtonText =
-                    if (isPanelInstalled) MLang.Feature.Panel.Redownload else MLang.Feature.Panel.Download
+                val panelUrl = getPanelUrl(selectedPanelType)
+                val panelOpenModeItems = listOf(
+                    MLang.ProfilesPage.LinkSettings.OpenModeInApp,
+                    MLang.ProfilesPage.LinkSettings.OpenModeExternal
+                )
+                val panelOpenModeIndex = when (panelOpenMode) {
+                    LinkOpenMode.IN_APP -> 0
+                    LinkOpenMode.EXTERNAL_BROWSER -> 1
+                }
 
                 SmallTitle(MLang.Feature.Panel.Section)
                 Card {
                     WindowDropdown(
                         title = MLang.Feature.Panel.SelectPanel,
-                        summary = "$currentPanelName - $statusText",
+                        summary = currentPanelName,
                         items = panelDisplayNames,
                         selectedIndex = selectedPanelType,
                         onSelectedIndexChange = {
@@ -158,20 +153,26 @@ fun FeatureScreen(
                         },
                     )
 
-                    SuperArrow(
-                        title = downloadButtonText,
-                        summary = if (isDownloadingPanel) {
-                            MLang.Feature.Panel.Downloading
-                        } else {
-                            val status =
-                                if (isPanelInstalled) MLang.Feature.Panel.WillOverwrite else MLang.Feature.Panel.NotInstalledHint
-                            "$currentPanelName $status"
-                        },
-                        onClick = {
-                            if (!isDownloadingPanel) {
-                                viewModel.downloadExternalPanelEnhanced(selectedPanelType)
-                            }
-                        },
+                    BasicComponent (
+                        title = "URL",
+                        summary = panelUrl.ifEmpty { currentPanelName },
+                        onClick = {}
+                    )
+
+                    WindowDropdown(
+                        title = MLang.ProfilesPage.LinkSettings.OpenMode,
+                        summary = panelOpenModeItems.getOrElse(panelOpenModeIndex) { panelOpenModeItems.first() },
+                        items = panelOpenModeItems,
+                        selectedIndex = panelOpenModeIndex,
+                        onSelectedIndexChange = { index ->
+                            viewModel.setPanelOpenMode(
+                                when (index) {
+                                    0 -> LinkOpenMode.IN_APP
+                                    1 -> LinkOpenMode.EXTERNAL_BROWSER
+                                    else -> LinkOpenMode.IN_APP
+                                }
+                            )
+                        }
                     )
 
                 }

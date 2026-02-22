@@ -30,6 +30,7 @@ import com.github.yumelira.yumebox.common.util.DeviceUtil
 import com.github.yumelira.yumebox.common.util.DownloadUtil
 import com.github.yumelira.yumebox.data.model.AutoCloseMode
 import com.github.yumelira.yumebox.data.repository.FeatureSettingsRepository
+import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.substore.SubStorePaths
 import com.github.yumelira.yumebox.substore.SubStoreService
@@ -40,7 +41,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 
 class FeatureViewModel(
     repository: FeatureSettingsRepository,
@@ -52,6 +52,7 @@ class FeatureViewModel(
     val backendPort: Preference<Int> = repository.backendPort
     val frontendPort: Preference<Int> = repository.frontendPort
     val selectedPanelType: Preference<Int> = repository.selectedPanelType
+    val panelOpenMode: Preference<LinkOpenMode> = repository.panelOpenMode
 
     private val _autoCloseMode = MutableStateFlow(AutoCloseMode.DISABLED)
     val autoCloseMode: StateFlow<AutoCloseMode> = _autoCloseMode.asStateFlow()
@@ -60,12 +61,6 @@ class FeatureViewModel(
     val serviceRunningState: StateFlow<Boolean> = _serviceRunningState.asStateFlow()
 
     private var autoCloseJob: Job? = null
-
-    private val _panelInstallStatus = MutableStateFlow(listOf(false, false))
-    val panelInstallStatus: StateFlow<List<Boolean>> = _panelInstallStatus.asStateFlow()
-
-    private val _isDownloadingPanel = MutableStateFlow(false)
-    val isDownloadingPanel: StateFlow<Boolean> = _isDownloadingPanel.asStateFlow()
 
     private val _isDownloadingSubStoreFrontend = MutableStateFlow(false)
     val isDownloadingSubStoreFrontend: StateFlow<Boolean> = _isDownloadingSubStoreFrontend.asStateFlow()
@@ -86,12 +81,6 @@ class FeatureViewModel(
     companion object {
         private const val EXTENSION_PACKAGE_NAME = "com.github.yumelira.yumebox.extension"
         private const val JAVET_LIB_NAME = "libjavet-node-android"
-        private val PANEL_NAMES = listOf("zashboard", "metacubexd")
-        private val PANEL_URLS = listOf(
-            "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
-            "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
-        )
-        private val ENTRY_FILES = listOf("index.html", "main.html", "app.html")
     }
 
     fun startService() {
@@ -179,33 +168,10 @@ class FeatureViewModel(
 
     fun setSelectedPanelType(panelType: Int) {
         selectedPanelType.set(panelType)
-        updatePanelPaths()
     }
 
-    private fun updatePanelPaths() {
-        viewModelScope.launch {
-            val filesDir = application.filesDir.absolutePath
-            val installStatus = mutableListOf<Boolean>()
-            PANEL_NAMES.forEach { name ->
-                val panelDir = File("$filesDir/panel/$name")
-                val entryFile = findPanelEntryFile(panelDir)
-                val isInstalled = panelDir.exists() && entryFile != null
-                installStatus.add(isInstalled)
-            }
-            _panelInstallStatus.value = installStatus
-        }
-    }
+    fun setPanelOpenMode(mode: LinkOpenMode) = panelOpenMode.set(mode)
 
-    private fun findPanelEntryFile(panelDir: File): File? {
-        ENTRY_FILES.forEach { File(panelDir, it).takeIf { f -> f.exists() }?.let { return it } }
-        val distDir = File(panelDir, "dist")
-        if (distDir.exists()) {
-            ENTRY_FILES.forEach { File(distDir, it).takeIf { f -> f.exists() }?.let { return it } }
-        }
-        return null
-    }
-
-    fun initializePanelPaths() = updatePanelPaths()
     fun downloadSubStoreFrontend() {
         if (_isDownloadingSubStoreFrontend.value) return
         viewModelScope.launch {
@@ -269,35 +235,6 @@ class FeatureViewModel(
         }
     }
 
-    fun downloadExternalPanelEnhanced(panelType: Int = 0) {
-        if (_isDownloadingPanel.value) return
-        viewModelScope.launch {
-            _isDownloadingPanel.value = true
-            runCatching {
-                if (panelType !in PANEL_NAMES.indices) {
-                    showToast(MLang.Feature.SubStore.InvalidPanelType)
-                    return@runCatching
-                }
-                val panelDir = File("${application.filesDir.absolutePath}/panel/${PANEL_NAMES[panelType]}")
-                if (panelDir.exists()) panelDir.deleteRecursively()
-                panelDir.mkdirs()
-                val success = DownloadUtil.downloadAndExtract(url = PANEL_URLS[panelType], targetDir = panelDir)
-                val panelName = panelDisplayName(panelType)
-                showToast(
-                    if (success) {
-                        MLang.Feature.SubStore.PanelInstallSuccess.format(panelName)
-                    } else {
-                        MLang.Feature.SubStore.PanelInstallFailed.format(panelName)
-                    }
-                )
-                if (success) updatePanelPaths()
-            }.onFailure { e ->
-                showToast(MLang.Feature.SubStore.PanelInstallError.format(e.message ?: MLang.Util.Error.UnknownError))
-            }
-            _isDownloadingPanel.value = false
-        }
-    }
-
     private fun showToast(msg: String) = Toast.makeText(application, msg, Toast.LENGTH_SHORT).show()
 
     private fun setupAutoCloseTimer() {
@@ -315,11 +252,5 @@ class FeatureViewModel(
     private fun cancelAutoCloseTimer() {
         autoCloseJob?.cancel()
         autoCloseJob = null
-    }
-
-    private fun panelDisplayName(index: Int): String = when (index) {
-        0 -> MLang.Feature.SubStore.Zashboard
-        1 -> MLang.Feature.SubStore.OfficialPanel
-        else -> MLang.Feature.Panel.Unknown
     }
 }
