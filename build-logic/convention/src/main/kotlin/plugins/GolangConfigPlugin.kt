@@ -29,22 +29,28 @@ class GolangConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         val provider = ConfigProvider(target)
         val ext = target.extensions.create<GolangExtension>("golang")
-        ext.apply {
-            sourceDir.convention(target.layout.projectDirectory.dir("src/golang/native"))
-            outputDir.convention(target.layout.buildDirectory.dir("golang"))
-            architectures.convention(GolangExtension.DEFAULT_ARCHITECTURES)
-            buildTags.convention(
-                provider.getCsv(
-                    "golang.buildTags",
-                    GolangExtension.DEFAULT_BUILD_TAGS.joinToString(","),
-                ).toMutableList(),
-            )
-            buildFlags.convention(
-                provider.getCsv(
-                    "golang.buildFlags",
-                    GolangExtension.DEFAULT_BUILD_FLAGS.joinToString(","),
-                ).toMutableList(),
-            )
-        }
+        configureDefaults(ext, target, provider)
+    }
+
+    private fun configureDefaults(
+        extension: GolangExtension,
+        project: Project,
+        provider: ConfigProvider,
+    ) = extension.apply {
+        sourceDir.convention(project.layout.projectDirectory.dir("src/golang/native"))
+        outputDir.convention(project.layout.buildDirectory.dir("golang"))
+        architectures.convention(GolangExtension.DEFAULT_ARCHITECTURES)
+        buildTags.convention(
+            provider.getCsv(
+                "golang.buildTags",
+                GolangExtension.DEFAULT_BUILD_TAGS.joinToString(","),
+            ).toMutableList(),
+        )
+        buildFlags.convention(
+            provider.getCsv(
+                "golang.buildFlags",
+                GolangExtension.DEFAULT_BUILD_FLAGS.joinToString(","),
+            ).toMutableList(),
+        )
     }
 }

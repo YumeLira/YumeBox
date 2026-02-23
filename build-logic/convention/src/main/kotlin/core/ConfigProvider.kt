@@ -21,11 +21,12 @@
 package core
 
 import org.gradle.api.Project
-import java.util.Properties
+import java.util.*
 
 class ConfigProvider(private val project: Project) {
     private val catalog by lazy { project.rootProject.extensions.findByName("libs") }
     private val externalProperties by lazy { loadExternalProperties() }
+    private val gropifyAccessor by lazy { GropifyAccessor(project) }
 
     private fun loadExternalProperties(): Properties {
         val file = project.rootProject.file("kernel.properties")
@@ -40,14 +41,8 @@ class ConfigProvider(private val project: Project) {
         return externalProperties.getProperty(key)?.takeIf { it.isNotBlank() }
     }
 
-    private fun invokeMethod(target: Any, name: String, vararg args: Any?): Any? =
-        target.javaClass.methods.firstOrNull { it.name == name }?.let { method ->
-            runCatching { method.invoke(target, *args) }.getOrNull()
-        }
-
     private fun fromGropify(key: String): String? {
-        val ext = project.extensions.findByName("gropify") ?: return null
-        return (invokeMethod(ext, "getPropertyValue", key) as? String)?.takeIf { it.isNotBlank() }
+        return gropifyAccessor.getPropertyValue(key)
     }
 
     private fun fromGradleProperties(key: String): String? {
@@ -56,9 +51,9 @@ class ConfigProvider(private val project: Project) {
 
     private fun fromCatalog(key: String): String? {
         val libs = catalog ?: return null
-        val versionObj = invokeMethod(libs, "findVersion", key) ?: return null
-        val reqVersion = invokeMethod(versionObj, "get") ?: return null
-        val requiredVersion = invokeMethod(reqVersion, "getRequiredVersion") as? String
+        val versionObj = ReflectionInvoker.invoke(libs, "findVersion", key) ?: return null
+        val reqVersion = ReflectionInvoker.invoke(versionObj, "get") ?: return null
+        val requiredVersion = ReflectionInvoker.invoke(reqVersion, "getRequiredVersion") as? String
         return requiredVersion?.takeIf { it.isNotBlank() }
     }
 
@@ -80,10 +75,44 @@ class ConfigProvider(private val project: Project) {
 }
 
 fun Project.gropifyString(path: String, fallback: String): String {
-    val ext = extensions.findByName("gropify") ?: return fallback
-    val method = ext.javaClass.methods.firstOrNull { it.name == "getPropertyValue" } ?: return fallback
-    val value = runCatching {
-        method.invoke(ext, path) as? String
-    }.getOrNull()
+    val value = GropifyAccessor(this).getPropertyValue(path)
     return if (value.isNullOrBlank()) fallback else value
+}
+
+fun Project.mmkvDependencyNotation(): String = "com.tencent:mmkv:${mmkvVersionForCurrentAbi()}"
+
+fun Project.mmkvVersionForCurrentAbi(): String {
+    val targetAbi = findProperty("android.injected.build.abi") as String?
+    return when (targetAbi) {
+        "arm64-v8a", "x86_64" -> "2.2.4"
+        else -> "1.3.14"
+    }
+}
+
+private class GropifyAccessor(project: Project) {
+    private val extension = project.extensions.findByName("gropify")
+    private val getPropertyValueMethod = extension
+        ?.javaClass
+        ?.methods
+        ?.firstOrNull { method ->
+            method.name == "getPropertyValue" &&
+                method.parameterTypes.size == 1 &&
+                method.parameterTypes[0] == String::class.java
+        }
+
+    fun getPropertyValue(key: String): String? {
+        val method = getPropertyValueMethod ?: return null
+        val target = extension ?: return null
+        return (runCatching { method.invoke(target, key) }.getOrNull() as? String)
+            ?.takeIf { it.isNotBlank() }
+    }
+}
+
+private object ReflectionInvoker {
+    fun invoke(target: Any, methodName: String, vararg args: Any?): Any? {
+        val method = target.javaClass.methods.firstOrNull { method ->
+            method.name == methodName && method.parameterTypes.size == args.size
+        } ?: return null
+        return runCatching { method.invoke(target, *args) }.getOrNull()
+    }
 }

@@ -40,7 +40,7 @@
 ## Contributing Translations
 
 To translate YumeBox into your language or improve existing translations, please fork this project
-and create or update translation files in the `lang` directory.
+and create or update translation files in the `locale/lang` directory.
 
 
 ## Note
@@ -56,3 +56,4 @@ and create or update translation files in the `lang` directory.
 - [SubCase](https://github.com/sion-codin/SubCase)
 - [Yacd-meta](https://github.com/MetaCubeX/Yacd-meta)
 - [Zashboard](https://github.com/Zephyruso/zashboard)
+

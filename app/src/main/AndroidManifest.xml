@@ -86,100 +86,6 @@
             </intent-filter>
         </activity-alias>
 
-        <activity
-                android:name=".WebViewActivity"
-                android:exported="false"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:hardwareAccelerated="true"
-                android:theme="@style/Theme.YumeBox"/>
-
-        <service
-                android:name=".service.TunService"
-                android:permission="android.permission.BIND_VPN_SERVICE"
-                android:exported="false"
-                android:foregroundServiceType="specialUse">
-            <property
-                    android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                    android:value="clash_vpn"/>
-            <intent-filter>
-                <action android:name="android.net.VpnService"/>
-            </intent-filter>
-        </service>
-
-        <service
-                android:name=".service.ClashService"
-                android:exported="false"
-                android:foregroundServiceType="specialUse">
-            <property
-                    android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                    android:value="clash_proxy"/>
-        </service>
-
-        <service
-                android:name=".service.AutoRestartService"
-                android:exported="false"
-                android:foregroundServiceType="specialUse">
-            <property
-                    android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                    android:value="auto_restart_service"/>
-        </service>
-
-        <service
-                android:name=".service.DialerLaunchService"
-                android:exported="false"/>
-
-        <service
-                android:name=".service.LogRecordService"
-                android:exported="false"
-                android:foregroundServiceType="specialUse">
-            <property
-                    android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                    android:value="log_record_service"/>
-        </service>
-
-        <service
-                android:name=".substore.SubStoreService"
-                android:exported="false"
-                android:foregroundServiceType="specialUse">
-            <property
-                    android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                    android:value="sub_store_service"/>
-        </service>
-
-        <service
-                android:name=".service.ProxyTileService"
-                android:exported="true"
-                android:label="@string/tile_proxy_label"
-                android:icon="@drawable/ic_logo_service"
-                android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE"/>
-            </intent-filter>
-        </service>
-
-        <!-- DialerReceiver 支持 SECRET_CODE 和 NEW_OUTGOING_CALL -->
-        <receiver
-                android:name=".service.DialerReceiver"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.provider.Telephony.SECRET_CODE"/>
-                <data android:host="0721" android:scheme="android_secret_code"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.NEW_OUTGOING_CALL"/>
-            </intent-filter>
-        </receiver>
-
-        <!-- 保留 RestartReceiver 来启动自动重启服务 -->
-        <receiver
-                android:name=".service.RestartReceiver"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-            </intent-filter>
-        </receiver>
-
         <meta-data
                 android:name="org.chromium.webapk.shell_apk"
                 android:value=""/>
@@ -189,6 +95,12 @@
         <meta-data
                 android:name="com.android.stamp.source"
                 android:value="https://play.google.com/store"/>
+
+        <provider
+                android:name=".service.StatusProvider"
+                android:authorities="${applicationId}.status"
+                android:enabled="true"
+                android:exported="false"/>
 
         <provider
                 android:name="androidx.core.content.FileProvider"
@@ -209,12 +121,6 @@
                     android:name="android.support.FILE_PROVIDER_PATHS"
                     android:resource="@xml/apk_paths"/>
         </provider>
-
-        <provider
-                android:name=".service.StatusProvider"
-                android:authorities="${applicationId}.status"
-                android:enabled="true"
-                android:exported="false"/>
 
     </application>
 </manifest>
