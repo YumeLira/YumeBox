@@ -35,16 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.lifecycleScope
@@ -53,20 +44,25 @@ import com.github.yumelira.yumebox.common.AppConstants
 import com.github.yumelira.yumebox.common.runtime.StartupGate
 import com.github.yumelira.yumebox.common.util.IntentController
 import com.github.yumelira.yumebox.common.util.ProxyAutoStartHelper
+import com.github.yumelira.yumebox.common.util.WebViewUtils.getPanelUrl
+import com.github.yumelira.yumebox.common.util.openUrl
+import com.github.yumelira.yumebox.data.store.LinkOpenMode
 import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.screen.HomePager
-import com.github.yumelira.yumebox.presentation.screen.ProfilesPager
 import com.github.yumelira.yumebox.presentation.screen.ProxyPager
-import com.github.yumelira.yumebox.presentation.screen.SettingPager
 import com.github.yumelira.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumelira.yumebox.presentation.theme.NavigationTransitions
 import com.github.yumelira.yumebox.presentation.theme.ProvideAndroidPlatformTheme
 import com.github.yumelira.yumebox.presentation.theme.YumeTheme
-import com.github.yumelira.yumebox.presentation.viewmodel.AppSettingsViewModel
+import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
+import com.github.yumelira.yumebox.screen.HomePager
+import com.github.yumelira.yumebox.screen.ProfilesPager
+import com.github.yumelira.yumebox.screen.SettingPager
+import com.github.yumelira.yumebox.viewmodel.AppSettingsViewModel
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.NavGraphs
+import com.ramcosta.composedestinations.generated.destinations.ProvidersScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
@@ -100,8 +96,8 @@ class MainActivity : ComponentActivity() {
 
     private val appSettingsStorage: com.github.yumelira.yumebox.data.store.AppSettingsStorage by inject()
     private val networkSettingsStorage: com.github.yumelira.yumebox.data.store.NetworkSettingsStorage by inject()
-    private val profilesRepository: com.github.yumelira.yumebox.domain.facade.ProfilesRepository by inject()
-    private val proxyFacade: com.github.yumelira.yumebox.domain.facade.ProxyFacade by inject()
+    private val profilesRepository: com.github.yumelira.yumebox.runtime.client.ProfilesRepository by inject()
+    private val proxyFacade: com.github.yumelira.yumebox.runtime.client.ProxyFacade by inject()
     private val serviceCache: MMKV by inject(qualifier = named("service_cache"))
 
 
@@ -114,7 +110,7 @@ class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
 
-            super.onCreate(savedInstanceState)
+        super.onCreate(savedInstanceState)
         applyExcludeFromRecents(appSettingsStorage.excludeFromRecents.value)
 
         intentController = IntentController(this, lifecycleScope)
@@ -174,14 +170,13 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 defaultTransitions = NavigationTransitions.defaultStyle,
                             )
-                            EmasUpdateDialogHost()
+                            EmasUpdateDialogHost(currentVersionName = BuildConfig.VERSION_NAME)
                         }
                     }
                 }
             }
 
             LaunchedEffect(Unit) {
-                delay(AppConstants.Timing.AUTO_START_DELAY_MS)
                 ProxyAutoStartHelper.checkAndAutoStart(
                     proxyFacade = proxyFacade,
                     profilesRepository = profilesRepository,
@@ -221,7 +216,6 @@ class MainActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun applyExcludeFromRecents(exclude: Boolean) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return
 
         runCatching {
             val am = getSystemService(ActivityManager::class.java) ?: return@runCatching
@@ -254,7 +248,13 @@ fun MainScreen(
     )
 
     val appSettingsViewModel = koinViewModel<AppSettingsViewModel>()
+    val featureViewModel = koinViewModel<FeatureViewModel>()
     val bottomBarAutoHide by appSettingsViewModel.bottomBarAutoHide.state.collectAsState()
+    val bottomBarFloating by appSettingsViewModel.bottomBarFloating.state.collectAsState()
+    val showDivider by appSettingsViewModel.showDivider.state.collectAsState()
+    val iconWithSelectedLabel by appSettingsViewModel.iconWithSelectedLabel.state.collectAsState()
+    val selectedPanelType by featureViewModel.selectedPanelType.state.collectAsState()
+    val panelOpenMode by featureViewModel.panelOpenMode.state.collectAsState()
 
     val pagerFlingAnimationSpec = remember {
         spring<Float>(
@@ -321,9 +321,12 @@ fun MainScreen(
 
         Scaffold(
             bottomBar = {
-                BottomBar(
+                BottomBarContent(
                     hazeState = hazeState,
                     hazeStyle = hazeStyle,
+                    bottomBarFloating = bottomBarFloating,
+                    showDivider = showDivider,
+                    iconWithSelectedLabel = iconWithSelectedLabel,
                     isVisible = bottomBarScrollBehavior.isBottomBarVisible
                 )
             },
@@ -347,9 +350,22 @@ fun MainScreen(
                 when (page) {
                     0 -> HomePager(innerPadding)
                     1 -> ProxyPager(
-                        innerPadding,
-                        navigator,
-                        isActive = page == pagerState.currentPage
+                        mainInnerPadding = innerPadding,
+                        onNavigateToProviders = {
+                            navigator.navigate(ProvidersScreenDestination) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenPanel = onOpenPanel@{
+                            val context = activity ?: return@onOpenPanel
+                            val panelUrl = getPanelUrl(selectedPanelType)
+                            if (panelUrl.isEmpty()) return@onOpenPanel
+                            when (panelOpenMode) {
+                                LinkOpenMode.IN_APP -> WebViewActivity.start(context, panelUrl)
+                                LinkOpenMode.EXTERNAL_BROWSER -> openUrl(context, panelUrl)
+                            }
+                        },
+                        isActive = page == pagerState.currentPage,
                     )
 
                     2 -> ProfilesPager(innerPadding)
@@ -359,3 +375,4 @@ fun MainScreen(
         }
     }
 }
+

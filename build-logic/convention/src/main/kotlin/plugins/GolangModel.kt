@@ -23,6 +23,7 @@ package plugins
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
+import java.io.File
 
 abstract class GolangExtension {
     abstract val sourceDir: DirectoryProperty
@@ -53,13 +54,21 @@ object GolangUtils {
             osName.contains("linux") -> "linux-x86_64"
             else -> error("Unsupported OS: $osName")
         }
-        val prefix = when (abi) {
-            "armeabi-v7a" -> "armv7a-linux-androideabi21-clang"
-            "arm64-v8a" -> "aarch64-linux-android21-clang"
-            "x86" -> "i686-linux-android21-clang"
-            "x86_64" -> "x86_64-linux-android21-clang"
-            else -> error("Unsupported ABI: $abi")
-        }
+        val prefix = clangPrefixForAbi(abi)
         return "$ndkDir/toolchains/llvm/prebuilt/$host/bin/$prefix"
+    }
+
+    fun taskSuffixForAbi(abi: String): String = abi.replace("-", "")
+
+    fun outputSoFile(outputDir: File): File = outputDir.resolve("libclash.so")
+
+    fun outputHeaderFile(outputDir: File): File = outputDir.resolve("libclash.h")
+
+    private fun clangPrefixForAbi(abi: String): String = when (abi) {
+        "armeabi-v7a" -> "armv7a-linux-androideabi21-clang"
+        "arm64-v8a" -> "aarch64-linux-android21-clang"
+        "x86" -> "i686-linux-android21-clang"
+        "x86_64" -> "x86_64-linux-android21-clang"
+        else -> error("Unsupported ABI: $abi")
     }
 }

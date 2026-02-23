@@ -16,10 +16,16 @@
 -keep class com.github.yumelira.yumebox.core.bridge.** { *; }
 -keep class com.github.yumelira.yumebox.core.Clash { *; }
 
+# JNI in core/src/cpp/main.c reflects these exact Kotlin/coroutines symbols by name.
+# They must keep original names/members in release builds.
+-keep class kotlin.Unit {
+    public static final kotlin.Unit INSTANCE;
+}
+-keep interface kotlinx.coroutines.CompletableDeferred { *; }
+
 # Keep data models for serialization
 -keep class com.github.yumelira.yumebox.core.model.** { *; }
 -keepattributes Signature
 -keepattributes *Annotation*
 
 -dontwarn kotlinx.serialization.**
-

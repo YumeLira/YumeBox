@@ -28,7 +28,7 @@ plugins {
 }
 
 dependencies {
-    implementation("com.caoccao.javet:javet-node-android:5.0.3")
+    implementation("com.caoccao.javet:javet-node-android:5.0.4")
 }
 
 val extensionJvmTarget = gropify.project.jvm.toString()
@@ -46,6 +46,7 @@ android {
         versionName = gropify.project.version.name
     }
 
+    //noinspection WrongGradleMethod
     tasks.withType<PackageAndroidArtifact> {
         doFirst { appMetadata.asFile.orNull?.writeText("") }
     }

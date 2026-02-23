@@ -19,6 +19,9 @@
  */
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.JavaVersion
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 plugins {
     `kotlin-dsl`
@@ -42,11 +45,25 @@ kotlin {
     }
 }
 
+java {
+    sourceCompatibility = JavaVersion.toVersion(jvmVersionInt)
+    targetCompatibility = JavaVersion.toVersion(jvmVersionInt)
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(jvmVersionInt))
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(jvmVersionInt)
+}
+
 dependencies {
-    compileOnly("com.android.tools.build:gradle:8.12.3")
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.21")
-    compileOnly("org.jetbrains.compose:compose-gradle-plugin:1.9.3")
-    compileOnly("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.3.3")
+    listOf(
+        "com.android.tools.build:gradle:8.12.3",
+        "org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.21",
+        "org.jetbrains.compose:compose-gradle-plugin:1.9.3",
+        "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:2.3.3",
+    ).forEach(::compileOnly)
 }
 
 gradlePlugin {
@@ -54,6 +71,10 @@ gradlePlugin {
         register("baseAndroid") {
             id = "yumebox.base.android"
             implementationClass = "plugins.BaseAndroidPlugin"
+        }
+        register("buildHelpers") {
+            id = "yumebox.build.helpers"
+            implementationClass = "plugins.BuildHelpersPlugin"
         }
         register("golangConfig") {
             id = "yumebox.golang.config"

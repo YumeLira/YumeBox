@@ -20,80 +20,31 @@
 
 package com.github.yumelira.yumebox.di
 
-import com.github.yumelira.yumebox.data.repository.*
-import com.github.yumelira.yumebox.data.store.*
-import com.github.yumelira.yumebox.domain.facade.ProfilesRepository
-import com.github.yumelira.yumebox.domain.facade.ProxyFacade
-import com.github.yumelira.yumebox.presentation.viewmodel.*
-import com.tencent.mmkv.MMKV
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import com.github.yumelira.yumebox.data.repository.LogRecordGateway
+import com.github.yumelira.yumebox.di.featureProxyModules
+import com.github.yumelira.yumebox.di.featureSubStoreModules
+import com.github.yumelira.yumebox.viewmodel.*
+import com.github.yumelira.yumebox.service.LogRecordServiceGateway
 import org.koin.android.ext.koin.androidApplication
-import org.koin.android.ext.koin.androidContext
+import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
-const val APPLICATION_SCOPE_NAME = "applicationScope"
+val appIntegrationModule = module {
+    single<LogRecordGateway> { LogRecordServiceGateway() }
+}
 
-val appModule = module {
-    single<CoroutineScope>(named(APPLICATION_SCOPE_NAME)) {
-        CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    }
-
-    single { MMKVProvider() }
-    single<MMKV>(named("profiles")) { get<MMKVProvider>().getMMKV("profiles") }
-    single<MMKV>(named("settings")) { get<MMKVProvider>().getMMKV("settings") }
-    single<MMKV>(named("network_settings")) { get<MMKVProvider>().getMMKV("network_settings") }
-    single<MMKV>(named("substore")) { get<MMKVProvider>().getMMKV("substore") }
-    single<MMKV>(named("proxy_display")) { get<MMKVProvider>().getMMKV("proxy_display") }
-    single<MMKV>(named("traffic_statistics")) { get<MMKVProvider>().getMMKV("traffic_statistics") }
-    single<MMKV>(named("profile_links")) { get<MMKVProvider>().getMMKV("profile_links") }
-    single<MMKV>(named("service_cache")) { get<MMKVProvider>().getMMKV("service_cache") }
-
-    single { AppSettingsStorage(get<MMKV>(named("settings"))) }
-    single { NetworkSettingsStorage(get(named("network_settings"))) }
-    single { ProfileLinksStorage(get(named("profile_links"))) }
-    single { FeatureStore(get(named("substore"))) }
-    single { ProfilesStore(get(named("profiles")), get<CoroutineScope>(named(APPLICATION_SCOPE_NAME))) }
-    single { ProxyDisplaySettingsStore(get(named("proxy_display"))) }
-    single { TrafficStatisticsStore(get(named("traffic_statistics"))) }
-
-    // Repositories
-    single { AppSettingsRepository(get()) }
-    single { NetworkSettingsRepository(get()) }
-    single { FeatureSettingsRepository(get()) }
-    single { ProxyDisplaySettingsRepository(get()) }
-    single { ProfileLinksRepository(get()) }
-    single { TrafficStatisticsRepository(get()) }
-    single { LogRepository(androidApplication()) }
-    single { NetworkInfoService() }
-    single { ProxyChainResolver() }
-    single { OverrideRepository(androidContext()) }
-    single { ProvidersRepository(androidContext()) }
-
-    // Service gateway (singleton)
-    single { com.github.yumelira.yumebox.remote.ServiceClient }
-
-    // Facades
-    single { ProxyFacade(androidContext()) }
-    single { ProfilesRepository(androidContext()) }
-    
-    // Collectors
-    single { TrafficStatisticsCollector(get(), get()) }
-
-    // ViewModels
+val appViewModelModule = module {
     viewModel { AppSettingsViewModel(get()) }
     viewModel { HomeViewModel(androidApplication(), get(), get(), get(), get(), get()) }
     viewModel { ProfilesViewModel(androidApplication(), get(), get()) }
-    viewModel { ProxyViewModel(get(), get(), get()) }
-    viewModel { ProvidersViewModel(get(), get()) }
-    viewModel { SettingViewModel(get()) }
-    viewModel { FeatureViewModel(get(), androidApplication()) }
     viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get()) }
     viewModel { AccessControlViewModel(androidApplication(), get()) }
-    viewModel { OverrideViewModel(get()) }
     viewModel { TrafficStatisticsViewModel(androidApplication(), get()) }
     viewModel { LogViewModel(get()) }
 }
+
+val appModule: List<Module> = coreDiModules + listOf(
+    appIntegrationModule,
+    appViewModelModule,
+) + featureSubStoreModules + featureProxyModules
