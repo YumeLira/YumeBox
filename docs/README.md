@@ -30,8 +30,8 @@
 
 ## Usage
 
-- **Install**: Visit the [Installation](https://yumebox.mintlify.app/guide/install) page
-- **Build**: See the [Build section](https://yumebox.mintlify.app/guide/building)
+- **[Install](https://yumebox.oom-wg.dev/guide/install)**
+- **[History](https://yumebox.oom-wg.dev/update/history)**
 
 ## Discussion
 
