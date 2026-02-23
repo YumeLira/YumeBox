@@ -5,7 +5,6 @@
             android:name="com.github.yumelira.yumebox.WebViewActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="false"
-            android:hardwareAccelerated="true"
-            android:theme="@style/Theme.YumeBox" />
+            android:hardwareAccelerated="true" />
     </application>
 </manifest>
