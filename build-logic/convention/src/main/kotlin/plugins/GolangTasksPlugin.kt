@@ -30,7 +30,6 @@ class GolangTasksPlugin : Plugin<Project> {
         val ndkDir = resolveNdkDir(project, android)
         val ndkPath = ndkDir.absolutePath
 
-        val buildTasks = mutableListOf<TaskProvider<Exec>>()
         val stripTasks = mutableListOf<TaskProvider<Exec>>()
         val copyTasks = mutableListOf<TaskProvider<*>>()
 
@@ -38,7 +37,6 @@ class GolangTasksPlugin : Plugin<Project> {
             val abiBuild = registerBuildTask(project, golang, abi, ndkPath)
             val abiStrip = registerStripTask(project, golang, abi, ndkPath, abiBuild)
             val abiCopy = registerCopyTask(project, golang, abi, abiStrip)
-            buildTasks += abiBuild
             stripTasks += abiStrip
             copyTasks += abiCopy
         }
