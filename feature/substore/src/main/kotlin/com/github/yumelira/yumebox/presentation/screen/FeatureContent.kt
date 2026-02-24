@@ -6,11 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.github.yumelira.yumebox.data.model.AutoCloseMode
 import com.github.yumelira.yumebox.data.store.LinkOpenMode
-import com.github.yumelira.yumebox.presentation.component.Card
-import com.github.yumelira.yumebox.presentation.component.EnumSelector
-import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
-import com.github.yumelira.yumebox.presentation.component.SmallTitle
-import com.github.yumelira.yumebox.presentation.component.TopBar
+import com.github.yumelira.yumebox.presentation.component.*
 import com.github.yumelira.yumebox.presentation.viewmodel.FeatureViewModel
 import dev.oom_wg.purejoy.mlang.MLang
 import org.koin.androidx.compose.koinViewModel
@@ -24,6 +20,7 @@ import top.yukonga.miuix.kmp.extra.WindowDropdown
 @Composable
 fun FeatureContent(
     onOpenExternalUrl: (String) -> Unit,
+    onOpenInAppUrl: (String) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<FeatureViewModel>()
@@ -122,7 +119,13 @@ fun FeatureContent(
                     BasicComponent(
                         title = "URL",
                         summary = panelUrl.ifEmpty { currentPanelName },
-                        onClick = {},
+                        onClick = {
+                            if (panelUrl.isBlank()) return@BasicComponent
+                            when (panelOpenMode) {
+                                LinkOpenMode.IN_APP -> onOpenInAppUrl(panelUrl)
+                                LinkOpenMode.EXTERNAL_BROWSER -> onOpenExternalUrl(panelUrl)
+                            }
+                        },
                     )
 
                     WindowDropdown(
@@ -179,8 +182,8 @@ fun FeatureContent(
 
 private fun panelUrlFor(panelType: Int): String {
     return when (panelType) {
-        0 -> "/index.html"
-        1 -> "/metacubexd/"
-        else -> "/index.html"
+        0 -> "https://board.zash.run.place"
+        1 -> "https://metacubex.github.io/metacubexd"
+        else -> "https://board.zash.run.place"
     }
 }

@@ -22,6 +22,7 @@ package com.github.yumelira.yumebox.screen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import com.github.yumelira.yumebox.WebViewActivity
 import com.github.yumelira.yumebox.common.util.openUrl
 import com.github.yumelira.yumebox.presentation.screen.FeatureContent
 import com.ramcosta.composedestinations.annotation.Destination
@@ -36,5 +37,6 @@ fun FeatureScreen(
     val context = LocalContext.current
     FeatureContent(
         onOpenExternalUrl = { url -> openUrl(context, url) },
+        onOpenInAppUrl = { url -> WebViewActivity.start(context, url) },
     )
 }

@@ -96,7 +96,6 @@ include(
     ":app",
     ":feature:update",
     ":feature:web",
-    ":feature:about",
     ":feature:substore",
     ":feature:proxy",
     ":data:log",
@@ -106,4 +105,3 @@ include(
     ":runtime:client",
     ":runtime:service",
 )
-

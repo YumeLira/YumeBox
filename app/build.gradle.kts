@@ -79,7 +79,6 @@ private fun DependencyHandlerScope.addAppProjectDependencies() {
         ":runtime:service",
         ":feature:update",
         ":feature:web",
-        ":feature:about",
         ":feature:substore",
         ":feature:proxy",
     )
@@ -309,6 +308,8 @@ dependencies {
 
     // UI Components
     implementation("sh.calvin.reorderable:reorderable:3.0.0")
+    implementation("com.mikepenz:aboutlibraries-core:13.2.1")
+    implementation("com.mikepenz:aboutlibraries-compose:13.2.1")
 
     // Lifecycle
     implementationAll(
