@@ -9,7 +9,7 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import java.io.File
-import java.util.Properties
+import java.util.*
 
 class GolangTasksPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -31,19 +31,22 @@ class GolangTasksPlugin : Plugin<Project> {
         val ndkPath = ndkDir.absolutePath
 
         val buildTasks = mutableListOf<TaskProvider<Exec>>()
+        val stripTasks = mutableListOf<TaskProvider<Exec>>()
         val copyTasks = mutableListOf<TaskProvider<*>>()
 
         golang.architectures.get().keys.forEach { abi ->
             val abiBuild = registerBuildTask(project, golang, abi, ndkPath)
-            val abiCopy = registerCopyTask(project, golang, abi, abiBuild)
+            val abiStrip = registerStripTask(project, golang, abi, ndkPath, abiBuild)
+            val abiCopy = registerCopyTask(project, golang, abi, abiStrip)
             buildTasks += abiBuild
+            stripTasks += abiStrip
             copyTasks += abiCopy
         }
 
         project.tasks.register("buildGolangAll") {
             group = "golang"
             description = "Build Go library for all configured ABIs"
-            dependsOn(buildTasks)
+            dependsOn(stripTasks)
         }
         project.tasks.register("copyAllClashLibs") {
             group = "golang"
@@ -82,26 +85,53 @@ class GolangTasksPlugin : Plugin<Project> {
             val outputHeader = GolangUtils.outputHeaderFile(outputDir)
 
             workingDir = sourceDir
-            val execTask = this
-
-            doFirst {
-                outputDir.mkdirs()
-                configureGoBuildCommand(
-                    task = execTask,
-                    golang = golang,
-                    abi = abi,
-                    ndkPath = ndkPath,
-                    outputFile = outputFile,
-                )
-            }
+            doFirst { outputDir.mkdirs() }
+            configureGoBuildCommand(
+                task = this,
+                golang = golang,
+                abi = abi,
+                ndkPath = ndkPath,
+                outputFile = outputFile,
+            )
 
             inputs.dir(sourceDir)
             inputs.property("abi", abi)
             inputs.property("ndkPath", ndkPath)
             inputs.property("buildTags", golang.buildTags.get())
             inputs.property("buildFlags", golang.buildFlags.orNull ?: GolangExtension.DEFAULT_BUILD_FLAGS)
+            inputs.property("postStripStrategy", "llvm-strip-unneeded-v1")
             outputs.file(outputFile)
             outputs.file(outputHeader)
+        }
+    }
+
+    private fun registerStripTask(
+        project: Project,
+        golang: GolangExtension,
+        abi: String,
+        ndkPath: String,
+        buildTask: TaskProvider<Exec>,
+    ): TaskProvider<Exec> {
+        val taskSuffix = GolangUtils.taskSuffixForAbi(abi)
+        return project.tasks.register<Exec>("stripGolang$taskSuffix") {
+            group = "golang"
+            description = "Strip Go shared library for $abi ABI"
+            dependsOn(buildTask)
+
+            val outputFile = GolangUtils.outputSoFile(golang.outputDir.get().dir(abi).asFile)
+            onlyIf { outputFile.exists() }
+
+            commandLine(
+                GolangUtils.getLlvmStripPath(ndkPath),
+                "--strip-unneeded",
+                outputFile.absolutePath,
+            )
+
+            inputs.file(outputFile)
+            inputs.property("abi", abi)
+            inputs.property("ndkPath", ndkPath)
+            inputs.property("postStripStrategy", "llvm-strip-unneeded-v1")
+            outputs.file(outputFile)
         }
     }
 
@@ -151,13 +181,13 @@ class GolangTasksPlugin : Plugin<Project> {
         project: Project,
         golang: GolangExtension,
         abi: String,
-        buildTask: TaskProvider<Exec>,
+        stripTask: TaskProvider<Exec>,
     ): TaskProvider<org.gradle.api.Task> {
         val taskSuffix = GolangUtils.taskSuffixForAbi(abi)
         return project.tasks.register("copy${taskSuffix}ClashLib") {
             group = "golang"
             description = "Copy Go library for $abi ABI to jniLibs"
-            dependsOn(buildTask)
+            dependsOn(stripTask)
 
             val outputDir = golang.outputDir.get().dir(abi).asFile
             val sourceFile = GolangUtils.outputSoFile(outputDir)

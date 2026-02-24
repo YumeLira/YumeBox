@@ -45,15 +45,25 @@ abstract class GolangExtension {
 }
 
 object GolangUtils {
-    fun getGoBinary(): String = System.getenv("GO_EXECUTABLE") ?: "go"
-    fun getClangPath(ndkDir: String, abi: String): String {
+    private fun ndkHostTag(): String {
         val osName = System.getProperty("os.name").lowercase()
-        val host = when {
+        return when {
             osName.contains("windows") -> "windows-x86_64"
             osName.contains("mac") || osName.contains("darwin") -> "darwin-x86_64"
             osName.contains("linux") -> "linux-x86_64"
             else -> error("Unsupported OS: $osName")
         }
+    }
+
+    fun getGoBinary(): String = System.getenv("GO_EXECUTABLE") ?: "go"
+
+    fun getLlvmStripPath(ndkDir: String): String {
+        val host = ndkHostTag()
+        return "$ndkDir/toolchains/llvm/prebuilt/$host/bin/llvm-strip"
+    }
+
+    fun getClangPath(ndkDir: String, abi: String): String {
+        val host = ndkHostTag()
         val prefix = clangPrefixForAbi(abi)
         return "$ndkDir/toolchains/llvm/prebuilt/$host/bin/$prefix"
     }
