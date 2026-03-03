@@ -150,6 +150,7 @@ func QueryProxyGroupsFromPath(path string, excludeNotSelectable bool) ([]*tunnel
 		icon = strings.TrimSpace(icon)
 
 		result = append(result, &tunnel.ProxyGroup{
+			Name:    name,
 			Type:    groupType,
 			Now:     now,
 			Icon:    icon,

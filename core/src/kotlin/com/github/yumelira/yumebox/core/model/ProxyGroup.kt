@@ -28,6 +28,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ProxyGroup(
+    val name: String = "",
     val type: Proxy.Type,
     val proxies: List<Proxy>,
     val now: String,
@@ -56,10 +57,11 @@ data class ProxyGroup(
     }
 
     constructor(parcel: Parcel) : this(
-        Proxy.Type.entries[parcel.readInt()],
-        SliceProxyList(parcel),
-        parcel.readString()!!,
-        parcel.readString(),
+        type = Proxy.Type.entries[parcel.readInt()],
+        proxies = SliceProxyList(parcel),
+        now = parcel.readString().orEmpty(),
+        icon = parcel.readString(),
+        name = if (parcel.dataAvail() > 0) parcel.readString().orEmpty() else "",
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -67,6 +69,7 @@ data class ProxyGroup(
         SliceProxyList(proxies).writeToParcel(parcel, 0)
         parcel.writeString(now)
         parcel.writeString(icon)
+        parcel.writeString(name)
     }
 
     override fun describeContents(): Int {

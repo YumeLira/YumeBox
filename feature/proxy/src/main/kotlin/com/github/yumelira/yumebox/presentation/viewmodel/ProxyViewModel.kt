@@ -47,6 +47,7 @@ class ProxyViewModel(
     private companion object {
         const val PROXY_REFRESH_IDLE_MS = 1500L
         const val PROXY_REFRESH_TESTING_MS = 400L
+        const val PROXY_REFRESH_PREVIEW_MS = 10_000L
         const val PROXY_TESTING_SORT_HOLD_MS = 2200L
     }
 
@@ -341,10 +342,10 @@ class ProxyViewModel(
                     .onFailure { error ->
                         if (error is CancellationException) throw error
                     }
-                val delayMillis = if (_testingGroupNames.value.isNotEmpty()) {
-                    PROXY_REFRESH_TESTING_MS
-                } else {
-                    PROXY_REFRESH_IDLE_MS
+                val delayMillis = when {
+                    !proxyFacade.isRunning.value -> PROXY_REFRESH_PREVIEW_MS
+                    _testingGroupNames.value.isNotEmpty() -> PROXY_REFRESH_TESTING_MS
+                    else -> PROXY_REFRESH_IDLE_MS
                 }
                 delay(delayMillis)
             }

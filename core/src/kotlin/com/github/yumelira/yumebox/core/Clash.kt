@@ -157,14 +157,14 @@ object Clash {
         return List(groups.size) {
             runCatching {
                 Json.decodeFromJsonElement(ProxyGroup.serializer(), groups[it])
-            }.getOrDefault(ProxyGroup(Proxy.Type.Unknown, emptyList(), ""))
+            }.getOrDefault(ProxyGroup(type = Proxy.Type.Unknown, proxies = emptyList(), now = ""))
         }
     }
 
     fun queryGroup(name: String, sort: ProxySort): ProxyGroup {
         return Bridge.nativeQueryGroup(name, sort.name)
             ?.let { Json.decodeFromString(ProxyGroup.serializer(), it) }
-            ?: ProxyGroup(Proxy.Type.Unknown, emptyList(), "")
+            ?: ProxyGroup(name = name, type = Proxy.Type.Unknown, proxies = emptyList(), now = "")
     }
 
     fun healthCheck(name: String): CompletableDeferred<Unit> {

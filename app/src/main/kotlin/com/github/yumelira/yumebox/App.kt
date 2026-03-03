@@ -27,6 +27,7 @@ import com.github.yumelira.yumebox.core.Global
 import com.github.yumelira.yumebox.data.repository.TrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.FeatureStore
 import com.github.yumelira.yumebox.di.appModule
+import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.substore.util.AppUtil
 import com.github.yumelira.yumebox.update.EmasUpdateManager
 import com.tencent.mmkv.MMKV
@@ -66,6 +67,7 @@ class App : Application() {
 
         val featureStore: FeatureStore = koinApp.koin.get()
         koinApp.koin.get<TrafficStatisticsCollector>()
+        koinApp.koin.get<ProxyFacade>().warmUpProxyGroups()
 
         if (featureStore.isFirstTimeOpen()) {
             AppUtil.initFirstOpen()

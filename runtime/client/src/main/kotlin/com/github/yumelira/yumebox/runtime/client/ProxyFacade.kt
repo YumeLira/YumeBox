@@ -40,6 +40,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -91,6 +93,8 @@ class ProxyFacade(private val context: Context) {
 
     private var trafficPollingJob: Job? = null
     private var previewCache: PreviewCacheEntry? = null
+    private var previewWarmupJob: Job? = null
+    private val refreshProxyGroupsMutex = Mutex()
 
     private val serviceEventsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -162,6 +166,17 @@ class ProxyFacade(private val context: Context) {
     private fun stopTrafficPolling() {
         trafficPollingJob?.cancel()
         trafficPollingJob = null
+    }
+
+    /**
+     * Warm up proxy groups at app startup so Proxy page can render immediately.
+     */
+    fun warmUpProxyGroups() {
+        if (previewWarmupJob?.isActive == true) return
+        previewWarmupJob = scope.launch {
+            runCatching { refreshProxyGroups() }
+                .onFailure { e -> Timber.d(e, "Warm up proxy groups skipped") }
+        }
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -299,13 +314,6 @@ class ProxyFacade(private val context: Context) {
     }
 
     /**
-     * Parse active profile config and return proxy group names without runtime load.
-     */
-    suspend fun queryProfileProxyGroupNames(excludeNotSelectable: Boolean = false): List<String> {
-        return ServiceClient.clash().queryProfileProxyGroupNames(excludeNotSelectable)
-    }
-
-    /**
      * Parse active profile config and return proxy groups without runtime load.
      */
     suspend fun queryProfileProxyGroups(excludeNotSelectable: Boolean = false): List<ProxyGroup> {
@@ -419,84 +427,90 @@ class ProxyFacade(private val context: Context) {
         _isRunning.value = isRunning
     }
 
-    private fun buildPreviewGroups(groupNames: List<String>): List<ProxyGroupInfo> {
-        return groupNames.map { name ->
-            ProxyGroupInfo(
-                name = name,
-                type = Proxy.Type.Unknown,
-                proxies = emptyList(),
-                now = "-",
-                icon = null,
-            )
-        }
-    }
-
     /**
      * Refresh proxy groups
      */
     suspend fun refreshProxyGroups() {
-        runCatching {
-            ServiceClient.connect(appContext)
-            if (!_isRunning.value) {
-                val excludeNotSelectable = false
-                val activeProfile = ServiceClient.profile().queryActive().also {
-                    _currentProfile.value = it
-                }
+        refreshProxyGroupsMutex.withLock {
+            val groups = withContext(Dispatchers.IO) {
+                runCatching {
+                    ServiceClient.connect(appContext)
+                    if (!_isRunning.value) {
+                        val excludeNotSelectable = false
+                        val activeProfile = ServiceClient.profile().queryActive().also {
+                            _currentProfile.value = it
+                        }
 
-                if (activeProfile == null) {
-                    previewCache = null
-                    _proxyGroups.value = emptyList()
-                    return@runCatching
-                }
+                        if (activeProfile == null) {
+                            previewCache = null
+                            return@runCatching emptyList()
+                        }
 
-                val cacheKey = PreviewCacheKey(
-                    profileId = activeProfile.uuid,
-                    profileUpdatedAt = activeProfile.updatedAt,
-                    excludeNotSelectable = excludeNotSelectable,
-                )
+                        val cacheKey = PreviewCacheKey(
+                            profileId = activeProfile.uuid,
+                            profileUpdatedAt = activeProfile.updatedAt,
+                            excludeNotSelectable = excludeNotSelectable,
+                        )
 
-                val cached = previewCache
-                if (cached != null && cached.key == cacheKey) {
-                    _proxyGroups.value = cached.groups
-                    return@runCatching
-                }
+                        val cached = previewCache
+                        if (cached != null && cached.key == cacheKey) {
+                            return@runCatching cached.groups
+                        }
 
-                val previewGroups = queryProfileProxyGroups(excludeNotSelectable = excludeNotSelectable)
-                val previewNames = queryProfileProxyGroupNames(excludeNotSelectable = excludeNotSelectable)
-                val resolvedGroups = if (previewGroups.isNotEmpty() && previewGroups.size == previewNames.size) {
-                    previewGroups.mapIndexed { index, preview ->
+                        val previewGroups = queryProfileProxyGroups(excludeNotSelectable = excludeNotSelectable)
+                        val allNamed = previewGroups.all { it.name.isNotBlank() }
+                        val resolvedGroups = if (allNamed) {
+                            previewGroups.map { preview ->
+                                ProxyGroupInfo(
+                                    name = preview.name,
+                                    type = preview.type,
+                                    proxies = preview.proxies,
+                                    now = preview.now.ifBlank { "-" },
+                                    icon = preview.icon,
+                                )
+                            }
+                        } else {
+                            val previewNames = ServiceClient.clash()
+                                .queryProfileProxyGroupNames(excludeNotSelectable)
+                            if (previewNames.size == previewGroups.size) {
+                                previewGroups.mapIndexed { index, preview ->
+                                    ProxyGroupInfo(
+                                        name = previewNames[index],
+                                        type = preview.type,
+                                        proxies = preview.proxies,
+                                        now = preview.now.ifBlank { "-" },
+                                        icon = preview.icon,
+                                    )
+                                }
+                            } else {
+                                emptyList()
+                            }
+                        }
+
+                        previewCache = PreviewCacheEntry(cacheKey, resolvedGroups)
+                        return@runCatching resolvedGroups
+                    }
+
+                    val groupNames = queryProxyGroupNames(excludeNotSelectable = false)
+                    groupNames.map { name ->
+                        val proxyGroup = queryProxyGroup(name)
                         ProxyGroupInfo(
-                            name = previewNames[index],
-                            type = preview.type,
-                            proxies = preview.proxies,
-                            now = preview.now.ifBlank { "-" },
-                            icon = preview.icon,
+                            name = name,
+                            type = proxyGroup.type,
+                            proxies = proxyGroup.proxies,
+                            now = proxyGroup.now,
+                            icon = proxyGroup.icon,
                         )
                     }
-                } else {
-                    // Fallback to names-only preview to avoid mismatched name/group mapping.
-                    buildPreviewGroups(previewNames)
+                }.getOrElse { e ->
+                    Timber.e(e, "Failed to refresh proxy groups")
+                    null
                 }
-
-                previewCache = PreviewCacheEntry(cacheKey, resolvedGroups)
-                _proxyGroups.value = resolvedGroups
-                return@runCatching
             }
 
-            val groupNames = queryProxyGroupNames(excludeNotSelectable = false)
-            val groups = groupNames.map { name ->
-                val proxyGroup = queryProxyGroup(name)
-                ProxyGroupInfo(
-                    name = name,
-                    type = proxyGroup.type,
-                    proxies = proxyGroup.proxies,
-                    now = proxyGroup.now,
-                    icon = proxyGroup.icon
-                )
+            groups?.let {
+                _proxyGroups.value = it
             }
-            _proxyGroups.value = groups
-        }.onFailure { e ->
-            Timber.e(e, "Failed to refresh proxy groups")
         }
     }
 
