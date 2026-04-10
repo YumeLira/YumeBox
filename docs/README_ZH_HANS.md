@@ -16,16 +16,16 @@
 
 YumeBox 目前仅支持 **Android 8.0（API 26）及以上系统**。
 
-请前往 Release 页面下载对应架构的安装包：[Release](https://github.com/YumeLira/YumeBox/releases?utm_source=chatgpt.com)更多内容请访问官网：[YumeBox](https://yumebox.oom-wg.dev/?utm_source=chatgpt.com)
+请前往 Release 页面下载对应架构的安装包：[Release](https://github.com/YumeLira/YumeBox/releases)更多内容请访问官网：[YumeBox](https://yumebox.oom-wg.dev)
 覆写配置语法参考：[override 文档](https://yumebox.oom-wg.dev/override?utm_source=chatgpt.com)如果这个项目对你有帮助，请点下 Star ，这是持续更新的动力
 
 ### 反馈与建议
 
 如果遇到 Bug，请在 Issues 页面提交：
-[Issues](https://github.com/YumeLira/YumeBox/issues?utm_source=chatgpt.com)
+[Issues](https://github.com/YumeLira/YumeBox/issues)
 
 有想法或改进建议也可以在这里提出
-更多讨论与反馈可加入群组：[@OOM_WG](https://t.me/OOM_Group?utm_source=chatgpt.com)
+更多讨论与反馈可加入群组：[@OOM_WG](https://t.me/OOM_Group)
 
 ### 参与贡献
 
