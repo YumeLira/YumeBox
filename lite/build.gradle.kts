@@ -54,8 +54,19 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDirs("src")
-            res.srcDirs("res", "../app/res")
+            kotlin.directories.apply {
+                clear()
+                add("src")
+            }
+            res.directories.apply {
+                clear()
+                addAll(
+                    listOf(
+                        "res",
+                        "../app/res",
+                    )
+                )
+            }
             assets.directories.apply {
                 clear()
                 addAll(
@@ -66,9 +77,23 @@ android {
                     )
                 )
             }
-            aidl.srcDirs("aidl")
-            resources.srcDirs("resources", "../app/resources")
-            jniLibs.srcDirs("../jniLibs")
+            aidl.directories.apply {
+                clear()
+                add("aidl")
+            }
+            resources.directories.apply {
+                clear()
+                addAll(
+                    listOf(
+                        "resources",
+                        "../app/resources",
+                    )
+                )
+            }
+            jniLibs.directories.apply {
+                clear()
+                add("../jniLibs")
+            }
             if (project.file("AndroidManifest.xml").isFile) {
                 manifest.srcFile("AndroidManifest.xml")
             }

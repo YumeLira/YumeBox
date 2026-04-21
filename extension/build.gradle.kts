@@ -43,7 +43,10 @@ android {
 
     sourceSets {
         getByName("main") {
-            jniLibs.srcDirs("jniLibs")
+            jniLibs.directories.apply {
+                clear()
+                add("jniLibs")
+            }
         }
     }
 

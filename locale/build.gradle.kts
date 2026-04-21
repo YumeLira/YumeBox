@@ -31,7 +31,15 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDirs("src", "build/generated/fytxt/kotlin/commonMain/kotlin")
+            kotlin.directories.apply {
+                clear()
+                addAll(
+                    listOf(
+                        "src",
+                        "build/generated/fytxt/kotlin/commonMain/kotlin",
+                    )
+                )
+            }
         }
     }
 
