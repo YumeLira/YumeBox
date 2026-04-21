@@ -42,10 +42,6 @@ private const val OFFICIAL_MRS_ICON_APP_BASE_URL =
 private const val OFFICIAL_MRS_CATALOG_BASE_URL =
     "https://raw.githubusercontent.com/Orz-3/mini/master/Color"
 
-const val OFFICIAL_MRS_PRESET_TITLE = "官方 MRS 常用分流"
-const val OFFICIAL_MRS_PRESET_SUMMARY =
-    "使用 Mihomo 官方 meta/geo mrs 规则集，按开关重建当前自定义分流里的规则提供者、策略组和规则。"
-
 data class OverridePresetTemplateSelection(
     val urlTestRegions: Set<OverridePresetRegion> = emptySet(),
     val fallbackRegions: Set<OverridePresetRegion> = emptySet(),
