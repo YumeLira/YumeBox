@@ -38,6 +38,7 @@ dependencies {
     implementation(project(":platform"))
     implementation(project(":locale"))
     implementation(project(":ui"))
+    implementation(project(":feature:editor"))
     implementation(project(":data"))
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
@@ -60,4 +61,3 @@ dependencies {
     implementation("top.yukonga.miuix.kmp:miuix-icons:${gropify.dep.version.miuix}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
 }
-

@@ -33,8 +33,6 @@ interface OverrideConfigProvider {
 
     suspend fun getById(id: String): OverrideConfig?
 
-    suspend fun getSystemPresets(): List<OverrideConfig>
-
     suspend fun getUserConfigs(): List<OverrideConfig>
 
     fun getUserConfigsFlow(): Flow<List<OverrideConfig>>
@@ -46,6 +44,4 @@ interface OverrideConfigProvider {
     suspend fun duplicate(id: String): OverrideConfig?
 
     suspend fun exists(id: String): Boolean
-
-    fun isSystemPreset(id: String): Boolean
 }

@@ -45,10 +45,6 @@ interface ProfileBindingProvider {
 
     suspend fun getOverrideUsageCount(overrideId: String): Int
 
-    suspend fun enableOverride(profileId: String)
-
-    suspend fun disableOverride(profileId: String)
-
     suspend fun addOverride(profileId: String, overrideId: String, index: Int? = null)
 
     suspend fun removeOverride(profileId: String, overrideId: String)

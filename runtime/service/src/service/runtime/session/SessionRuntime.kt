@@ -454,8 +454,10 @@ class SessionRuntime(
         startupLog(spec, "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}")
         startupLog(
             spec,
-            "runtime override: overridePaths=${spec.overridePaths.size} " +
-                spec.overridePaths.joinToString(prefix = "[", postfix = "]"),
+            "runtime override: overrideSpecs=${spec.overrideSpecs.size} " +
+                spec.overrideSpecs.joinToString(prefix = "[", postfix = "]") { specItem ->
+                    "${specItem.ext}:${specItem.path}"
+                },
         )
         runBlocking { compiledConfigPipeline.applyOverrideToRuntimeFile(spec) }
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")

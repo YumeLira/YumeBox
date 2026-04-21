@@ -22,8 +22,8 @@
 
 package com.github.yumelira.yumebox.data.controller
 
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.data.model.OverrideConfig
+import com.github.yumelira.yumebox.data.model.OverrideContentType
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import java.util.UUID
@@ -33,18 +33,18 @@ class RuntimeOverrideController(
     private val queryActiveProfile: suspend () -> Profile?,
 ) {
     suspend fun updateProfile(
-        transform: (ConfigurationOverride) -> ConfigurationOverride,
-    ): Result<ConfigurationOverride> = updateInternal(transform)
+        transform: (String) -> String,
+    ): Result<String> = updateInternal(transform)
 
-    private suspend fun loadInternal(): Result<ConfigurationOverride> = runCatching {
-        val activeProfile = queryActiveProfile() ?: return@runCatching ConfigurationOverride()
+    private suspend fun loadInternal(): Result<String> = runCatching {
+        val activeProfile = queryActiveProfile() ?: return@runCatching ""
         configStore.getById(runtimeOverrideId(activeProfile.uuid))
-            ?.config
-            ?: ConfigurationOverride()
+            ?.content
+            .orEmpty()
     }
 
-    private suspend fun saveInternal(override: ConfigurationOverride): Result<Unit> = runCatching {
-        if (override == ConfigurationOverride()) {
+    private suspend fun saveInternal(content: String): Result<Unit> = runCatching {
+        if (content.isBlank()) {
             clearInternal().getOrThrow()
             return@runCatching
         }
@@ -56,7 +56,8 @@ class RuntimeOverrideController(
                 id = configId,
                 name = INTERNAL_RUNTIME_NAME,
                 description = "internal runtime override for ${activeProfile.uuid}",
-                config = override,
+                contentType = OverrideContentType.Yaml,
+                content = content,
                 isSystem = false,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
@@ -70,8 +71,8 @@ class RuntimeOverrideController(
     }
 
     private suspend fun updateInternal(
-        transform: (ConfigurationOverride) -> ConfigurationOverride,
-    ): Result<ConfigurationOverride> {
+        transform: (String) -> String,
+    ): Result<String> {
         val current = loadInternal().getOrElse { return Result.failure(it) }
         val updated = transform(current)
         val saveResult = saveInternal(updated)

@@ -55,15 +55,6 @@ func loadCompiledConfig(completable unsafe.Pointer, path C.c_string) {
 	}(C.GoString(path))
 }
 
-//export inspectCompiledConfig
-func inspectCompiledConfig(yamlText C.c_string) *C.char {
-	cfg, err := config.QueryConfigFromCompiledYaml(C.GoString(yamlText))
-	if err != nil {
-		return nil
-	}
-	return marshalJson(cfg)
-}
-
 //export inspectCompiledGroups
 func inspectCompiledGroups(yamlText C.c_string, profileDir C.c_string, excludeNotSelectable C.int) *C.char {
 	groups, err := config.QueryProxyGroupsFromCompiledYaml(
@@ -74,5 +65,5 @@ func inspectCompiledGroups(yamlText C.c_string, profileDir C.c_string, excludeNo
 	if err != nil {
 		return nil
 	}
-	return marshalJson(groups)
+	return marshalYaml(groups)
 }

@@ -146,7 +146,7 @@ class ClashService : BaseService() {
                 runCatching {
                     startupLogStore.append("LOCAL_HTTP spec: create begin")
                     val spec = SessionRuntimeSpecFactory(appContextOrSelf).createHttpSpec()
-                    startupLogStore.append("LOCAL_HTTP spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+                    startupLogStore.append("LOCAL_HTTP spec: create done profile=${spec.profileUuid} overrides=${spec.overrideSpecs.size}")
                     val result = runtime.start(spec)
                     check(result.success) { result.error ?: "http runtime start failed" }
                 }.onFailure { error ->
@@ -228,7 +228,7 @@ class ClashService : BaseService() {
                 Log.w("HTTP runtime spec refresh failed: ${error.message}")
                 return@launch
             }
-            startupLogStore.append("LOCAL_HTTP spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+            startupLogStore.append("LOCAL_HTTP spec: reload create done profile=${spec.profileUuid} overrides=${spec.overrideSpecs.size}")
 
             val result = runtime.reload(spec)
             if (!result.success) {

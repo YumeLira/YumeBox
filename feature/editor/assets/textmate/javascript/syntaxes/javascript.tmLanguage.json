@@ -1,0 +1,101 @@
+{
+  "name": "JavaScript",
+  "scopeName": "source.js",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#constants" },
+    { "include": "#functions" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.js",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.js",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.js",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.js",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.js",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.js",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.template.js",
+          "begin": "`",
+          "end": "`",
+          "patterns": [
+            {
+              "name": "constant.character.escape.js",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.js",
+          "match": "\\b(?:0[xX][0-9a-fA-F]+|\\d+(?:\\.\\d+)?)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.js",
+          "match": "\\b(?:if|else|switch|case|default|for|while|do|break|continue|return|try|catch|finally|throw|new|delete|typeof|instanceof|void|in|of|await|async)\\b"
+        },
+        {
+          "name": "storage.type.js",
+          "match": "\\b(?:function|class|extends|const|let|var|import|from|export)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.js",
+          "match": "\\b(?:true|false|null|undefined|NaN|Infinity|this|super)\\b"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.js",
+          "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)(?=\\s*\\()"
+        }
+      ]
+    }
+  },
+  "uuid": "3bc3b2d6-52c8-4df2-a989-6b7f4ad5b7a4"
+}

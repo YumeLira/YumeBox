@@ -130,13 +130,13 @@ func stopTun() {
 }
 
 //export startRootTun
-func startRootTun(configJSON C.c_string) *C.char {
+func startRootTun(configYaml C.c_string) *C.char {
 	rTunLock.Lock()
 	defer rTunLock.Unlock()
 
 	closeCurrentTunLocked()
 
-	closer, err := tun.StartRoot(C.GoString(configJSON))
+	closer, err := tun.StartRoot(C.GoString(configYaml))
 	if err != nil {
 		closeCurrentTunLocked()
 		return C.CString(err.Error())

@@ -18,8 +18,6 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.service.runtime.session
 
 import android.content.Context
@@ -27,21 +25,16 @@ import android.util.Log
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.CompileRequest
 import com.github.yumelira.yumebox.core.model.CompileResult
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
+import com.github.yumelira.yumebox.core.model.OverrideSpec
 import com.github.yumelira.yumebox.core.model.ProxyGroup
-import com.github.yumelira.yumebox.core.model.buildOfficialMrsConfigurationOverride
-import com.github.yumelira.yumebox.core.model.defaultSystemOfficialMrsPresetSelection
-import com.github.yumelira.yumebox.core.model.encodeConfigurationOverride
 import com.github.yumelira.yumebox.core.util.PROXY_PROVIDER_SCOPE
 import com.github.yumelira.yumebox.core.util.RULE_PROVIDER_SCOPE
+import com.github.yumelira.yumebox.core.util.YamlCodec
 import com.github.yumelira.yumebox.core.util.profileProviderScopeDir
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
 import java.io.File
 import java.security.MessageDigest
 
@@ -50,21 +43,15 @@ class CompiledConfigPipeline(
 ) {
     private val overrideEnabled = !context.packageName.endsWith(".lite")
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
+    fun resolveOverrideSpecs(profileUuid: String): List<OverrideSpec> {
+        return resolveOverrideBundle(profileUuid, logger = null).overrides
     }
 
-    fun resolveOverridePaths(profileUuid: String): List<String> {
-        return resolveOverrideBundle(profileUuid, logger = null).paths
-    }
-
-    fun resolveOverridePaths(
+    fun resolveOverrideSpecs(
         profileUuid: String,
         logger: ((String) -> Unit)?,
-    ): List<String> {
-        return resolveOverrideBundle(profileUuid, logger).paths
+    ): List<OverrideSpec> {
+        return resolveOverrideBundle(profileUuid, logger).overrides
     }
 
     fun resolveOverrideBundle(profileUuid: String): ResolvedOverrideBundle {
@@ -79,27 +66,23 @@ class CompiledConfigPipeline(
             logger?.invoke("override resolve skipped for lite package=${context.packageName} profile=$profileUuid")
             return ResolvedOverrideBundle(
                 profileUuid = profileUuid,
-                userOverridePaths = emptyList(),
-                builtinPresetPath = null,
-                customRoutingOverridePath = null,
-                runtimeInternalOverridePath = null,
-                paths = emptyList(),
+                userOverrides = emptyList(),
+                customRoutingOverride = null,
+                runtimeInternalOverride = null,
+                overrides = emptyList(),
             )
         }
 
         val overridesDir = context.filesDir.resolve("overrides")
-        val metadataFile = overridesDir.resolve("metadata.json")
+        val metadataFile = overridesDir.resolve("metadata.yaml")
         val metadata = loadMetadataIndex(overridesDir, metadataFile, logger)
-        val metadataRaw = metadataFile.takeIf(File::exists)?.readText().orEmpty()
 
         val binding = metadata.profileChains[profileUuid]
-        val systemPresetEnabled = binding?.enabled ?: false
         logger?.invoke(
-            "override resolve: profile=$profileUuid profileChain=" +
-                (binding?.let { json.encodeToString(ProfileChainPayload.serializer(), it) } ?: "<none>"),
+            "override resolve: profile=$profileUuid overrideIds=${binding?.overrideIds.orEmpty()}",
         )
 
-        val userOverridePaths = mutableListOf<String>()
+        val userOverrides = mutableListOf<OverrideSpec>()
         val customRoutingEnabled = binding?.overrideIds
             .orEmpty()
             .contains(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID)
@@ -109,52 +92,43 @@ class CompiledConfigPipeline(
             .filterNot(::isReservedOverrideId)
             .filterNot(::isCustomRoutingId)
             .forEach { overrideId ->
-                val file = resolveUserOverrideFile(overridesDir, overrideId)
-                if (file == null) {
-                    error("Override config not found for profile=$profileUuid id=$overrideId")
-                }
+                val file = resolveUserOverrideFile(overridesDir, overrideId, metadata)
+                    ?: error("Override config not found for profile=$profileUuid id=$overrideId")
+                val spec = file.toOverrideSpec()
                 logger?.invoke(describeOverrideFile(file, overrideId))
-                userOverridePaths += file.absolutePath
+                userOverrides += spec
             }
 
-        val builtinPresetPath = if (systemPresetEnabled) {
-            resolveBuiltinPresetFile(overridesDir)?.also { file ->
-                logger?.invoke(describeOverrideFile(file, BUILTIN_PRESET_FILE_ID))
-            }?.absolutePath
-        } else {
-            null
-        }
-
-        val customRoutingOverridePath = if (customRoutingEnabled) {
+        val customRoutingOverride = if (customRoutingEnabled) {
             resolveCustomRoutingOverrideFile(overridesDir)?.also { file ->
                 logger?.invoke(describeOverrideFile(file, OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID))
-            }?.absolutePath
+            }?.toOverrideSpec()
         } else {
             null
         }
 
-        val runtimeInternalOverridePath = resolveRuntimeInternalOverrideFile(overridesDir, profileUuid)
-            ?.also { file -> logger?.invoke(describeOverrideFile(file, "__runtime__")) }
-            ?.absolutePath
+        val runtimeInternalOverride = resolveRuntimeInternalOverrideFile(overridesDir, profileUuid)
+            ?.also { file -> logger?.invoke(describeOverrideFile(file, INTERNAL_RUNTIME_PREFIX)) }
+            ?.toOverrideSpec()
 
-        val paths = mutableListOf<String>()
-        builtinPresetPath?.let(paths::add)
-        customRoutingOverridePath?.let(paths::add)
-        paths += userOverridePaths
-        runtimeInternalOverridePath?.let(paths::add)
+        val overrides = mutableListOf<OverrideSpec>()
+        customRoutingOverride?.let(overrides::add)
+        overrides += userOverrides
+        runtimeInternalOverride?.let(overrides::add)
 
         logger?.invoke(
-            "override resolve: profile=$profileUuid resolved=${paths.size} " +
-                paths.joinToString(prefix = "[", postfix = "]"),
+            "override resolve: profile=$profileUuid resolved=${overrides.size} " +
+                overrides.joinToString(prefix = "[", postfix = "]") { spec ->
+                    "${spec.ext}:${spec.path}"
+                },
         )
 
         return ResolvedOverrideBundle(
             profileUuid = profileUuid,
-            userOverridePaths = userOverridePaths,
-            builtinPresetPath = builtinPresetPath,
-            customRoutingOverridePath = customRoutingOverridePath,
-            runtimeInternalOverridePath = runtimeInternalOverridePath,
-            paths = paths,
+            userOverrides = userOverrides,
+            customRoutingOverride = customRoutingOverride,
+            runtimeInternalOverride = runtimeInternalOverride,
+            overrides = overrides,
         )
     }
 
@@ -174,22 +148,22 @@ class CompiledConfigPipeline(
         }
     }
 
-    suspend fun previewConfig(
+    suspend fun previewCompiledYaml(
         profileUuid: String,
         profileDir: File,
-        overridePaths: List<String> = resolveOverrideBundle(profileUuid).paths,
-    ): ConfigurationOverride = withContext(Dispatchers.Default) {
+        overrideSpecs: List<OverrideSpec> = resolveOverrideBundle(profileUuid).overrides,
+    ): CompileResult = withContext(Dispatchers.Default) {
         val request = CompileRequest(
             profileUuid = profileUuid,
             profileDir = profileDir.absolutePath,
             profilePath = profileDir.resolve("config.yaml").absolutePath,
-            overridePaths = overridePaths,
+            overrides = overrideSpecs,
             outputPath = profileDir.resolve("runtime.yaml").absolutePath,
         )
         val result = Clash.compilePreview(request)
         check(result.success) { result.error ?: "override preview failed" }
         validateCompiledProviderPaths(result.finalYaml, profileDir)
-        Clash.inspectCompiledConfig(result.finalYaml) ?: ConfigurationOverride()
+        result
     }
 
     suspend fun previewOverride(spec: RuntimeSpec): CompileResult = withContext(Dispatchers.Default) {
@@ -205,7 +179,7 @@ class CompiledConfigPipeline(
             profileUuid = spec.profileUuid,
             profileDir = profileDir.absolutePath,
             profilePath = profileDir.resolve("config.yaml").absolutePath,
-            overridePaths = spec.overridePaths,
+            overrides = spec.overrideSpecs,
             outputPath = spec.runtimeConfigPath.ifBlank { profileDir.resolve("runtime.yaml").absolutePath },
         )
     }
@@ -246,7 +220,7 @@ class CompiledConfigPipeline(
         val metadataRaw = metadataFile.takeIf(File::exists)?.readText().orEmpty()
         val metadata = if (metadataFile.exists()) {
             runCatching {
-                json.decodeFromString(MetadataIndexPayload.serializer(), metadataRaw)
+                YamlCodec.decode(MetadataIndexPayload.serializer(), metadataRaw)
             }.getOrElse {
                 logger?.invoke(
                     "override resolve: metadata decode failed path=${metadataFile.absolutePath} " +
@@ -258,31 +232,47 @@ class CompiledConfigPipeline(
             MetadataIndexPayload()
         }
         val sanitized = sanitizeMetadataIndex(metadata)
-        if (sanitized != metadata || metadataRaw.contains("\"enableSystemPreset\"")) {
+        if (sanitized != metadata) {
             overridesDir.mkdirs()
-            metadataFile.writeText(json.encodeToString(MetadataIndexPayload.serializer(), sanitized))
-            logger?.invoke(
-                "override resolve: metadata normalized path=${metadataFile.absolutePath}",
-            )
+            metadataFile.writeText(YamlCodec.encode(MetadataIndexPayload.serializer(), sanitized))
+            logger?.invoke("override resolve: metadata normalized path=${metadataFile.absolutePath}")
         }
         return sanitized
     }
 
     private fun sanitizeMetadataIndex(metadata: MetadataIndexPayload): MetadataIndexPayload {
         return metadata.copy(
+            configs = metadata.configs.filterKeys(::isUserOverrideId),
             profileChains = metadata.profileChains.mapValues { (_, binding) ->
-                binding.copy(overrideIds = binding.overrideIds.filterNot(::isBuiltinPresetId))
+                binding.copy(
+                    enabled = false,
+                    overrideIds = binding.overrideIds.filterNot(::isLegacyPresetId),
+                )
             },
         )
     }
 
-    private fun resolveUserOverrideFile(overridesDir: File, overrideId: String): File? {
-        val configFile = overridesDir.resolve("configs/$overrideId.json")
-        return configFile.takeIf(File::exists)
+    private fun resolveUserOverrideFile(
+        overridesDir: File,
+        overrideId: String,
+        metadataIndex: MetadataIndexPayload,
+    ): File? {
+        val expectedExtension = metadataIndex.configs[overrideId]?.contentType
+            ?.toOverrideExtension()
+        if (expectedExtension != null) {
+            val expectedFile = overridesDir.resolve("configs/$overrideId.$expectedExtension")
+            if (expectedFile.exists()) {
+                return expectedFile
+            }
+        }
+
+        return USER_OVERRIDE_EXTENSIONS.asSequence()
+            .map { extension -> overridesDir.resolve("configs/$overrideId.$extension") }
+            .firstOrNull(File::exists)
     }
 
     private fun resolveRuntimeInternalOverrideFile(overridesDir: File, profileUuid: String): File? {
-        val file = overridesDir.resolve("configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.json")
+        val file = overridesDir.resolve("configs/${INTERNAL_RUNTIME_PREFIX}-profile-$profileUuid.yaml")
         if (!file.exists()) return null
         val content = runCatching { file.readText() }.getOrElse {
             error("Runtime override file unreadable path=${file.absolutePath} reason=${it.message}")
@@ -309,39 +299,24 @@ class CompiledConfigPipeline(
         return file
     }
 
-    private fun resolveBuiltinPresetFile(overridesDir: File): File? {
-        val content = runCatching {
-            encodeConfigurationOverride(
-                buildOfficialMrsConfigurationOverride(defaultSystemOfficialMrsPresetSelection()),
-            )
-        }.getOrElse {
-            Log.e(TAG, "Failed to build builtin preset file", it)
-            return null
-        }
-        if (content.isBlank()) return null
-
-        val file = overridesDir.resolve("${OverrideInternalConstants.INTERNAL_DIR_NAME}/$BUILTIN_PRESET_FILE_NAME")
-        file.parentFile?.mkdirs()
-        if (!file.exists() || file.readText() != content) {
-            file.writeText(content)
-        }
-        return file
-    }
-
     private fun isInternalRuntimeId(overrideId: String): Boolean {
         return overrideId.startsWith(INTERNAL_RUNTIME_PREFIX)
     }
 
-    private fun isBuiltinPresetId(overrideId: String): Boolean {
-        return overrideId.startsWith(BUILTIN_PRESET_PREFIX)
+    private fun isLegacyPresetId(overrideId: String): Boolean {
+        return overrideId.startsWith(LEGACY_PRESET_PREFIX)
     }
 
     private fun isReservedOverrideId(overrideId: String): Boolean {
-        return isInternalRuntimeId(overrideId) || isBuiltinPresetId(overrideId)
+        return isInternalRuntimeId(overrideId) || isLegacyPresetId(overrideId)
     }
 
     private fun isCustomRoutingId(overrideId: String): Boolean {
         return overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
+    }
+
+    private fun isUserOverrideId(overrideId: String): Boolean {
+        return !isInternalRuntimeId(overrideId) && !isLegacyPresetId(overrideId)
     }
 
     private fun describeOverrideFile(file: File, overrideId: String): String {
@@ -367,6 +342,16 @@ class CompiledConfigPipeline(
         }
     }
 
+    private fun File.toOverrideSpec(): OverrideSpec {
+        val extension = extension.lowercase().ifBlank {
+            error("Override file missing extension: $absolutePath")
+        }
+        return OverrideSpec(
+            path = absolutePath,
+            ext = extension,
+        )
+    }
+
     private fun String.sha256Short(): String {
         if (isBlank()) return "empty"
         val digest = MessageDigest.getInstance("SHA-256").digest(toByteArray())
@@ -375,31 +360,42 @@ class CompiledConfigPipeline(
 
     data class ResolvedOverrideBundle(
         val profileUuid: String,
-        val userOverridePaths: List<String>,
-        val builtinPresetPath: String?,
-        val customRoutingOverridePath: String?,
-        val runtimeInternalOverridePath: String?,
-        val paths: List<String>,
+        val userOverrides: List<OverrideSpec>,
+        val customRoutingOverride: OverrideSpec?,
+        val runtimeInternalOverride: OverrideSpec?,
+        val overrides: List<OverrideSpec>,
     )
 
     @Serializable
     private data class MetadataIndexPayload(
-        val configs: JsonObject = buildJsonObject {},
+        val configs: Map<String, ConfigMetadataPayload> = emptyMap(),
         val profileChains: Map<String, ProfileChainPayload> = emptyMap(),
     )
 
     @Serializable
+    private data class ConfigMetadataPayload(
+        val contentType: String = "yaml",
+    )
+
+    @Serializable
     private data class ProfileChainPayload(
-        val enabled: Boolean = true,
+        val enabled: Boolean = false,
         val overrideIds: List<String> = emptyList(),
     )
 
     private companion object {
         private const val TAG = "CompiledConfigPipeline"
         private val PATH_PATTERN = Regex("""(?m)path:\s*["']?([^"'\n]+)["']?""")
+        private val USER_OVERRIDE_EXTENSIONS = listOf("yaml", "yml", "js")
         const val INTERNAL_RUNTIME_PREFIX = "__runtime__"
-        const val BUILTIN_PRESET_PREFIX = "preset-"
-        const val BUILTIN_PRESET_FILE_ID = "__builtin__"
-        const val BUILTIN_PRESET_FILE_NAME = "builtin-preset.json"
+        const val LEGACY_PRESET_PREFIX = "preset-"
+    }
+}
+
+private fun String.toOverrideExtension(): String? {
+    return when (lowercase()) {
+        "yaml", "yml" -> "yaml"
+        "js", "javascript" -> "js"
+        else -> null
     }
 }

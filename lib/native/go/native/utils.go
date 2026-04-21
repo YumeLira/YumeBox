@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/metacubex/mihomo/log"
+	"gopkg.in/yaml.v3"
 )
 
 func marshalJson(obj any) *C.char {
@@ -33,4 +34,14 @@ func marshalString(obj any) *C.char {
 
 	log.Errorln("marshalString: invalid type %s", reflect.TypeOf(obj).Name())
 	return nil
+}
+
+func marshalYaml(obj any) *C.char {
+	res, err := yaml.Marshal(obj)
+	if err != nil {
+		log.Errorln("marshalYaml: %v", err)
+		return nil
+	}
+
+	return C.CString(string(res))
 }

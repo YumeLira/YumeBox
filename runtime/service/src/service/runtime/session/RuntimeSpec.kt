@@ -22,6 +22,7 @@
 
 package com.github.yumelira.yumebox.service.runtime.session
 
+import com.github.yumelira.yumebox.core.model.OverrideSpec
 import com.github.yumelira.yumebox.core.model.RootTunConfig
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import kotlinx.serialization.Serializable
@@ -33,7 +34,7 @@ data class RuntimeSpec(
     val profileName: String,
     val profileDir: String,
     val runtimeConfigPath: String = "",
-    val overridePaths: List<String> = emptyList(),
+    val overrideSpecs: List<OverrideSpec> = emptyList(),
     val rootTunConfig: RootTunConfig? = null,
     val staticPlanFingerprint: String = "",
     val transportFingerprint: String = "",

@@ -48,7 +48,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private const val PROFILE_SETTINGS_MIN_HEIGHT_FRACTION = 0.5f
 private const val PROFILE_SETTINGS_MAX_HEIGHT_FRACTION = 0.7f
-private const val SYSTEM_OVERRIDE_PREFIX = "preset-"
 
 @Composable
 internal fun EditProfileNameDialog(
@@ -166,39 +165,33 @@ internal fun ShareOptionsDialog(
 internal fun ProfileSettingsDialog(
     show: Boolean,
     profile: Profile,
-    systemPreset: OverrideConfig?,
     userConfigs: List<OverrideConfig>,
     binding: ProfileBinding?,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     onSaveProfileMeta: (String, String) -> Unit,
-    onSaveOverrideSettings: (Boolean, List<String>) -> Unit,
+    onSaveOverrideSettings: (List<String>) -> Unit,
 ) {
     val spacing = AppTheme.spacing
     val opacity = AppTheme.opacity
     val componentSizes = AppTheme.sizes
 
-    val initialSystemPresetEnabled = binding?.enabled ?: false
     val initialCustomRoutingEnabled = binding?.overrideIds
         ?.contains(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) == true
 
     val initialOverrideIds = binding
         ?.overrideIds
         .orEmpty()
-        .filterNot(::isBuiltinPresetOverrideId)
         .filter { it != OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID }
-    val appliedOverrideIds = initialOverrideIds
     var editName by remember { mutableStateOf(profile.name) }
     var editSource by remember { mutableStateOf("") }
-    var systemPresetSelected by remember { mutableStateOf(initialSystemPresetEnabled) }
     var customRoutingSelected by remember { mutableStateOf(initialCustomRoutingEnabled) }
     var pendingSelectedUserOverrideIds by remember { mutableStateOf(emptyList<String>()) }
 
-    LaunchedEffect(show, profile.uuid, profile.name, binding?.overrideIds, binding?.enabled) {
+    LaunchedEffect(show, profile.uuid, profile.name, binding?.overrideIds) {
         if (show) {
             editName = profile.name
             editSource = ""
-            systemPresetSelected = initialSystemPresetEnabled
             customRoutingSelected = initialCustomRoutingEnabled
             pendingSelectedUserOverrideIds = initialOverrideIds
         }
@@ -228,7 +221,7 @@ internal fun ProfileSettingsDialog(
         } else {
             basicFinalIds - OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
         }
-        onSaveOverrideSettings(systemPresetSelected, finalSelectedOverrideIds)
+        onSaveOverrideSettings(finalSelectedOverrideIds)
         onDismiss()
     }
 
@@ -285,27 +278,10 @@ internal fun ProfileSettingsDialog(
                 Card {
                     Column {
                         SwitchPreference(
-                            title = MLang.ProfilesPage.SettingsDialog.SystemPreset,
-                            summary = MLang.ProfilesPage.SettingsDialog.SystemPresetSummary,
-                            checked = systemPresetSelected,
-                            onCheckedChange = {
-                                systemPresetSelected = it
-                                if (it) customRoutingSelected = false
-                            },
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = spacing.space16),
-                            thickness = componentSizes.thinDividerThickness,
-                            color = MiuixTheme.colorScheme.outline.copy(alpha = opacity.outline),
-                        )
-                        SwitchPreference(
                             title = MLang.ProfilesPage.SettingsDialog.CustomRouting,
                             summary = MLang.ProfilesPage.SettingsDialog.CustomRoutingSummary,
                             checked = customRoutingSelected,
-                            onCheckedChange = {
-                                customRoutingSelected = it
-                                if (it) systemPresetSelected = false
-                            },
+                            onCheckedChange = { customRoutingSelected = it },
                         )
                     }
                 }
@@ -365,11 +341,5 @@ private fun toggleOverrideIdSelection(
 private fun buildFinalOverrideIds(
     selectedUserOverrideIds: List<String>,
 ): List<String> {
-    return selectedUserOverrideIds
-        .filterNot(::isBuiltinPresetOverrideId)
-        .distinct()
-}
-
-private fun isBuiltinPresetOverrideId(overrideId: String): Boolean {
-    return overrideId.startsWith(SYSTEM_OVERRIDE_PREFIX)
+    return selectedUserOverrideIds.distinct()
 }

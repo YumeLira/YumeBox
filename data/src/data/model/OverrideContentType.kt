@@ -18,34 +18,33 @@
  *
  */
 
+package com.github.yumelira.yumebox.data.model
 
-
-package com.github.yumelira.yumebox.core.model
-
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @Serializable
-data class OverrideSpec(
-    val path: String,
-    val ext: String,
-)
+enum class OverrideContentType(
+    val extension: String,
+) {
+    @SerialName("yaml")
+    Yaml("yaml"),
 
-@Serializable
-data class CompileRequest(
-    val schemaVersion: Int = 1,
-    val profileUuid: String,
-    val profileDir: String,
-    val profilePath: String,
-    val overrides: List<OverrideSpec> = emptyList(),
-    val outputPath: String,
-)
+    @SerialName("js")
+    JavaScript("js"),
+    ;
 
-@Serializable
-data class CompileResult(
-    val success: Boolean,
-    val fingerprint: String = "",
-    val finalYaml: String = "",
-    val warnings: List<String> = emptyList(),
-    val error: String? = null,
-)
+    companion object {
+        fun fromExtension(extension: String?): OverrideContentType? {
+            return when (extension?.lowercase()?.removePrefix(".")) {
+                "yaml", "yml" -> Yaml
+                "js" -> JavaScript
+                else -> null
+            }
+        }
+
+        fun fromFileName(fileName: String?): OverrideContentType? {
+            return fromExtension(fileName?.substringAfterLast('.', missingDelimiterValue = ""))
+        }
+    }
+}

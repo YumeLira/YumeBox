@@ -22,17 +22,16 @@
 
 package com.github.yumelira.yumebox.data.controller
 
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
-import com.github.yumelira.yumebox.data.store.OverrideConfigProvider
+import com.github.yumelira.yumebox.core.model.OverrideSpec
+import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
 import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
-import com.github.yumelira.yumebox.data.model.OverrideConfig
 import com.github.yumelira.yumebox.data.model.OverrideMetadata
 import com.github.yumelira.yumebox.data.model.ProfileBinding
 import java.util.*
 
 class OverrideResolver(
-    private val configProvider: OverrideConfigProvider,
+    private val configStore: OverrideConfigStore,
     private val bindingProvider: ProfileBindingProvider,
 ) {
 
@@ -46,8 +45,8 @@ class OverrideResolver(
         return resolveBindingIds(binding)
     }
 
-    suspend fun resolveConfigs(overrideIds: List<String>): List<ConfigurationOverride> {
-        return resolveOrderedConfigs(overrideIds).map(OverrideConfig::config)
+    suspend fun resolveSpecs(overrideIds: List<String>): List<OverrideSpec> {
+        return resolveOrderedSpecs(overrideIds)
     }
 
     suspend fun getProfilesUsingOverride(overrideId: String): List<String> {
@@ -81,31 +80,50 @@ class OverrideResolver(
         bindingProvider.removeBinding(profileId)
     }
 
-    suspend fun enableOverride(profileId: String) {
-        bindingProvider.enableOverride(profileId)
-    }
-
-    suspend fun disableOverride(profileId: String) {
-        bindingProvider.disableOverride(profileId)
-    }
-
-    private fun resolveBindingIds(binding: ProfileBinding?): List<String> {
+    private suspend fun resolveBindingIds(binding: ProfileBinding?): List<String> {
         if (binding == null) {
             return emptyList()
         }
         return buildList {
-            if (binding.enabled) {
-                add(OverrideMetadata.SYSTEM_PRESET_ID)
+            binding.overrideIds.forEach { overrideId ->
+                if (isLegacyPresetOverrideId(overrideId) || OverrideConfigStore.isInternalRuntimeConfig(overrideId)) {
+                    return@forEach
+                }
+                if (overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) {
+                    if (!configStore.loadCustomRoutingContent().isNullOrBlank()) {
+                        add(overrideId)
+                    }
+                    return@forEach
+                }
+                add(overrideId)
             }
-            addAll(binding.overrideIds.filterNot(OverrideConfigStore::isInternalRuntimeConfig))
         }.distinct()
     }
 
-    private suspend fun resolveOrderedConfigs(
+    private suspend fun resolveOrderedSpecs(
         overrideIds: List<String>,
-    ): List<OverrideConfig> {
+    ): List<OverrideSpec> {
         return overrideIds.mapNotNull { overrideId ->
-            configProvider.getById(overrideId)
+            if (overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) {
+                val file = configStore.getCustomRoutingFilePath()
+                if (!file.exists()) {
+                    return@mapNotNull null
+                }
+                return@mapNotNull OverrideSpec(
+                    path = file.absolutePath,
+                    ext = file.extension.lowercase(),
+                )
+            }
+            val config = configStore.getById(overrideId) ?: return@mapNotNull null
+            val file = configStore.getConfigFilePath(overrideId) ?: return@mapNotNull null
+            OverrideSpec(
+                path = file.absolutePath,
+                ext = config.contentType.extension,
+            )
         }
+    }
+
+    private fun isLegacyPresetOverrideId(overrideId: String): Boolean {
+        return overrideId.startsWith(OverrideMetadata.LEGACY_SYSTEM_PREFIX)
     }
 }

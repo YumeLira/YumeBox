@@ -29,6 +29,7 @@ data class OverrideMetadata(
     val id: String,
     val name: String,
     val description: String? = null,
+    val contentType: OverrideContentType = OverrideContentType.Yaml,
     val isSystem: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
@@ -36,37 +37,23 @@ data class OverrideMetadata(
 ) {
     companion object {
         const val ID_PREFIX = "cfg-"
-        const val SYSTEM_PREFIX = "preset-"
-        const val SYSTEM_PRESET_ID = "preset-default"
+        const val LEGACY_SYSTEM_PREFIX = "preset-"
 
         fun generateId(): String = "$ID_PREFIX${System.currentTimeMillis()}-${(1000..9999).random()}"
 
         fun create(
             name: String,
             description: String? = null,
+            contentType: OverrideContentType = OverrideContentType.Yaml,
             isSystem: Boolean = false,
         ): OverrideMetadata {
             val now = System.currentTimeMillis()
             return OverrideMetadata(
-                id = if (isSystem) name.lowercase().replace(" ", "-") else generateId(),
+                id = generateId(),
                 name = name,
                 description = description,
+                contentType = contentType,
                 isSystem = isSystem,
-                createdAt = now,
-                updatedAt = now,
-            )
-        }
-
-        fun createSystemPreset(
-            name: String = "默认预设",
-            description: String? = null,
-        ): OverrideMetadata {
-            val now = System.currentTimeMillis()
-            return OverrideMetadata(
-                id = SYSTEM_PRESET_ID,
-                name = name,
-                description = description,
-                isSystem = true,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -76,10 +63,12 @@ data class OverrideMetadata(
     fun update(
         name: String = this.name,
         description: String? = this.description,
+        contentType: OverrideContentType = this.contentType,
     ): OverrideMetadata {
         return copy(
             name = name,
             description = description,
+            contentType = contentType,
             updatedAt = System.currentTimeMillis(),
             sortOrder = sortOrder,
         )
@@ -91,6 +80,7 @@ data class OverrideMetadata(
             id = generateId(),
             name = "$name (副本)",
             description = description,
+            contentType = contentType,
             isSystem = false,
             createdAt = now,
             updatedAt = now,

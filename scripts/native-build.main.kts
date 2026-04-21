@@ -375,6 +375,7 @@ class RustBuilder(private val config: ProjectConfig) {
     private val sourceDir = File("lib/native/rust")
     private val outputDir = File("build/native/rust")
     private val appJniRoot = File("jniLibs")
+    private val outputLibraryName = "libyume_override.so"
 
     fun buildAll() {
         if (!sourceDir.exists()) {
@@ -383,6 +384,8 @@ class RustBuilder(private val config: ProjectConfig) {
         }
 
         val abis = config.getCsv("abi.app.list", "armeabi-v7a,arm64-v8a,x86,x86_64")
+        println("[Rust] Building Android shared library from ${sourceDir.absolutePath}")
+        println("[Rust] Host CLI/ELF remains in the rust submodule and is not built by this script")
         println("[Rust] Building for ABIs: ${abis.joinToString()}")
 
         abis.forEach { abi -> buildForAbi(abi) }
@@ -395,7 +398,7 @@ class RustBuilder(private val config: ProjectConfig) {
             "cargo", "ndk",
             "-t", abi,
             "-o", outputDir.absolutePath,
-            "build", "--release"
+            "build", "--release", "--lib"
         )
 
         val result = executeCommand(
@@ -406,7 +409,7 @@ class RustBuilder(private val config: ProjectConfig) {
             stderrIsError = false
         )
         if (result.success) {
-            val sourceLib = File(outputDir, "$abi/liboverride.so")
+            val sourceLib = File(outputDir, "$abi/$outputLibraryName")
             if (sourceLib.exists()) {
                 copyToAppJni(abi, sourceLib)
                 println("[building] Successfully built $abi (Rust)")

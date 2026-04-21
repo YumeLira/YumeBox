@@ -1,0 +1,3 @@
+[submodule "lib/native/rust"]
+	path = lib/native/rust
+	url = https://github.com/YumeYuka/YumeOverride.git

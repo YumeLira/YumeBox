@@ -1,7 +1,6 @@
 package tun
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/netip"
@@ -12,32 +11,33 @@ import (
 	"github.com/metacubex/mihomo/listener/sing_tun"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
+	"gopkg.in/yaml.v3"
 )
 
 type RootTunConfig struct {
-	IfName             string   `json:"ifName"`
-	MTU                int      `json:"mtu"`
-	Stack              string   `json:"stack"`
-	Inet4Address       []string `json:"inet4Address"`
-	Inet6Address       []string `json:"inet6Address"`
-	DNSHijack          []string `json:"dnsHijack"`
-	AutoRoute          bool     `json:"autoRoute"`
-	StrictRoute        bool     `json:"strictRoute"`
-	AutoRedirect       bool     `json:"autoRedirect"`
-	IncludeUID         []uint32 `json:"includeUid"`
-	ExcludeUID         []uint32 `json:"excludeUid"`
-	IncludeAndroidUser []int    `json:"includeAndroidUser"`
-	RouteAddress       []string `json:"routeAddress"`
-	RouteExclude       []string `json:"routeExcludeAddress"`
-	DNSMode            string   `json:"dnsMode"`
-	FakeIPRange        string   `json:"fakeIpRange"`
-	FakeIPRange6       string   `json:"fakeIpRange6"`
-	AllowIPv6          bool     `json:"allowIpv6"`
+	IfName             string   `json:"ifName" yaml:"ifName"`
+	MTU                int      `json:"mtu" yaml:"mtu"`
+	Stack              string   `json:"stack" yaml:"stack"`
+	Inet4Address       []string `json:"inet4Address" yaml:"inet4Address"`
+	Inet6Address       []string `json:"inet6Address" yaml:"inet6Address"`
+	DNSHijack          []string `json:"dnsHijack" yaml:"dnsHijack"`
+	AutoRoute          bool     `json:"autoRoute" yaml:"autoRoute"`
+	StrictRoute        bool     `json:"strictRoute" yaml:"strictRoute"`
+	AutoRedirect       bool     `json:"autoRedirect" yaml:"autoRedirect"`
+	IncludeUID         []uint32 `json:"includeUid" yaml:"includeUid"`
+	ExcludeUID         []uint32 `json:"excludeUid" yaml:"excludeUid"`
+	IncludeAndroidUser []int    `json:"includeAndroidUser" yaml:"includeAndroidUser"`
+	RouteAddress       []string `json:"routeAddress" yaml:"routeAddress"`
+	RouteExclude       []string `json:"routeExcludeAddress" yaml:"routeExcludeAddress"`
+	DNSMode            string   `json:"dnsMode" yaml:"dnsMode"`
+	FakeIPRange        string   `json:"fakeIpRange" yaml:"fakeIpRange"`
+	FakeIPRange6       string   `json:"fakeIpRange6" yaml:"fakeIpRange6"`
+	AllowIPv6          bool     `json:"allowIpv6" yaml:"allowIpv6"`
 }
 
-func StartRoot(configJSON string) (io.Closer, error) {
+func StartRoot(configYaml string) (io.Closer, error) {
 	var cfg RootTunConfig
-	if err := json.Unmarshal([]byte(configJSON), &cfg); err != nil {
+	if err := yaml.Unmarshal([]byte(configYaml), &cfg); err != nil {
 		return nil, fmt.Errorf("decode root tun config: %w", err)
 	}
 
@@ -54,8 +54,8 @@ func StartRoot(configJSON string) (io.Closer, error) {
 		return nil, err
 	}
 
-	payload, _ := json.Marshal(cfg)
-	log.Debugln("ROOT_TUN: config=%s", string(payload))
+	payload, _ := yaml.Marshal(cfg)
+	log.Debugln("ROOT_TUN: config=\n%s", strings.TrimSpace(string(payload)))
 
 	listener, err := sing_tun.New(options, tunnel.Tunnel)
 	if err != nil {

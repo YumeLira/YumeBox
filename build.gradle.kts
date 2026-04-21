@@ -20,8 +20,12 @@
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 
 plugins {
+    `jvm-toolchains`
     id("com.android.application") version "9.2.0" apply false
     id("com.android.library") version "9.2.0" apply false
     kotlin("plugin.serialization") version "2.2.10" apply false
@@ -38,9 +42,22 @@ val androidJvm = providers.gradleProperty("android.jvm")
     .orElse(providers.gradleProperty("project.jvm"))
     .orElse("17")
     .get()
+val androidJvmVersion = androidJvm.toInt()
 val androidNdkVersion = providers.gradleProperty("android.ndkVersion").orNull.orEmpty()
 
 subprojects {
+    apply(plugin = "jvm-toolchains")
+
+    val javaToolchainService = extensions.getByType(JavaToolchainService::class.java)
+
+    tasks.withType<JavaCompile>().configureEach {
+        javaCompiler.set(
+            javaToolchainService.compilerFor {
+                languageVersion.set(JavaLanguageVersion.of(androidJvmVersion))
+            }
+        )
+    }
+
     pluginManager.withPlugin("com.android.application") {
         extensions.configure<ApplicationExtension>("android") {
             compileSdk = androidCompileSdk

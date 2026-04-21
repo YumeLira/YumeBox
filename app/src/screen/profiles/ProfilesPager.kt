@@ -36,13 +36,13 @@ import com.github.yumelira.yumebox.App
 import com.github.yumelira.yumebox.MainActivity
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.data.controller.OverrideService
-import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.model.ProfileBinding
+import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
 import com.github.yumelira.yumebox.feature.editor.language.LanguageScope
 import com.github.yumelira.yumebox.presentation.component.*
-import com.github.yumelira.yumebox.presentation.icon.ShellIcons
 import com.github.yumelira.yumebox.presentation.component.LocalNavigator
-import com.github.yumelira.yumebox.presentation.util.OverrideStructuredEditorStore
+import com.github.yumelira.yumebox.presentation.icon.ShellIcons
+import com.github.yumelira.yumebox.presentation.util.OverrideEditorStore
 import com.github.yumelira.yumebox.presentation.viewmodel.OverrideConfigViewModel
 import com.github.yumelira.yumebox.screen.home.HomeViewModel
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
@@ -67,7 +67,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
     val overrideConfigViewModel = koinViewModel<OverrideConfigViewModel>()
     val bindingProvider: ProfileBindingProvider = koinInject()
     val overrideService: OverrideService = koinInject()
-    val systemPresets by overrideConfigViewModel.systemPresets.collectAsState()
     val userConfigs by overrideConfigViewModel.userConfigs.collectAsState()
     val context = LocalContext.current
 
@@ -263,7 +262,6 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
         ProfileSettingsDialog(
             show = showSettingsDialog.value,
             profile = currentProfileToEdit,
-            systemPreset = systemPresets.firstOrNull(),
             userConfigs = userConfigs,
             binding = profileBinding,
             onDismiss = {
@@ -283,18 +281,18 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     )
                 }
             },
-            onSaveOverrideSettings = { systemPresetEnabled, selectedOverrideIds ->
+            onSaveOverrideSettings = { selectedOverrideIds ->
                 scope.launch {
                     val profileId = currentProfileToEdit.uuid.toString()
                     val normalizedOverrideIds = selectedOverrideIds.distinct()
                     val currentBinding = profileBinding ?: bindingProvider.getBinding(profileId)
                     val updatedBinding = currentBinding?.copy(
                         overrideIds = normalizedOverrideIds,
-                        enabled = systemPresetEnabled,
+                        enabled = false,
                     ) ?: ProfileBinding(
                         profileId = profileId,
                         overrideIds = normalizedOverrideIds,
-                        enabled = systemPresetEnabled,
+                        enabled = false,
                     )
 
                     bindingProvider.setBinding(updatedBinding)
@@ -374,7 +372,7 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     editable = true,
                     onReadFailed = context::toast,
                 ) { configContent, callback ->
-                    OverrideStructuredEditorStore.setupConfigPreview(
+                    OverrideEditorStore.setupConfigPreview(
                         title = profile.name,
                         content = configContent,
                         language = LanguageScope.Yaml,

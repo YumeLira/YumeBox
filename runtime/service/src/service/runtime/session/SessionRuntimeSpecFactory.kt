@@ -23,6 +23,7 @@
 package com.github.yumelira.yumebox.service.runtime.session
 
 import android.content.Context
+import com.github.yumelira.yumebox.core.model.OverrideSpec
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
 import com.github.yumelira.yumebox.service.root.RootTunConfigFactory
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
@@ -51,35 +52,35 @@ class SessionRuntimeSpecFactory(
     private fun createLocalSpec(owner: RuntimeOwner): RuntimeSpec {
         val profile = requireActiveProfile()
         val profileDir = context.importedDir.resolve(profile.uuid.toString())
-        val overridePaths = compiledConfigPipeline.resolveOverridePaths(profile.uuid.toString())
+        val overrideSpecs = compiledConfigPipeline.resolveOverrideSpecs(profile.uuid.toString())
         return RuntimeSpec(
             owner = owner,
             profileUuid = profile.uuid.toString(),
             profileName = profile.name,
             profileDir = profileDir.absolutePath,
             runtimeConfigPath = profileDir.resolve("runtime.yaml").absolutePath,
-            overridePaths = overridePaths,
-            effectiveFingerprint = buildEffectiveFingerprint(profile.uuid.toString(), overridePaths),
+            overrideSpecs = overrideSpecs,
+            effectiveFingerprint = buildEffectiveFingerprint(profile.uuid.toString(), overrideSpecs),
             profileFingerprint = buildProfileFingerprint(profile.uuid.toString()),
         )
     }
 
     fun createRootTunSpec(): RuntimeSpec {
         val rootResult = RootTunConfigFactory(context).create()
-        val overridePaths = compiledConfigPipeline.resolveOverridePaths(rootResult.profileUuid.toString())
+        val overrideSpecs = compiledConfigPipeline.resolveOverrideSpecs(rootResult.profileUuid.toString())
         return RuntimeSpec(
             owner = RuntimeOwner.RootTun,
             profileUuid = rootResult.profileUuid.toString(),
             profileName = rootResult.profileName,
             profileDir = rootResult.profileDir.absolutePath,
             runtimeConfigPath = rootResult.profileDir.resolve("runtime.yaml").absolutePath,
-            overridePaths = overridePaths,
+            overrideSpecs = overrideSpecs,
             rootTunConfig = rootResult.config,
             staticPlanFingerprint = rootResult.staticPlan.fingerprint,
             transportFingerprint = rootResult.dynamicOverrides.transportFingerprint,
             effectiveFingerprint = buildEffectiveFingerprint(
                 rootResult.profileUuid.toString(),
-                overridePaths,
+                overrideSpecs,
             ),
             profileFingerprint = rootResult.dynamicOverrides.profileFingerprint,
         )
@@ -101,17 +102,18 @@ class SessionRuntimeSpecFactory(
 
     private fun buildEffectiveFingerprint(
         profileUuid: String,
-        overridePaths: List<String>,
+        overrideSpecs: List<OverrideSpec>,
     ): String {
         val profileDir = context.importedDir.resolve(profileUuid)
-        val metadataFile = context.filesDir.resolve("overrides/metadata.json")
+        val metadataFile = context.filesDir.resolve("overrides/metadata.yaml")
         return sha256 {
             update(profileUuid.toByteArray())
             updateFile(profileDir.resolve("config.yaml"))
             updateFile(metadataFile)
-            overridePaths.forEach { overridePath ->
-                update(overridePath.toByteArray())
-                updateFile(File(overridePath))
+            overrideSpecs.forEach { overrideSpec ->
+                update(overrideSpec.path.toByteArray())
+                update(overrideSpec.ext.toByteArray())
+                updateFile(File(overrideSpec.path))
             }
         }
     }

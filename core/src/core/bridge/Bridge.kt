@@ -47,12 +47,11 @@ object Bridge {
     external fun nativeNotifyTimeZoneChanged(name: String, offset: Int)
     external fun nativeStartTun(fd: Int, stack: String, gateway: String, portal: String, dns: String, cb: TunInterface)
     external fun nativeStopTun()
-    external fun nativeStartRootTun(configJson: String): String?
+    external fun nativeStartRootTun(configYaml: String): String?
     external fun nativeStopRootTun()
     external fun nativeStartHttp(listenAt: String): String?
     external fun nativeStopHttp()
     external fun nativeQueryGroupNames(excludeNotSelectable: Boolean): String
-    external fun nativeInspectCompiledConfig(yamlText: String): String?
     external fun nativeInspectCompiledGroups(yamlText: String, profileDir: String, excludeNotSelectable: Boolean): String?
     external fun nativeQueryGroup(name: String, sort: String): String?
     external fun nativeHealthCheck(completable: CompletableDeferred<Unit>, name: String)

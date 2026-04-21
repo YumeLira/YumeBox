@@ -153,11 +153,11 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStopTun(JNIEnv *env, j
 
 JNIEXPORT jstring JNICALL
 Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeStartRootTun(JNIEnv *env, jobject thiz,
-                                                                  jstring config_json) {
+                                                                  jstring config_yaml) {
     TRACE_METHOD();
 
-    scoped_string _config_json = get_string(config_json);
-    scoped_string error = startRootTun(_config_json);
+    scoped_string _config_yaml = get_string(config_yaml);
+    scoped_string error = startRootTun(_config_yaml);
 
     if (error == NULL)
         return NULL;
@@ -327,21 +327,6 @@ Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeQueryConfiguration(JNI
     TRACE_METHOD();
 
     scoped_string response = queryConfiguration();
-
-    return new_string(response);
-}
-
-JNIEXPORT jstring JNICALL
-Java_com_github_yumelira_yumebox_core_bridge_Bridge_nativeInspectCompiledConfig(JNIEnv *env,
-                                                                           jobject thiz,
-                                                                           jstring yaml_text) {
-    TRACE_METHOD();
-
-    scoped_string _yaml_text = get_string(yaml_text);
-    scoped_string response = inspectCompiledConfig(_yaml_text);
-
-    if (response == NULL)
-        return NULL;
 
     return new_string(response);
 }

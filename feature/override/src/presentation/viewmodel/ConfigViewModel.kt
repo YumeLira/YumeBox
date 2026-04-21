@@ -18,54 +18,24 @@
  *
  */
 
-
-
 package com.github.yumelira.yumebox.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.data.controller.ActiveProfileOverrideReloader
-import com.github.yumelira.yumebox.data.store.OverrideConfigStore
 import com.github.yumelira.yumebox.data.controller.OverrideResolver
-import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.model.OverrideConfig
+import com.github.yumelira.yumebox.data.model.OverrideContentType
 import com.github.yumelira.yumebox.data.model.OverrideMetadata
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveEvent
-import com.github.yumelira.yumebox.presentation.util.OverrideSaveState
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import timber.log.Timber
+import com.github.yumelira.yumebox.data.store.OverrideConfigStore
+import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
 import dev.oom_wg.purejoy.mlang.MLang
-
-data class OverrideEditSession(
-    val routeConfigId: String,
-    val targetConfigId: String,
-    val persistedId: String?,
-    val createdAt: Long,
-    val name: String,
-    val description: String,
-    val config: ConfigurationOverride,
-    val draftSnapshot: String,
-    val persistedName: String,
-    val persistedDescription: String,
-    val persistedSnapshot: String,
-) {
-    val canSave: Boolean
-        get() = name.isNotBlank()
-
-    val hasPersistedChanges: Boolean
-        get() = name != persistedName ||
-            description != persistedDescription ||
-            draftSnapshot != persistedSnapshot
-
-    val hasUnsavedInvalidChanges: Boolean
-        get() = hasPersistedChanges && !canSave
-}
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class OverrideConfigViewModel(
     private val configRepo: OverrideConfigStore,
@@ -76,20 +46,10 @@ class OverrideConfigViewModel(
 
     companion object {
         private const val TAG = "OverrideConfigViewModel"
-        private const val TEXT_AUTOSAVE_DELAY_MILLIS = 220L
-    }
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
     }
 
     private val _configs = MutableStateFlow<List<OverrideConfig>>(emptyList())
     val configs: StateFlow<List<OverrideConfig>> = _configs.asStateFlow()
-
-    private val _systemPresets = MutableStateFlow<List<OverrideConfig>>(emptyList())
-    val systemPresets: StateFlow<List<OverrideConfig>> = _systemPresets.asStateFlow()
 
     private val _userConfigs = MutableStateFlow<List<OverrideConfig>>(emptyList())
     val userConfigs: StateFlow<List<OverrideConfig>> = _userConfigs.asStateFlow()
@@ -99,261 +59,165 @@ class OverrideConfigViewModel(
 
     private val _usageCountMap = MutableStateFlow<Map<String, Int>>(emptyMap())
     val usageCountMap: StateFlow<Map<String, Int>> = _usageCountMap.asStateFlow()
+
     private val _pendingRevealConfigId = MutableStateFlow<String?>(null)
     val pendingRevealConfigId: StateFlow<String?> = _pendingRevealConfigId.asStateFlow()
-    private var bindingObserverJob: kotlinx.coroutines.Job? = null
-    private val editCoordinator = OverrideEditSessionCoordinator(
-        scope = viewModelScope,
-        configRepo = configRepo,
-        activeProfileOverrideReloader = activeProfileOverrideReloader,
-        reloadConfigs = { loadConfigs() },
-        updateLocalCacheAfterSave = ::updateLocalCacheAfterSave,
-        loggerTag = TAG,
-        textAutosaveDelayMillis = TEXT_AUTOSAVE_DELAY_MILLIS,
-    )
-
-    val selectedConfig: StateFlow<OverrideConfig?> = editCoordinator.selectedConfig
-    val editSession: StateFlow<OverrideEditSession?> = editCoordinator.editSession
-    val saveState: StateFlow<OverrideSaveState> = editCoordinator.saveState
-    val events: SharedFlow<OverrideSaveEvent> = editCoordinator.events
 
     init {
-        loadConfigs()
-        observeBindingChanges()
-    }
-
-    private fun loadConfigs() {
+        refresh()
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-
-                val presets = configRepo.getSystemPresets()
-                _systemPresets.value = presets
-
-                val userConfigs = configRepo.getUserConfigs()
-                _userConfigs.value = userConfigs
-
-                _configs.value = presets + userConfigs
-
+            bindingProvider.getAllBindingsFlow().collectLatest {
                 loadUsageCounts()
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to load configs")
             }
-            _isLoading.value = false
         }
-    }
-
-    private suspend fun loadUsageCounts() {
-        val countMap = mutableMapOf<String, Int>()
-        for (config in _configs.value) {
-            countMap[config.id] = resolver.getOverrideUsageCount(config.id)
-        }
-        _usageCountMap.value = countMap
     }
 
     fun refresh() {
-        loadConfigs()
-    }
-
-    fun getConfigJsonContent(configId: String): String? {
-        return editCoordinator.getConfigJsonContent(configId)
-    }
-
-    fun saveConfigJsonContent(configId: String, content: String): Boolean {
-        return editCoordinator.saveConfigJsonContent(configId, content)
-    }
-
-    private fun observeBindingChanges() {
-        bindingObserverJob?.cancel()
-        bindingObserverJob = viewModelScope.launch {
-            bindingProvider.getAllBindingsFlow()
-                .drop(1)
-                .collectLatest {
-                    loadUsageCounts()
-                }
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val users = configRepo.getUserConfigs()
+                _userConfigs.value = users
+                _configs.value = users
+                loadUsageCounts()
+            } catch (error: Exception) {
+                Timber.tag(TAG).e(error, "Failed to load overrides")
+            } finally {
+                _isLoading.value = false
+            }
         }
+    }
+
+    fun getConfigById(id: String): OverrideConfig? {
+        return _configs.value.find { it.id == id }
+    }
+
+    fun getConfigContent(configId: String): String? {
+        return configRepo.getConfigContent(configId)
+    }
+
+    fun saveConfigContent(configId: String, content: String): Boolean {
+        val saved = configRepo.saveConfigContent(configId, content)
+        if (!saved) return false
+
+        viewModelScope.launch {
+            activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(configId)
+            refresh()
+        }
+        return true
     }
 
     fun createConfig(
         name: String,
         description: String? = null,
+        contentType: OverrideContentType,
     ) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val now = System.currentTimeMillis()
                 val config = OverrideConfig(
                     id = OverrideMetadata.generateId(),
                     name = name,
                     description = description,
-                    config = ConfigurationOverride(),
+                    contentType = contentType,
+                    content = "",
                     isSystem = false,
                     createdAt = now,
                     updatedAt = now,
                 )
                 configRepo.save(config)
                 _pendingRevealConfigId.value = config.id
-                loadConfigs()
-                Timber.tag(TAG).i("Created config: ${config.id}")
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to create config")
+                refresh()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to create override")
             }
         }
     }
 
-    fun updateConfig(config: OverrideConfig) {
-        editCoordinator.updateConfig(config)
-    }
-
-    fun saveConfig(config: OverrideConfig) {
-        editCoordinator.saveConfig(config)
-    }
-
-    private fun updateLocalCacheAfterSave(config: OverrideConfig) {
-        val updatedUserConfigs = _userConfigs.value.toMutableList()
-        val existingIndex = updatedUserConfigs.indexOfFirst { it.id == config.id }
-        if (existingIndex >= 0) {
-            updatedUserConfigs[existingIndex] = config
-        } else {
-            updatedUserConfigs += config
-        }
-        _userConfigs.value = updatedUserConfigs
-        _configs.value = _systemPresets.value + updatedUserConfigs
-        editCoordinator.syncSelectedConfig(config)
-    }
-
     fun deleteConfig(id: String) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val shouldResyncRuntime = activeProfileOverrideReloader.isActiveProfileUsingOverride(id)
                 val deleted = configRepo.delete(id)
-                if (deleted) {
-                    if (shouldResyncRuntime && !activeProfileOverrideReloader.reapplyActiveProfileOverride()) {
-                        Timber.tag(TAG).w("Override deleted but failed to reapply active profile: $id")
-                    }
-                    loadConfigs()
-                    Timber.tag(TAG).i("Deleted config: $id")
-                } else {
-                    Timber.tag(TAG).w("Cannot delete config: $id (builtin preset or not found)")
+                if (deleted && shouldResyncRuntime) {
+                    activeProfileOverrideReloader.reapplyActiveProfileOverride()
                 }
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to delete config")
+                refresh()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to delete override")
             }
         }
     }
 
     fun duplicateConfig(id: String) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val duplicated = configRepo.duplicate(id)
                 if (duplicated != null) {
                     _pendingRevealConfigId.value = duplicated.id
-                    loadConfigs()
-                    Timber.tag(TAG).i("Duplicated config: $id -> ${duplicated.id}")
                 }
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to duplicate config")
+                refresh()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to duplicate override")
             }
         }
     }
 
-    fun reorderUserConfigs(fromIndex: Int, toIndex: Int) {
+    fun reorderUserConfigs(
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
         viewModelScope.launch {
             val currentConfigs = _userConfigs.value
-            if (fromIndex !in currentConfigs.indices || fromIndex == toIndex) {
-                return@launch
-            }
+            if (fromIndex !in currentConfigs.indices || fromIndex == toIndex) return@launch
 
             val reorderedConfigs = currentConfigs.toMutableList().also { configs ->
-                val movingConfig = configs.removeAt(fromIndex)
-                val targetIndex = toIndex.coerceIn(0, configs.size)
-                configs.add(targetIndex, movingConfig)
+                val moving = configs.removeAt(fromIndex)
+                configs.add(toIndex.coerceIn(0, configs.size), moving)
             }
-
             _userConfigs.value = reorderedConfigs
-            _configs.value = _systemPresets.value + reorderedConfigs
+            _configs.value = reorderedConfigs
 
-            try {
+            runCatching {
                 configRepo.reorderUserConfigs(reorderedConfigs.map(OverrideConfig::id))
-                loadConfigs()
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Failed to reorder configs")
-                loadConfigs()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to reorder overrides")
             }
+            refresh()
         }
     }
 
-    fun selectConfig(id: String) {
+    fun importConfig(
+        content: String,
+        sourceName: String?,
+    ): Result<OverrideConfig> {
+        val contentType = OverrideContentType.fromFileName(sourceName)
+            ?: return Result.failure(IllegalArgumentException(MLang.Override.Import.Failed.format("仅支持 YAML 或 JS")))
+        if (contentType == OverrideContentType.JavaScript && content.isBlank()) {
+            return Result.failure(IllegalArgumentException(MLang.Override.Import.Failed.format("JS 文件为空")))
+        }
+
+        val config = OverrideConfig(
+            id = OverrideMetadata.generateId(),
+            name = normalizeImportedConfigSourceName(sourceName) ?: MLang.Override.Save.ImportDefaultName,
+            description = null,
+            contentType = contentType,
+            content = content,
+            isSystem = false,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+        )
+
         viewModelScope.launch {
-            editCoordinator.selectConfig(id)
-        }
-    }
-
-    fun startEditSession(configId: String) {
-        editCoordinator.startEditSession(configId)
-    }
-
-    fun updateDraftName(value: String) {
-        editCoordinator.updateDraftName(value)
-    }
-
-    fun updateDraftDescription(value: String) {
-        editCoordinator.updateDraftDescription(value)
-    }
-
-    fun updateDraftConfig(
-        updatedConfig: ConfigurationOverride,
-        saveImmediately: Boolean = true,
-    ) {
-        editCoordinator.updateDraftConfig(updatedConfig, saveImmediately)
-    }
-
-    fun mutateDraftConfig(
-        saveImmediately: Boolean = true,
-        transform: (ConfigurationOverride) -> ConfigurationOverride,
-    ) {
-        editCoordinator.mutateDraftConfig(saveImmediately, transform)
-    }
-
-    fun flushDraftSave(onSaved: (() -> Unit)? = null) {
-        editCoordinator.flushDraftSave(onSaved)
-    }
-
-    fun clearEditSession() {
-        editCoordinator.clearEditSession()
-    }
-
-    fun importConfigsFromJson(
-        jsonString: String,
-        sourceName: String? = null,
-    ): Result<Int> {
-        return try {
-            val importedConfigs = parseImportedOverrideConfigs(
-                json = json,
-                jsonString = jsonString,
-                sourceName = sourceName,
-            )
-            viewModelScope.launch {
-                _pendingRevealConfigId.value = importedConfigs.lastOrNull()?.id
-                for (importedConfig in importedConfigs) {
-                    configRepo.save(importedConfig)
-                }
-                loadConfigs()
+            runCatching {
+                configRepo.save(config)
+                _pendingRevealConfigId.value = config.id
+                refresh()
+            }.onFailure { error ->
+                Timber.tag(TAG).e(error, "Failed to import override")
             }
-            Result.success(importedConfigs.size)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to import config")
-            Result.failure(e)
         }
-    }
-
-    fun exportConfig(id: String): String? {
-        return try {
-            val config = _configs.value.find { it.id == id } ?: return null
-            json.encodeToString(config)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to export config")
-            null
-        }
+        return Result.success(config)
     }
 
     suspend fun isConfigInUse(id: String): Boolean {
@@ -365,97 +229,13 @@ class OverrideConfigViewModel(
             _pendingRevealConfigId.value = null
         }
     }
-}
 
-@Serializable
-private data class OverrideConfigImportEnvelope(
-    val id: String? = null,
-    val name: String? = null,
-    val description: String? = null,
-    val config: ConfigurationOverride? = null,
-    val isSystem: Boolean = false,
-    val createdAt: Long? = null,
-    val updatedAt: Long? = null,
-)
-
-internal fun parseImportedOverrideConfigs(
-    json: Json,
-    jsonString: String,
-    sourceName: String? = null,
-    nowProvider: () -> Long = System::currentTimeMillis,
-): List<OverrideConfig> {
-    val normalizedJsonString = jsonString.trim()
-    require(normalizedJsonString.isNotEmpty()) { MLang.Override.Save.ImportEmpty }
-
-    val importedElements = when (val rootElement = json.parseToJsonElement(normalizedJsonString)) {
-        is JsonArray -> rootElement
-        else -> JsonArray(listOf(rootElement))
-    }
-    val hasMultipleEntries = importedElements.size > 1
-
-    return importedElements.mapIndexed { index, element ->
-        parseImportedOverrideConfigEntry(
-            json = json,
-            element = element,
-            sourceName = sourceName,
-            index = index,
-            hasMultipleEntries = hasMultipleEntries,
-            now = nowProvider(),
-        )
-    }
-}
-
-private fun parseImportedOverrideConfigEntry(
-    json: Json,
-    element: JsonElement,
-    sourceName: String?,
-    index: Int,
-    hasMultipleEntries: Boolean,
-    now: Long,
-): OverrideConfig {
-    runCatching {
-        return json.decodeFromJsonElement(OverrideConfig.serializer(), element)
-    }
-
-    val importEnvelope = runCatching {
-        json.decodeFromJsonElement(OverrideConfigImportEnvelope.serializer(), element)
-    }.getOrNull()
-
-    if (importEnvelope?.config != null) {
-        return OverrideConfig(
-            id = importEnvelope.id?.takeIf(String::isNotBlank) ?: OverrideMetadata.generateId(),
-            name = importEnvelope.name?.takeIf(String::isNotBlank)
-                ?: buildImportedConfigName(sourceName, index, hasMultipleEntries),
-            description = importEnvelope.description?.takeIf(String::isNotBlank),
-            config = importEnvelope.config,
-            isSystem = false,
-            createdAt = importEnvelope.createdAt ?: now,
-            updatedAt = importEnvelope.updatedAt ?: now,
-        )
-    }
-
-    val configurationOverride = json.decodeFromJsonElement(ConfigurationOverride.serializer(), element)
-    return OverrideConfig(
-        id = OverrideMetadata.generateId(),
-        name = buildImportedConfigName(sourceName, index, hasMultipleEntries),
-        description = null,
-        config = configurationOverride,
-        isSystem = false,
-        createdAt = now,
-        updatedAt = now,
-    )
-}
-
-internal fun buildImportedConfigName(
-    sourceName: String?,
-    index: Int,
-    hasMultipleEntries: Boolean,
-): String {
-    val baseName = normalizeImportedConfigSourceName(sourceName) ?: MLang.Override.Save.ImportDefaultName
-    return if (hasMultipleEntries) {
-        "$baseName ${index + 1}"
-    } else {
-        baseName
+    private suspend fun loadUsageCounts() {
+        val countMap = mutableMapOf<String, Int>()
+        _configs.value.forEach { config ->
+            countMap[config.id] = resolver.getOverrideUsageCount(config.id)
+        }
+        _usageCountMap.value = countMap
     }
 }
 
@@ -467,7 +247,7 @@ internal fun normalizeImportedConfigSourceName(sourceName: String?): String? {
         ?.takeIf(String::isNotBlank)
         ?: return null
 
-    val removableSuffixes = listOf(".json", ".yaml", ".yml")
+    val removableSuffixes = listOf(".yaml", ".yml", ".js")
     while (true) {
         val matchedSuffix = removableSuffixes.firstOrNull { suffix ->
             normalizedName.length > suffix.length && normalizedName.endsWith(suffix, ignoreCase = true)

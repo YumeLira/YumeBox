@@ -24,36 +24,41 @@ package com.github.yumelira.yumebox.core
 
 import com.github.yumelira.yumebox.core.bridge.*
 import com.github.yumelira.yumebox.core.model.*
+import com.github.yumelira.yumebox.core.util.YamlCodec
 import com.github.yumelira.yumebox.core.util.parseInetSocketAddress
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import timber.log.Timber
 import java.io.File
 import java.net.InetSocketAddress
 
 object Clash {
-    private val RootTunConfigJson = Json {
+    private val CompilerJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
     private val ConnectionJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
 
     fun compilePreview(request: CompileRequest): CompileResult {
-        val payload = Bridge.nativeCompilePreview(Json.encodeToString(CompileRequest.serializer(), request))
-        return Json.decodeFromString(CompileResult.serializer(), payload)
+        val payload = Bridge.nativeCompilePreview(
+            CompilerJson.encodeToString(CompileRequest.serializer(), request),
+        )
+        return CompilerJson.decodeFromString(CompileResult.serializer(), payload)
     }
 
     fun compileToFile(request: CompileRequest): CompileResult {
-        val payload = Bridge.nativeCompileToFile(Json.encodeToString(CompileRequest.serializer(), request))
-        return Json.decodeFromString(CompileResult.serializer(), payload)
+        val payload = Bridge.nativeCompileToFile(
+            CompilerJson.encodeToString(CompileRequest.serializer(), request),
+        )
+        return CompilerJson.decodeFromString(CompileResult.serializer(), payload)
     }
 
     fun reset() {
@@ -137,7 +142,7 @@ object Clash {
 
     fun startRootTun(config: RootTunConfig): String? {
         return Bridge.nativeStartRootTun(
-            RootTunConfigJson.encodeToString(RootTunConfig.serializer(), config),
+            YamlCodec.encode(RootTunConfig.serializer(), config),
         )
     }
 
@@ -165,41 +170,16 @@ object Clash {
         }
     }
 
-    fun inspectCompiledConfig(yamlText: String): ConfigurationOverride? {
-        val configJson = Bridge.nativeInspectCompiledConfig(yamlText) ?: return null
-        return runCatching {
-            Json.decodeFromString(ConfigurationOverride.serializer(), configJson)
-        }.getOrElse { error ->
-            Timber.w(error, "Failed to inspect override result")
-            null
-        }
-    }
-
-    fun inspectCompiledConfigElement(yamlText: String): JsonObject? {
-        val configJson = Bridge.nativeInspectCompiledConfig(yamlText) ?: return null
-        return runCatching {
-            Json.decodeFromString(JsonObject.serializer(), configJson)
-        }.getOrElse { error ->
-            Timber.w(error, "Failed to inspect compiled config element")
-            null
-        }
-    }
-
     fun inspectCompiledGroups(yamlText: String, profileDir: File, excludeNotSelectable: Boolean): List<ProxyGroup> {
-        val groupsJson = Bridge.nativeInspectCompiledGroups(
+        val groupsYaml = Bridge.nativeInspectCompiledGroups(
             yamlText,
             profileDir.absolutePath,
             excludeNotSelectable,
         ) ?: return emptyList()
-        val groups = runCatching {
-            Json.decodeFromString(JsonArray.serializer(), groupsJson)
+        return runCatching {
+            YamlCodec.decode(ListSerializer(ProxyGroup.serializer()), groupsYaml)
         }.getOrElse {
             return emptyList()
-        }
-        return List(groups.size) {
-            runCatching {
-                Json.decodeFromJsonElement(ProxyGroup.serializer(), groups[it])
-            }.getOrDefault(ProxyGroup(type = Proxy.Type.Unknown, proxies = emptyList(), now = ""))
         }
     }
 

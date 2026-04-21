@@ -32,6 +32,7 @@ object CodeFormatter {
         return when (language) {
             LanguageScope.Json -> formatJson(content)
             LanguageScope.Yaml -> formatYaml(content)
+            LanguageScope.JavaScript,
             LanguageScope.Text -> content
         }
     }
@@ -40,6 +41,7 @@ object CodeFormatter {
         return when (language) {
             LanguageScope.Json -> validateJson(content)
             LanguageScope.Yaml -> true
+            LanguageScope.JavaScript -> true
             LanguageScope.Text -> true
         }
     }

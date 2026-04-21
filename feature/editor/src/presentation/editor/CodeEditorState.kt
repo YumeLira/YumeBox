@@ -124,6 +124,7 @@ class CodeEditorState(
                 editor.diagnostics = JsonDiagnosticsProvider.analyze(content)
             }
             LanguageScope.Yaml,
+            LanguageScope.JavaScript,
             LanguageScope.Text -> {
 
                 editor.diagnostics = null

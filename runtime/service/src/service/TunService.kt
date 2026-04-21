@@ -143,7 +143,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
                 runCatching {
                     startupLogStore.append("LOCAL_TUN spec: create begin")
                     val spec = SessionRuntimeSpecFactory(appContextOrSelf).createTunSpec()
-                    startupLogStore.append("LOCAL_TUN spec: create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+                    startupLogStore.append("LOCAL_TUN spec: create done profile=${spec.profileUuid} overrides=${spec.overrideSpecs.size}")
                     val result = runtime.start(spec)
                     check(result.success) { result.error ?: "tun runtime start failed" }
                 }.onFailure { error ->
@@ -222,7 +222,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
                 Log.w("Tun runtime spec refresh failed: ${error.message}")
                 return@launch
             }
-            startupLogStore.append("LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overridePaths.size}")
+            startupLogStore.append("LOCAL_TUN spec: reload create done profile=${spec.profileUuid} overrides=${spec.overrideSpecs.size}")
 
             val result = runtime.reload(spec)
             if (!result.success) {

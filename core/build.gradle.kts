@@ -37,6 +37,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${gropify.dep.version.coroutines}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
+    implementation("com.github.bmoliveira:snake-yaml:v1.18-android")
     implementation("androidx.annotation:annotation-jvm:${gropify.dep.version.annotationJvm}")
     implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
 }

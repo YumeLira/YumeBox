@@ -22,7 +22,6 @@ package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
 import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
@@ -36,24 +35,19 @@ class CustomRoutingViewModel(
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
 ) : ViewModel() {
 
-    private val _config = MutableStateFlow(ConfigurationOverride())
-    val config: StateFlow<ConfigurationOverride> = _config.asStateFlow()
+    private val contentState = MutableStateFlow("")
+    val content: StateFlow<String> = contentState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val customConfig = overrideConfigRepository.loadCustomRouting()
-            _config.value = customConfig ?: ConfigurationOverride()
+            contentState.value = overrideConfigRepository.loadCustomRoutingContent().orEmpty()
         }
     }
 
-    fun updateConfig(updatedConfig: ConfigurationOverride) {
-        _config.value = updatedConfig
-    }
-
-    suspend fun saveConfig(updatedConfig: ConfigurationOverride): Boolean {
+    suspend fun saveContent(updatedContent: String): Boolean {
         return runCatching {
-            _config.value = updatedConfig
-            overrideConfigRepository.saveCustomRouting(updatedConfig)
+            contentState.value = updatedContent
+            overrideConfigRepository.saveCustomRoutingContent(updatedContent)
             activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
                 OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
             )

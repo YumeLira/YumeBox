@@ -318,6 +318,18 @@ private fun deriveThemeColors(
     val defaultOnPrimaryContainer = primaryContainer.autoOnColor()
     val onTertiaryContainer = tertiaryContainer.autoOnColor()
 
+    val onPrimary = if (invertOnPrimaryColors) defaultOnPrimary.invertBlackWhite() else defaultOnPrimary
+    val onPrimaryVariant = if (invertOnPrimaryColors) {
+        defaultOnPrimaryVariant.invertBlackWhite()
+    } else {
+        defaultOnPrimaryVariant
+    }
+    val onPrimaryContainer = if (invertOnPrimaryColors) {
+        defaultOnPrimaryContainer.invertBlackWhite()
+    } else {
+        defaultOnPrimaryContainer
+    }
+
     return base.copy(
         primary = primary,
         onPrimary = onPrimary,
@@ -349,3 +361,6 @@ private fun Color.mix(other: Color, ratio: Float): Color {
 
 private fun Color.autoOnColor(threshold: Float = 0.52f): Color =
     if (luminance() > threshold) Color.Black else Color.White
+
+private fun Color.invertBlackWhite(): Color =
+    if (this == Color.Black) Color.White else Color.Black

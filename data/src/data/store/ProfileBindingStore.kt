@@ -23,7 +23,7 @@
 package com.github.yumelira.yumebox.data.store
 
 import android.content.Context
-import com.github.yumelira.yumebox.core.model.ConfigurationOverride
+import com.github.yumelira.yumebox.core.util.YamlCodec
 import com.github.yumelira.yumebox.data.model.MetadataIndex
 import com.github.yumelira.yumebox.data.model.OverrideMetadata
 import com.github.yumelira.yumebox.data.model.ProfileBinding
@@ -33,20 +33,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
 
 class ProfileBindingStore(
     context: Context,
 ) : ProfileBindingProvider {
-    private val metadataFile = File(context.filesDir, "overrides/metadata.json")
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
-    }
+    private val metadataFile = File(context.filesDir, "overrides/metadata.yaml")
 
     private val bindingsStateFlow = MutableStateFlow<Map<String, ProfileBinding>>(emptyMap())
 
@@ -106,25 +99,6 @@ class ProfileBindingStore(
         }
     }
 
-    override suspend fun enableOverride(profileId: String) {
-        val existing = getBinding(profileId)
-        if (existing != null) {
-            setBinding(existing.setEnabled(true))
-        } else {
-
-            setBinding(ProfileBinding(profileId = profileId, enabled = true))
-        }
-    }
-
-    override suspend fun disableOverride(profileId: String) {
-        val existing = getBinding(profileId)
-        if (existing != null) {
-            setBinding(existing.setEnabled(false))
-        } else {
-            setBinding(ProfileBinding.disabled(profileId))
-        }
-    }
-
     override suspend fun addOverride(profileId: String, overrideId: String, index: Int?) {
         val existing = getBinding(profileId)
         val binding = existing?.addOverride(overrideId, index)
@@ -166,7 +140,7 @@ class ProfileBindingStore(
         return try {
             loadMetadataIndex().profileChains
         } catch (e: Exception) {
-            Timber.w(e, "Failed to load bindings from metadata.json, returning empty map")
+            Timber.w(e, "Failed to load bindings from metadata.yaml, returning empty map")
             emptyMap()
         }
     }
@@ -180,7 +154,7 @@ class ProfileBindingStore(
     private fun loadMetadataIndex(): MetadataIndex {
         if (!metadataFile.exists()) return MetadataIndex()
         val index = runCatching {
-            json.decodeFromString<MetadataIndex>(metadataFile.readText())
+            YamlCodec.decode(MetadataIndex.serializer(), metadataFile.readText())
         }.getOrElse { error ->
             Timber.w(error, "Failed to decode override metadata index")
             MetadataIndex()
@@ -194,29 +168,26 @@ class ProfileBindingStore(
 
     private fun saveMetadataIndex(index: MetadataIndex) {
         metadataFile.parentFile?.mkdirs()
-        metadataFile.writeText(json.encodeToString(index))
+        metadataFile.writeText(YamlCodec.encode(MetadataIndex.serializer(), index))
     }
 
     private fun sanitizeMetadataIndex(index: MetadataIndex): MetadataIndex {
         return index.copy(
             profileChains = index.profileChains.mapValues { (_, binding) ->
                 binding.copy(
-                    overrideIds = binding.overrideIds.filterNot(::isBuiltinPresetOverrideId),
+                    overrideIds = binding.overrideIds.filterNot(::isLegacyPresetOverrideId),
+                    enabled = false,
                 )
             },
         )
     }
 
-    private fun isBuiltinPresetOverrideId(overrideId: String): Boolean {
-        return overrideId.startsWith(OverrideMetadata.SYSTEM_PREFIX)
+    private fun isLegacyPresetOverrideId(overrideId: String): Boolean {
+        return overrideId.startsWith(OverrideMetadata.LEGACY_SYSTEM_PREFIX)
     }
 
     private fun isOverrideApplied(binding: ProfileBinding, overrideId: String): Boolean {
-        return if (isBuiltinPresetOverrideId(overrideId)) {
-            binding.enabled
-        } else {
-            binding.overrideIds.contains(overrideId)
-        }
+        return binding.overrideIds.contains(overrideId)
     }
 
 }
