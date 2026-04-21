@@ -25,6 +25,10 @@ import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
+import com.github.yumelira.yumebox.feature.meta.presentation.util.OverridePresetTemplateSelection
+import com.github.yumelira.yumebox.feature.meta.presentation.util.buildPresetTemplateYaml
+import com.github.yumelira.yumebox.feature.meta.presentation.util.defaultOverridePresetTemplateSelection
+import com.github.yumelira.yumebox.feature.meta.presentation.util.inferPresetTemplateSelection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,19 +39,25 @@ class CustomRoutingViewModel(
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
 ) : ViewModel() {
 
-    private val contentState = MutableStateFlow("")
-    val content: StateFlow<String> = contentState.asStateFlow()
+    private val presetSelectionState =
+        MutableStateFlow(defaultOverridePresetTemplateSelection())
+    val presetSelection: StateFlow<OverridePresetTemplateSelection> = presetSelectionState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            contentState.value = overrideConfigRepository.loadCustomRoutingContent().orEmpty()
+            presetSelectionState.value = inferPresetTemplateSelection(
+                overrideConfigRepository.loadCustomRoutingContent(),
+            )
         }
     }
 
-    suspend fun saveContent(updatedContent: String): Boolean {
+    suspend fun savePresetSelection(
+        updatedPresetSelection: OverridePresetTemplateSelection,
+    ): Boolean {
         return runCatching {
-            contentState.value = updatedContent
-            overrideConfigRepository.saveCustomRoutingContent(updatedContent)
+            val generatedYaml = buildPresetTemplateYaml(updatedPresetSelection)
+            presetSelectionState.value = updatedPresetSelection
+            overrideConfigRepository.saveCustomRoutingContent(generatedYaml)
             activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
                 OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
             )

@@ -88,7 +88,6 @@ import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -529,24 +528,6 @@ private fun CreateConfigDialog(
                 selectedType = contentType,
                 onSelectedTypeChange = { contentType = it },
             )
-            Card(applyHorizontalPadding = false) {
-                BasicComponent(
-                    title = MLang.Override.Action.ImportFile,
-                    summary = MLang.Override.Dialog.Create.ImportHint,
-                    startAction = {
-                        Icon(
-                            modifier = Modifier.padding(end = UiDp.dp16),
-                            imageVector = Yume.Share,
-                            contentDescription = MLang.Override.Action.ImportFile,
-                            tint = colorScheme.onBackground,
-                        )
-                    },
-                    onClick = {
-                        keyboardController?.hide()
-                        onImportClick()
-                    },
-                )
-            }
         }
     }
 }
@@ -558,16 +539,9 @@ private fun OverrideTypeSelector(
 ) {
     Card {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                modifier = Modifier.padding(horizontal = UiDp.dp16, vertical = UiDp.dp12),
-                text = "类型",
-                fontSize = 14.sp,
-                color = colorScheme.onSurfaceVariantSummary,
-            )
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = UiDp.dp16, vertical = UiDp.dp8),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
             ) {
                 OverrideTypeButton(

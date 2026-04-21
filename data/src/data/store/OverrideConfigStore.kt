@@ -42,7 +42,6 @@ class OverrideConfigStore(
 ) : OverrideConfigProvider {
     companion object {
         const val INTERNAL_RUNTIME_PREFIX = "__runtime__"
-        private const val LEGACY_JSON_EXTENSION = "json"
 
         fun isInternalRuntimeConfig(id: String): Boolean = id.startsWith(INTERNAL_RUNTIME_PREFIX)
     }
@@ -53,7 +52,7 @@ class OverrideConfigStore(
     private val metadataFile = File(overridesDir, "metadata.yaml")
 
     private val configExtensions = setOf("yaml", "yml", "js")
-    private val cleanupExtensions = configExtensions + LEGACY_JSON_EXTENSION
+    private val cleanupExtensions = configExtensions
 
     private val configsFlow = MutableStateFlow<List<OverrideConfig>>(emptyList())
 

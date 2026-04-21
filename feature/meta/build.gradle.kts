@@ -38,7 +38,6 @@ dependencies {
     implementation(project(":platform"))
     implementation(project(":locale"))
     implementation(project(":ui"))
-    implementation(project(":feature:editor"))
     implementation(project(":data"))
     implementation(project(":runtime:api"))
     implementation(project(":runtime:client"))
