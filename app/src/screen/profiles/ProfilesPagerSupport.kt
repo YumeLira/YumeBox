@@ -43,7 +43,7 @@ internal fun openProfileConfigPreview(
     missingMessage: String,
     editable: Boolean,
     onReadFailed: (String) -> Unit,
-    onPreviewPrepared: (String, ((String) -> Unit)?) -> Unit,
+    onPreviewPrepared: (String, (suspend (String) -> Unit)?) -> Unit,
 ) {
     if (!targetFile.exists()) {
         onReadFailed(missingMessage)

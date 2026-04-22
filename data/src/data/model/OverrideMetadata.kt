@@ -30,7 +30,6 @@ data class OverrideMetadata(
     val name: String,
     val description: String? = null,
     val contentType: OverrideContentType = OverrideContentType.Yaml,
-    val isSystem: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
     val sortOrder: Long = 0L,
@@ -45,7 +44,6 @@ data class OverrideMetadata(
             name: String,
             description: String? = null,
             contentType: OverrideContentType = OverrideContentType.Yaml,
-            isSystem: Boolean = false,
         ): OverrideMetadata {
             val now = System.currentTimeMillis()
             return OverrideMetadata(
@@ -53,7 +51,6 @@ data class OverrideMetadata(
                 name = name,
                 description = description,
                 contentType = contentType,
-                isSystem = isSystem,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -81,7 +78,6 @@ data class OverrideMetadata(
             name = "$name (副本)",
             description = description,
             contentType = contentType,
-            isSystem = false,
             createdAt = now,
             updatedAt = now,
             sortOrder = 0L,
@@ -104,9 +100,28 @@ data class MetadataIndex(
         return copy(configs = configs - id)
     }
 
+    fun removeOverrideFromProfileChains(overrideId: String): MetadataIndex {
+        return copy(
+            profileChains = profileChains.mapValues { (_, binding) ->
+                binding.removeOverride(overrideId)
+            },
+        )
+    }
+
+    fun sanitizeProfileChains(
+        predicate: (String) -> Boolean,
+    ): MetadataIndex {
+        return copy(
+            profileChains = profileChains.mapValues { (_, binding) ->
+                binding.copy(
+                    overrideIds = binding.overrideIds.filter(predicate),
+                )
+            },
+        )
+    }
+
     fun sortedUserMetadata(): List<OverrideMetadata> {
         return configs.values
-            .filterNot(OverrideMetadata::isSystem)
             .sortedWith(
                 compareBy<OverrideMetadata> { if (it.sortOrder > 0L) 0 else 1 }
                     .thenBy { if (it.sortOrder > 0L) it.sortOrder else Long.MAX_VALUE }

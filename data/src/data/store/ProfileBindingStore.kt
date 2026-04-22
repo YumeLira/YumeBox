@@ -111,6 +111,15 @@ class ProfileBindingStore(
         setBinding(existing.removeOverride(overrideId))
     }
 
+    override suspend fun removeOverrideFromAllBindings(overrideId: String) = withContext(Dispatchers.IO) {
+        val currentIndex = loadMetadataIndex()
+        val updatedIndex = currentIndex.removeOverrideFromProfileChains(overrideId)
+        if (updatedIndex != currentIndex) {
+            saveMetadataIndex(updatedIndex)
+            bindingsStateFlow.value = updatedIndex.profileChains
+        }
+    }
+
     override suspend fun clearOverrides(profileId: String) {
         val existing = getBinding(profileId) ?: return
         setBinding(existing.clearOverrides())
@@ -176,7 +185,6 @@ class ProfileBindingStore(
             profileChains = index.profileChains.mapValues { (_, binding) ->
                 binding.copy(
                     overrideIds = binding.overrideIds.filterNot(::isLegacyPresetOverrideId),
-                    enabled = false,
                 )
             },
         )

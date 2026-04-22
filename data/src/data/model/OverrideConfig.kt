@@ -31,7 +31,6 @@ data class OverrideConfig(
     val description: String? = null,
     val contentType: OverrideContentType,
     val content: String,
-    val isSystem: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
 ) {

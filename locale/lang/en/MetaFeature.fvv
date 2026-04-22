@@ -18,11 +18,14 @@ MetaFeature = {
         Title = "Custom Routing"
         Summary = "Standalone routing rules configuration"
         Description = "Custom rules are globally shared. Please enable the 'Custom Split Tunneling' switch on the subscription config editing page for them to take effect. Each subscription config needs the switch enabled individually."
+        EditYaml = "Edit YAML"
         GroupTypeTitle = "Group Types"
         GroupTypeUrlTest = "UrlTest"
         GroupTypeFallback = "Fallback"
         UrlTestRegionGroupTitle = "UrlTest Region Groups"
         FallbackRegionGroupTitle = "Fallback Region Groups"
+        ManualYamlWarningTitle = "Manual YAML detected"
+        ManualYamlWarningSummary = "Saving from the template page will overwrite the current manual YAML. Use the YAML editor action for direct edits."
     }
 
     Download = {

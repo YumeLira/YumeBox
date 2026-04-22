@@ -48,7 +48,7 @@ object YamlCodec {
             defaultScalarStyle = DumperOptions.ScalarStyle.PLAIN
             isPrettyFlow = true
             indent = 2
-            indicatorIndent = 2
+            indicatorIndent = 0
             width = 160
             splitLines = false
         },
@@ -60,26 +60,39 @@ object YamlCodec {
     ): String {
         val element = json.encodeToJsonElement(serializer, value)
         val tree = toYamlNode(element)
-        return yaml.dump(tree)
+        return dumpValue(tree)
     }
 
     fun <T> decode(
         serializer: KSerializer<T>,
         content: String,
     ): T {
-        val loaded = yaml.load(content)
+        val loaded = loadValue(content)
         val element = toJsonElement(loaded)
         return json.decodeFromJsonElement(serializer, element)
     }
 
     fun dumpMap(value: Map<String, Any?>): String {
-        return yaml.dump(LinkedHashMap(value))
+        return dumpValue(value)
     }
 
     @Suppress("UNCHECKED_CAST")
     fun loadMap(content: String): Map<String, Any?> {
-        val loaded = yaml.load(content)
+        val loaded = loadValue(content)
         return loaded as? Map<String, Any?> ?: emptyMap()
+    }
+
+    fun dumpValue(value: Any?): String {
+        return yaml.dump(normalizeYamlValue(value))
+    }
+
+    fun loadValue(content: String): Any? {
+        return normalizeYamlValue(yaml.load(content))
+    }
+
+    fun validate(content: String) {
+        if (content.isBlank()) return
+        yaml.load(content)
     }
 
     private fun toYamlNode(element: JsonElement): Any? {
@@ -120,6 +133,21 @@ object YamlCodec {
             is Double -> JsonPrimitive(value)
             is Number -> JsonPrimitive(value.toDouble())
             else -> JsonPrimitive(value.toString())
+        }
+    }
+
+    private fun normalizeYamlValue(value: Any?): Any? {
+        return when (value) {
+            null -> null
+            is Map<*, *> -> LinkedHashMap<String, Any?>().apply {
+                value.forEach { (key, childValue) ->
+                    put(key.toString(), normalizeYamlValue(childValue))
+                }
+            }
+
+            is Iterable<*> -> value.map(::normalizeYamlValue)
+            is Array<*> -> value.map(::normalizeYamlValue)
+            else -> value
         }
     }
 }

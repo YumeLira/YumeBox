@@ -124,11 +124,11 @@ val appDataRuntimeModule = module {
         }
     }
 
-    single { OverrideConfigStore(androidContext()) }
-    single<OverrideConfigProvider> { get<OverrideConfigStore>() }
-
     single { ProfileBindingStore(androidContext()) }
     single<ProfileBindingProvider> { get<ProfileBindingStore>() }
+
+    single { OverrideConfigStore(androidContext(), get()) }
+    single<OverrideConfigProvider> { get<OverrideConfigStore>() }
 
     single { OverrideResolver(get(), get()) }
     single {
