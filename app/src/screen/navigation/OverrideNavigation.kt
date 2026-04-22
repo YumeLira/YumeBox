@@ -46,7 +46,9 @@ fun OverrideScreen(navigator: DestinationsNavigator) {
                 content = overrideConfigViewModel.getConfigContent(config.id) ?: config.content,
                 language = config.contentType.toLanguageScope(),
                 callback = { content ->
-                    overrideConfigViewModel.saveConfigContent(config.id, content)
+                    if (!overrideConfigViewModel.saveConfigContent(config.id, content)) {
+                        error("保存覆写失败")
+                    }
                 },
             )
             navigator.navigate(OverrideConfigPreviewRouteDestination)

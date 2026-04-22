@@ -39,21 +39,20 @@ import java.io.File
 
 class OverrideConfigStore(
     private val context: Context,
+    private val bindingProvider: ProfileBindingProvider,
 ) : OverrideConfigProvider {
     companion object {
         const val INTERNAL_RUNTIME_PREFIX = "__runtime__"
-        private const val LEGACY_JSON_EXTENSION = "json"
 
         fun isInternalRuntimeConfig(id: String): Boolean = id.startsWith(INTERNAL_RUNTIME_PREFIX)
     }
 
     private val overridesDir = File(context.filesDir, "overrides")
     private val configsDir = File(overridesDir, "configs")
-    private val internalDir = File(overridesDir, OverrideInternalConstants.INTERNAL_DIR_NAME)
     private val metadataFile = File(overridesDir, "metadata.yaml")
 
     private val configExtensions = setOf("yaml", "yml", "js")
-    private val cleanupExtensions = configExtensions + LEGACY_JSON_EXTENSION
+    private val cleanupExtensions = configExtensions
 
     private val configsFlow = MutableStateFlow<List<OverrideConfig>>(emptyList())
 
@@ -101,7 +100,6 @@ class OverrideConfigStore(
             name = config.name,
             description = config.description,
             contentType = config.contentType,
-            isSystem = false,
             createdAt = config.createdAt,
             updatedAt = config.updatedAt,
             sortOrder = existingMetadata?.sortOrder ?: metadataIndex.nextUserSortOrder(),
@@ -110,7 +108,6 @@ class OverrideConfigStore(
         saveMetadataIndex(updatedIndex)
 
         val userConfigsById = configsFlow.value
-            .filterNot(OverrideConfig::isSystem)
             .associateBy(OverrideConfig::id)
             .toMutableMap()
             .apply { put(config.id, config) }
@@ -127,8 +124,8 @@ class OverrideConfigStore(
 
         val updatedIndex = loadMetadataIndex().remove(id)
         saveMetadataIndex(updatedIndex)
+        bindingProvider.removeOverrideFromAllBindings(id)
         val userConfigsById = configsFlow.value
-            .filterNot(OverrideConfig::isSystem)
             .associateBy(OverrideConfig::id)
             .toMutableMap()
             .apply { remove(id) }
@@ -142,7 +139,6 @@ class OverrideConfigStore(
         val duplicated = original.copy(
             id = newMetadata.id,
             name = newMetadata.name,
-            isSystem = false,
             createdAt = newMetadata.createdAt,
             updatedAt = newMetadata.updatedAt,
         )
@@ -155,15 +151,33 @@ class OverrideConfigStore(
     }
 
     suspend fun loadCustomRoutingContent(): String? = withContext(Dispatchers.IO) {
-        val file = resolveCustomRoutingFile()
+        val file = getConfigFilePath(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID)
+            ?: resolveConfigFile(
+                OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
+                OverrideContentType.Yaml,
+            )
         if (!file.exists()) return@withContext null
         file.readText().takeIf(String::isNotBlank)
     }
 
     suspend fun saveCustomRoutingContent(content: String) = withContext(Dispatchers.IO) {
-        val file = resolveCustomRoutingFile()
-        file.parentFile?.mkdirs()
-        file.writeText(content)
+        if (content.isBlank()) {
+            delete(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID)
+            return@withContext
+        }
+
+        val existing = getById(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID)
+        save(
+            OverrideConfig(
+                id = OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
+                name = OverrideInternalConstants.CUSTOM_ROUTING_FILE_NAME,
+                description = null,
+                contentType = OverrideContentType.Yaml,
+                content = content,
+                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
     }
 
     fun getConfigContent(id: String): String? {
@@ -184,7 +198,6 @@ class OverrideConfigStore(
             )
             saveMetadataIndex(updatedIndex)
             val userConfigsById = configsFlow.value
-                .filterNot(OverrideConfig::isSystem)
                 .associateBy(OverrideConfig::id)
                 .toMutableMap()
                 .apply {
@@ -200,8 +213,6 @@ class OverrideConfigStore(
         val metadata = loadMetadataIndex().getById(id) ?: return null
         return findConfigFile(metadata)
     }
-
-    fun getCustomRoutingFilePath(): File = resolveCustomRoutingFile()
 
     fun getConfigsDirectory(): File = configsDir
 
@@ -236,7 +247,6 @@ class OverrideConfigStore(
             val updatedIndex = metadataIndex.copy(configs = updatedConfigs)
             saveMetadataIndex(updatedIndex)
             val userConfigsById = configsFlow.value
-                .filterNot(OverrideConfig::isSystem)
                 .associateBy(OverrideConfig::id)
             updateConfigsFlowSnapshot(updatedIndex, userConfigsById)
         }
@@ -262,7 +272,6 @@ class OverrideConfigStore(
             description = metadata.description,
             contentType = metadata.contentType,
             content = content,
-            isSystem = false,
             createdAt = metadata.createdAt,
             updatedAt = metadata.updatedAt,
         )
@@ -324,14 +333,14 @@ class OverrideConfigStore(
 
     private fun sanitizeMetadataIndex(index: MetadataIndex): MetadataIndex {
         val sanitizedConfigs = index.configs.filterValues { metadata ->
-            !metadata.isSystem && !isLegacySystemPresetId(metadata.id)
+            !isLegacySystemPresetId(metadata.id)
         }
-        val sanitizedProfileChains = index.profileChains.mapValues { (_, binding) ->
-            binding.copy(
-                overrideIds = binding.overrideIds.filterNot(::isLegacySystemPresetId),
-                enabled = false,
-            )
-        }
+        val sanitizedProfileChains = index
+            .copy(configs = sanitizedConfigs)
+            .sanitizeProfileChains { overrideId ->
+                !isLegacySystemPresetId(overrideId) && sanitizedConfigs.containsKey(overrideId)
+            }
+            .profileChains
         return if (sanitizedConfigs == index.configs && sanitizedProfileChains == index.profileChains) {
             index
         } else {
@@ -346,17 +355,12 @@ class OverrideConfigStore(
         return id.startsWith(OverrideMetadata.LEGACY_SYSTEM_PREFIX)
     }
 
-    private fun resolveCustomRoutingFile(): File {
-        return internalDir.resolve("custom-routing.yaml")
-    }
-
     private fun OverrideConfig.toMetadata(): OverrideMetadata {
         return OverrideMetadata(
             id = id,
             name = name,
             description = description,
             contentType = contentType,
-            isSystem = isSystem,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )

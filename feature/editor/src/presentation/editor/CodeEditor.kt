@@ -22,6 +22,7 @@
 
 package com.github.yumelira.yumebox.feature.editor.editor
 
+import android.util.TypedValue
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -122,6 +123,14 @@ private fun createCodeEditor(
         val font = EditorFontManager.getEditorTypeface(context)
         typefaceText = font
         typefaceLineNumber = font
+
+        setLineNumberMarginLeft(
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                12f,
+                context.resources.displayMetrics,
+            ),
+        )
 
         setScrollBarEnabled(false)
 

@@ -58,7 +58,6 @@ class RuntimeOverrideController(
                 description = "internal runtime override for ${activeProfile.uuid}",
                 contentType = OverrideContentType.Yaml,
                 content = content,
-                isSystem = false,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
             ),

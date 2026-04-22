@@ -23,14 +23,13 @@ package com.github.yumelira.yumebox.feature.editor.screen
 import com.github.yumelira.yumebox.presentation.theme.UiDp
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.feature.editor.editor.CodeEditor
 import com.github.yumelira.yumebox.feature.editor.editor.rememberConfiguredCodeEditorState
@@ -43,6 +42,7 @@ import com.github.yumelira.yumebox.presentation.icon.yume.ArrowRight
 import com.github.yumelira.yumebox.presentation.icon.yume.ListCollapse
 import com.github.yumelira.yumebox.presentation.icon.yume.Save
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 
 @Composable
@@ -51,9 +51,10 @@ fun ConfigPreviewScreen(
     title: String = "配置预览",
     initialContent: String = "",
     language: LanguageScope = LanguageScope.Yaml,
-    onSave: ((String) -> Unit)? = null,
+    onSave: (suspend (String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
 
     val formattedContent = remember(initialContent, language) {
@@ -98,16 +99,18 @@ fun ConfigPreviewScreen(
                     IconButton(
                         onClick = {
                             if (isSaving || onSave == null) return@IconButton
-                            isSaving = true
-                            runCatching {
-                                onSave(editorState.content)
-                            }.onSuccess {
-                                editorState.resetModified()
-                                navigator.navigateUp()
-                            }.onFailure {
-                                context.toast(it.message ?: "保存失败")
+                            coroutineScope.launch {
+                                isSaving = true
+                                runCatching {
+                                    onSave(editorState.content)
+                                }.onSuccess {
+                                    editorState.resetModified()
+                                    navigator.navigateUp()
+                                }.onFailure {
+                                    context.toast(it.message ?: "保存失败")
+                                }
+                                isSaving = false
                             }
-                            isSaving = false
                         },
                         enabled = onSave != null && editorState.isModified && !isSaving
                     ) {

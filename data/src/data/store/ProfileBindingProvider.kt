@@ -49,5 +49,7 @@ interface ProfileBindingProvider {
 
     suspend fun removeOverride(profileId: String, overrideId: String)
 
+    suspend fun removeOverrideFromAllBindings(overrideId: String)
+
     suspend fun clearOverrides(profileId: String)
 }

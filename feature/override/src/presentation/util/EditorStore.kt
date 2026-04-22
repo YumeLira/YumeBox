@@ -35,14 +35,14 @@ object OverrideEditorStore {
     var configPreviewLanguage by mutableStateOf(LanguageScope.Yaml)
         private set
 
-    var configPreviewCallback by mutableStateOf<((String) -> Unit)?>(null)
+    var configPreviewCallback by mutableStateOf<(suspend (String) -> Unit)?>(null)
         private set
 
     fun setupConfigPreview(
         title: String,
         content: String,
         language: LanguageScope,
-        callback: ((String) -> Unit)?,
+        callback: (suspend (String) -> Unit)?,
     ) {
         configPreviewTitle = title
         configPreviewContent = content

@@ -18,11 +18,14 @@ MetaFeature = {
         Title = "自定义分流"
         Summary = "独立的分流规则配置"
         Description = "自定义分流规则为全局共享。请在订阅配置编辑页启用“自定义分流”开关后生效。每个订阅配置都需单独开启该开关"
+        EditYaml = "编辑 YAML"
         GroupTypeTitle = "策略组类型"
         GroupTypeUrlTest = "UrlTest"
         GroupTypeFallback = "Fallback"
         UrlTestRegionGroupTitle = "UrlTest 地区组"
         FallbackRegionGroupTitle = "Fallback 地区组"
+        ManualYamlWarningTitle = "当前内容包含手动 YAML"
+        ManualYamlWarningSummary = "模板保存会覆盖当前手动 YAML 内容。需要精确编辑时，请使用右上角的 YAML 编辑入口。"
     }
 
     Download = {
