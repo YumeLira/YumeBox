@@ -451,15 +451,12 @@ class SessionRuntime(
 
     private fun compileAndLoad(spec: RuntimeSpec) {
         ensureNotInterrupted(spec)
-        startupLog(spec, "runtime override: begin apply overrides -> runtime.yaml path=${spec.runtimeConfigPath}")
-        startupLog(
-            spec,
-            "runtime override: overrideSpecs=${spec.overrideSpecs.size} " +
-                spec.overrideSpecs.joinToString(prefix = "[", postfix = "]") { specItem ->
-                    "${specItem.ext}:${specItem.path}"
-                },
-        )
-        runBlocking { compiledConfigPipeline.applyOverrideToRuntimeFile(spec) }
+        startupLog(spec, "runtime prepare: begin path=${spec.runtimeConfigPath}")
+        runBlocking {
+            compiledConfigPipeline.applyOverrideToRuntimeFile(spec) { message ->
+                startupLog(spec, message)
+            }
+        }
         startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
         ensureNotInterrupted(spec)
         startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")

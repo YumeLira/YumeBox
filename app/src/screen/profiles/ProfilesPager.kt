@@ -288,11 +288,9 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                     val currentBinding = profileBinding ?: bindingProvider.getBinding(profileId)
                     val updatedBinding = currentBinding?.copy(
                         overrideIds = normalizedOverrideIds,
-                        enabled = false,
                     ) ?: ProfileBinding(
                         profileId = profileId,
                         overrideIds = normalizedOverrideIds,
-                        enabled = false,
                     )
 
                     bindingProvider.setBinding(updatedBinding)

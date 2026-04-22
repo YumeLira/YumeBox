@@ -121,7 +121,6 @@ class OverrideConfigViewModel(
                     description = description,
                     contentType = contentType,
                     content = "",
-                    isSystem = false,
                     createdAt = now,
                     updatedAt = now,
                 )
@@ -203,7 +202,6 @@ class OverrideConfigViewModel(
             description = null,
             contentType = contentType,
             content = content,
-            isSystem = false,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
         )

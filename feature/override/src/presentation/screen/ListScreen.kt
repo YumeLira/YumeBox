@@ -20,17 +20,26 @@
 
 package com.github.yumelira.yumebox.presentation.screen
 
+import android.content.Intent
+import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -46,12 +55,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -95,8 +109,12 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SpinnerEntry
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 private val overrideConfigItemGap = Spacing().space12
@@ -115,6 +133,7 @@ fun OverrideListScreen(
     val scrollBehavior = MiuixScrollBehavior()
 
     val showCreateDialog = remember { mutableStateOf(false) }
+    var createDialogMode by remember { mutableStateOf(OverrideConfigInputMode.CreateNew) }
     val showDeleteDialog = remember { mutableStateOf(false) }
     val deleteTargetConfig = remember { mutableStateOf<OverrideConfig?>(null) }
     val exportTargetConfig = remember { mutableStateOf<OverrideConfig?>(null) }
@@ -131,45 +150,6 @@ fun OverrideListScreen(
     }
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         viewModel.reorderUserConfigs(from.index, to.index)
-    }
-
-    val importConfigLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        uri ?: return@rememberLauncherForActivityResult
-
-        val displayName = context.contentResolver.query(
-            uri,
-            arrayOf(OpenableColumns.DISPLAY_NAME),
-            null,
-            null,
-            null,
-        )?.use { cursor ->
-            val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (cursor.moveToFirst() && columnIndex >= 0) cursor.getString(columnIndex) else ""
-        }.orEmpty().ifBlank {
-            uri.lastPathSegment
-                ?.substringAfterLast('/')
-                ?.substringAfterLast('\\')
-                .orEmpty()
-        }
-
-        runCatching {
-            context.contentResolver.openInputStream(uri)
-                ?.bufferedReader()
-                ?.use { reader -> reader.readText() }
-                ?: error(MLang.Override.Import.ReadError)
-        }.onSuccess { content ->
-            val result = viewModel.importConfig(content, displayName)
-            result.onSuccess {
-                context.toast(MLang.Override.Import.Success.format(displayName.ifBlank { it.name }, 1))
-                showCreateDialog.value = false
-            }.onFailure { error ->
-                context.toast(error.message ?: MLang.Override.Import.ReadError)
-            }
-        }.onFailure { error ->
-            context.toast(MLang.Override.Import.FileError.format(error.message))
-        }
     }
 
     val exportConfigLauncher = rememberLauncherForActivityResult(
@@ -222,7 +202,10 @@ fun OverrideListScreen(
                 visible = !showCreateDialog.value,
                 imageVector = Yume.`Badge-plus`,
                 contentDescription = MLang.Override.Action.Create,
-                onClick = { showCreateDialog.value = true },
+                onClick = {
+                    createDialogMode = OverrideConfigInputMode.CreateNew
+                    showCreateDialog.value = true
+                },
             )
         },
         topBar = {
@@ -239,6 +222,23 @@ fun OverrideListScreen(
             lazyListState = listState,
             onScrollDirectionChanged = createFabController::onScrollDirectionChanged,
         ) {
+            item(key = "override-docs-tip", contentType = "override-docs-tip") {
+                OverrideDocsTipCard(
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    "https://wiki.metacubex.one/".toUri(),
+                                ),
+                            )
+                        }.onFailure { error ->
+                            context.toast(error.message ?: "无法打开 Mihomo Docs")
+                        }
+                    },
+                )
+            }
+
             when {
                 userConfigs.isEmpty() -> {
                     item(key = "override-empty", contentType = "override-empty") {
@@ -255,15 +255,23 @@ fun OverrideListScreen(
                                 secondLine = MLang.Override.Empty.Hint,
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(UiDp.dp12)) {
-                                Button(onClick = { showCreateDialog.value = true }) {
+                                Button(
+                                    onClick = {
+                                        createDialogMode = OverrideConfigInputMode.CreateNew
+                                        showCreateDialog.value = true
+                                    },
+                                ) {
                                     Text(MLang.Override.Action.New)
                                 }
                                 Button(
-                                    onClick = { importConfigLauncher.launch("*/*") },
+                                    onClick = {
+                                        createDialogMode = OverrideConfigInputMode.LocalFile
+                                        showCreateDialog.value = true
+                                    },
                                     colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
                                     Text(
-                                        text = MLang.Override.Action.Import,
+                                        text = MLang.ProfilesPage.Type.LocalFile,
                                         color = colorScheme.background,
                                     )
                                 }
@@ -306,14 +314,21 @@ fun OverrideListScreen(
 
         CreateConfigDialog(
             show = showCreateDialog,
-            onImportClick = { importConfigLauncher.launch("*/*") },
-            onConfirm = { name, description, contentType ->
+            initialMode = createDialogMode,
+            onConfirmCreate = { name, contentType ->
                 viewModel.createConfig(
                     name = name,
-                    description = description.takeIf(String::isNotBlank),
                     contentType = contentType,
                 )
                 showCreateDialog.value = false
+            },
+            onConfirmImport = { content, sourceName ->
+                viewModel.importConfig(content, sourceName).onSuccess {
+                    context.toast(MLang.Override.Import.Success.format(sourceName.ifBlank { it.name }, 1))
+                    showCreateDialog.value = false
+                }.onFailure { error ->
+                    context.toast(error.message ?: MLang.Override.Import.ReadError)
+                }
             },
             onDismiss = { showCreateDialog.value = false },
         )
@@ -336,6 +351,32 @@ fun OverrideListScreen(
 }
 
 @Composable
+private fun OverrideDocsTipCard(
+    onClick: () -> Unit,
+) {
+    Card(modifier = Modifier.padding(top = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = buildAnnotatedString {
+                    append("如果你不知道什么是覆写. 请阅读 ")
+                    pushStyle(SpanStyle(color = colorScheme.primary))
+                    append("Mihomo Docs")
+                    pop()
+                },
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.body2,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ReorderableCollectionItemScope.OverrideConfigCard(
     config: OverrideConfig,
     isDragging: Boolean,
@@ -345,7 +386,6 @@ private fun ReorderableCollectionItemScope.OverrideConfigCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val descriptionText = config.description?.takeIf(String::isNotBlank) ?: MLang.Override.Card.NoDescription
     val accentTintColor = colorScheme.primary
 
     Card(
@@ -375,7 +415,7 @@ private fun ReorderableCollectionItemScope.OverrideConfigCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${config.contentType.label} · $descriptionText",
+                        text = config.contentType.label,
                         fontSize = 14.sp,
                         lineHeight = 20.sp,
                         fontWeight = FontWeight.Medium,
@@ -485,15 +525,49 @@ private fun OverrideConfigStateIndicator(inUse: Boolean) {
 @Composable
 private fun CreateConfigDialog(
     show: MutableState<Boolean>,
-    onImportClick: () -> Unit,
-    onConfirm: (String, String, OverrideContentType) -> Unit,
+    initialMode: OverrideConfigInputMode,
+    onConfirmCreate: (String, OverrideContentType) -> Unit,
+    onConfirmImport: (String, String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    var inputMode by remember(show.value, initialMode) { mutableStateOf(initialMode) }
     var name by remember(show.value) { mutableStateOf("") }
-    var description by remember(show.value) { mutableStateOf("") }
     var contentType by remember(show.value) { mutableStateOf(OverrideContentType.Yaml) }
-    val canConfirm = name.isNotBlank()
+    var selectedImportUri by remember(show.value) { mutableStateOf<Uri?>(null) }
+    var selectedImportFileName by remember(show.value) { mutableStateOf("") }
+    var stableContentHeightPx by remember(show.value) { mutableStateOf(0) }
+    val canConfirm = when (inputMode) {
+        OverrideConfigInputMode.CreateNew -> name.isNotBlank()
+        OverrideConfigInputMode.LocalFile -> selectedImportUri != null && selectedImportFileName.isNotBlank()
+    }
+    val stableContentHeight = remember(stableContentHeightPx, density) {
+        if (stableContentHeightPx <= 0) UiDp.dp0 else with(density) { stableContentHeightPx.toDp() }
+    }
+    val importConfigLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        selectedImportUri = uri
+        selectedImportFileName = uri?.let { selectedUri ->
+            context.contentResolver.query(
+                selectedUri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                val columnIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst() && columnIndex >= 0) cursor.getString(columnIndex) else ""
+            }.orEmpty().ifBlank {
+                selectedUri.lastPathSegment
+                    ?.substringAfterLast('/')
+                    ?.substringAfterLast('\\')
+                    .orEmpty()
+            }
+        }.orEmpty()
+    }
 
     AppActionBottomSheet(
         show = show.value,
@@ -506,29 +580,110 @@ private fun CreateConfigDialog(
                 onClick = {
                     if (!canConfirm) return@AppBottomSheetConfirmAction
                     keyboardController?.hide()
-                    onConfirm(name, description, contentType)
+                    when (inputMode) {
+                        OverrideConfigInputMode.CreateNew -> {
+                            onConfirmCreate(name, contentType)
+                        }
+
+                        OverrideConfigInputMode.LocalFile -> {
+                            val importUri = selectedImportUri ?: return@AppBottomSheetConfirmAction
+                            runCatching {
+                                context.contentResolver.openInputStream(importUri)
+                                    ?.bufferedReader()
+                                    ?.use { reader -> reader.readText() }
+                                    ?: error(MLang.Override.Import.ReadError)
+                            }.onSuccess { content ->
+                                onConfirmImport(content, selectedImportFileName)
+                            }.onFailure { error ->
+                                context.toast(MLang.Override.Import.FileError.format(error.message))
+                            }
+                        }
+                    }
                 },
             )
         },
         onDismissRequest = onDismiss,
-        insideMargin = DpSize(UiDp.dp32, UiDp.dp12),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(UiDp.dp16)) {
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                label = MLang.Override.Dialog.Create.Name,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(bottom = UiDp.dp16),
+            verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
+        ) {
+            OverrideInputModeSelector(
+                selectedMode = inputMode,
+                onSelectedModeChange = { inputMode = it },
             )
-            TextField(
-                value = description,
-                onValueChange = { description = it },
-                label = MLang.Override.Dialog.Create.Description,
-            )
-            OverrideTypeSelector(
-                selectedType = contentType,
-                onSelectedTypeChange = { contentType = it },
-            )
+            if (inputMode == OverrideConfigInputMode.CreateNew) {
+                OverrideTypeSelector(
+                    selectedType = contentType,
+                    onSelectedTypeChange = { contentType = it },
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = stableContentHeight),
+            ) {
+                Crossfade(
+                    targetState = inputMode,
+                    animationSpec = tween(200),
+                    label = "OverrideInputModeContent",
+                ) { currentInputMode ->
+                    when (currentInputMode) {
+                        OverrideConfigInputMode.CreateNew -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onSizeChanged { stableContentHeightPx = maxOf(stableContentHeightPx, it.height) },
+                                verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
+                            ) {
+                                TextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    label = MLang.Override.Dialog.Create.Name,
+                                )
+                            }
+                        }
+
+                        OverrideConfigInputMode.LocalFile -> {
+                            ImportOverrideFileContent(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onSizeChanged { stableContentHeightPx = maxOf(stableContentHeightPx, it.height) },
+                                fileName = selectedImportFileName,
+                                onPickFile = { importConfigLauncher.launch("*/*") },
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun OverrideInputModeSelector(
+    selectedMode: OverrideConfigInputMode,
+    onSelectedModeChange: (OverrideConfigInputMode) -> Unit,
+) {
+    val inputModeOptions = remember {
+        OverrideConfigInputMode.entries.toList()
+    }
+    val selectedModeIndex = inputModeOptions.indexOf(selectedMode).coerceAtLeast(0)
+
+   top.yukonga.miuix.kmp.basic.Card {
+        WindowSpinnerPreference(
+            title = MLang.ProfilesPage.Type.Title,
+            items = inputModeOptions.map { inputMode ->
+                SpinnerEntry(title = inputMode.label)
+            },
+            selectedIndex = selectedModeIndex,
+            onSelectedIndexChange = { index ->
+                inputModeOptions.getOrNull(index)?.let(onSelectedModeChange)
+            },
+        )
     }
 }
 
@@ -537,45 +692,43 @@ private fun OverrideTypeSelector(
     selectedType: OverrideContentType,
     onSelectedTypeChange: (OverrideContentType) -> Unit,
 ) {
-    Card {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(UiDp.dp12),
-            ) {
-                OverrideTypeButton(
-                    modifier = Modifier.weight(1f),
-                    title = OverrideContentType.Yaml.label,
-                    selected = selectedType == OverrideContentType.Yaml,
-                    onClick = { onSelectedTypeChange(OverrideContentType.Yaml) },
-                )
-                OverrideTypeButton(
-                    modifier = Modifier.weight(1f),
-                    title = OverrideContentType.JavaScript.label,
-                    selected = selectedType == OverrideContentType.JavaScript,
-                    onClick = { onSelectedTypeChange(OverrideContentType.JavaScript) },
-                )
-            }
-        }
+    val contentTypeOptions = remember {
+        OverrideContentType.entries.toList()
+    }
+    val selectedTypeIndex = contentTypeOptions.indexOf(selectedType).coerceAtLeast(0)
+
+    top.yukonga.miuix.kmp.basic.Card {
+        WindowDropdownPreference(
+            title = "创建类型",
+            items = contentTypeOptions.map { it.label },
+            selectedIndex = selectedTypeIndex,
+            onSelectedIndexChange = { index ->
+                contentTypeOptions.getOrNull(index)?.let(onSelectedTypeChange)
+            },
+        )
     }
 }
 
 @Composable
-private fun OverrideTypeButton(
+private fun ImportOverrideFileContent(
     modifier: Modifier = Modifier,
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
+    fileName: String,
+    onPickFile: () -> Unit,
 ) {
-    Button(
-        modifier = modifier,
-        onClick = onClick,
-        colors = if (selected) ButtonDefaults.buttonColorsPrimary() else ButtonDefaults.buttonColors(),
+    Box(
+        modifier = modifier.clickable(
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() },
+            onClick = onPickFile,
+        ),
     ) {
-        Text(
-            text = title,
-            color = if (selected) colorScheme.onPrimary else colorScheme.onBackground,
+        TextField(
+            value = fileName,
+            onValueChange = {},
+            label = MLang.ProfilesPage.Input.SelectFile,
+            readOnly = true,
+            enabled = false,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -629,8 +782,19 @@ private data class OverrideConfigListItem(
     val isInUse: Boolean,
 )
 
+private enum class OverrideConfigInputMode {
+    CreateNew,
+    LocalFile,
+}
+
 private val OverrideContentType.label: String
     get() = when (this) {
         OverrideContentType.Yaml -> "YAML"
         OverrideContentType.JavaScript -> "JavaScript"
+    }
+
+private val OverrideConfigInputMode.label: String
+    get() = when (this) {
+        OverrideConfigInputMode.CreateNew -> MLang.Override.Action.New
+        OverrideConfigInputMode.LocalFile -> MLang.ProfilesPage.Type.LocalFile
     }

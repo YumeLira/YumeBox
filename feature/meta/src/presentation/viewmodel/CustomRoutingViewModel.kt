@@ -23,12 +23,13 @@ package com.github.yumelira.yumebox.feature.meta.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
+import com.github.yumelira.yumebox.core.util.YamlCodec
 import com.github.yumelira.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
 import com.github.yumelira.yumebox.feature.meta.presentation.util.OverridePresetTemplateSelection
+import com.github.yumelira.yumebox.feature.meta.presentation.util.analyzePresetTemplateContent
 import com.github.yumelira.yumebox.feature.meta.presentation.util.buildPresetTemplateYaml
 import com.github.yumelira.yumebox.feature.meta.presentation.util.defaultOverridePresetTemplateSelection
-import com.github.yumelira.yumebox.feature.meta.presentation.util.inferPresetTemplateSelection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,26 +44,52 @@ class CustomRoutingViewModel(
         MutableStateFlow(defaultOverridePresetTemplateSelection())
     val presetSelection: StateFlow<OverridePresetTemplateSelection> = presetSelectionState.asStateFlow()
 
+    private val customRoutingContentState = MutableStateFlow("")
+    val customRoutingContent: StateFlow<String> = customRoutingContentState.asStateFlow()
+
+    private val templateRoundTripSafeState = MutableStateFlow(true)
+    val templateRoundTripSafe: StateFlow<Boolean> = templateRoundTripSafeState.asStateFlow()
+
     init {
         viewModelScope.launch {
-            presetSelectionState.value = inferPresetTemplateSelection(
-                overrideConfigRepository.loadCustomRoutingContent(),
-            )
+            reloadStateFromStoredContent()
         }
     }
 
     suspend fun savePresetSelection(
         updatedPresetSelection: OverridePresetTemplateSelection,
-    ): Boolean {
+    ): Result<Unit> {
         return runCatching {
             val generatedYaml = buildPresetTemplateYaml(updatedPresetSelection)
-            presetSelectionState.value = updatedPresetSelection
             overrideConfigRepository.saveCustomRoutingContent(generatedYaml)
+            applyContentState(generatedYaml)
             activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
                 OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
             )
-        }.getOrElse {
-            false
         }
+    }
+
+    suspend fun saveCustomRoutingYaml(content: String): Result<Unit> {
+        return runCatching {
+            if (content.isNotBlank()) {
+                YamlCodec.validate(content)
+            }
+            overrideConfigRepository.saveCustomRoutingContent(content)
+            applyContentState(content.takeIf(String::isNotBlank))
+            activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
+                OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID,
+            )
+        }
+    }
+
+    private suspend fun reloadStateFromStoredContent() {
+        applyContentState(overrideConfigRepository.loadCustomRoutingContent())
+    }
+
+    private fun applyContentState(content: String?) {
+        val analysis = analyzePresetTemplateContent(content)
+        customRoutingContentState.value = content.orEmpty()
+        presetSelectionState.value = analysis.selection
+        templateRoundTripSafeState.value = analysis.matchesTemplateExactly
     }
 }

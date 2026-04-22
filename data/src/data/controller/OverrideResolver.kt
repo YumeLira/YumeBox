@@ -23,7 +23,6 @@
 package com.github.yumelira.yumebox.data.controller
 
 import com.github.yumelira.yumebox.core.model.OverrideSpec
-import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
 import com.github.yumelira.yumebox.data.store.ProfileBindingProvider
 import com.github.yumelira.yumebox.data.model.OverrideMetadata
@@ -89,13 +88,9 @@ class OverrideResolver(
                 if (isLegacyPresetOverrideId(overrideId) || OverrideConfigStore.isInternalRuntimeConfig(overrideId)) {
                     return@forEach
                 }
-                if (overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) {
-                    if (!configStore.loadCustomRoutingContent().isNullOrBlank()) {
-                        add(overrideId)
-                    }
-                    return@forEach
+                if (configStore.getConfigFilePath(overrideId) != null) {
+                    add(overrideId)
                 }
-                add(overrideId)
             }
         }.distinct()
     }
@@ -104,16 +99,6 @@ class OverrideResolver(
         overrideIds: List<String>,
     ): List<OverrideSpec> {
         return overrideIds.mapNotNull { overrideId ->
-            if (overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) {
-                val file = configStore.getCustomRoutingFilePath()
-                if (!file.exists()) {
-                    return@mapNotNull null
-                }
-                return@mapNotNull OverrideSpec(
-                    path = file.absolutePath,
-                    ext = file.extension.lowercase(),
-                )
-            }
             val config = configStore.getById(overrideId) ?: return@mapNotNull null
             val file = configStore.getConfigFilePath(overrideId) ?: return@mapNotNull null
             OverrideSpec(

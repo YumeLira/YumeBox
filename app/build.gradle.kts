@@ -20,7 +20,7 @@
 
 @file:Suppress("UnstableApiUsage")
 
-import java.util.*
+import java.util.Properties
 
 plugins {
     id("com.android.application")

@@ -50,6 +50,11 @@ data class OverridePresetTemplateSelection(
     val enableFallbackGroup: Boolean = false,
 )
 
+data class OverridePresetTemplateContentAnalysis(
+    val selection: OverridePresetTemplateSelection,
+    val matchesTemplateExactly: Boolean,
+)
+
 enum class OverridePresetRegion(
     val specId: String,
     val displayName: String,
@@ -979,14 +984,46 @@ fun defaultOverridePresetTemplateSelection(): OverridePresetTemplateSelection {
     )
 }
 
-fun inferPresetTemplateSelection(content: String?): OverridePresetTemplateSelection {
+fun analyzePresetTemplateContent(content: String?): OverridePresetTemplateContentAnalysis {
     if (content.isNullOrBlank()) {
-        return defaultOverridePresetTemplateSelection()
+        return OverridePresetTemplateContentAnalysis(
+            selection = defaultOverridePresetTemplateSelection(),
+            matchesTemplateExactly = true,
+        )
     }
 
-    val document = runCatching { YamlCodec.loadMap(content) }.getOrElse {
-        return defaultOverridePresetTemplateSelection()
-    }
+    val document = runCatching { YamlCodec.loadValue(content).asStringKeyedMap() }.getOrElse {
+        return OverridePresetTemplateContentAnalysis(
+            selection = defaultOverridePresetTemplateSelection(),
+            matchesTemplateExactly = false,
+        )
+    } ?: return OverridePresetTemplateContentAnalysis(
+        selection = defaultOverridePresetTemplateSelection(),
+        matchesTemplateExactly = false,
+    )
+
+    val selection = inferPresetTemplateSelection(document) ?: return OverridePresetTemplateContentAnalysis(
+        selection = defaultOverridePresetTemplateSelection(),
+        matchesTemplateExactly = false,
+    )
+
+    val generatedDocument = runCatching {
+        buildPresetTemplateYaml(selection)
+            .let(YamlCodec::loadValue)
+            .asStringKeyedMap()
+    }.getOrNull()
+
+    return OverridePresetTemplateContentAnalysis(
+        selection = selection,
+        matchesTemplateExactly = generatedDocument != null && document == generatedDocument,
+    )
+}
+
+fun inferPresetTemplateSelection(content: String?): OverridePresetTemplateSelection {
+    return analyzePresetTemplateContent(content).selection
+}
+
+private fun inferPresetTemplateSelection(document: Map<String, Any?>): OverridePresetTemplateSelection? {
     val providerKeys = document.stringKeyedMap("rule-providers").keys
     val groupNames = document.listOfMaps("proxy-groups")
         .mapNotNull { group -> group["name"]?.toString()?.takeIf(String::isNotBlank) }
@@ -999,7 +1036,7 @@ fun inferPresetTemplateSelection(content: String?): OverridePresetTemplateSelect
         rules.any(::isOfficialMrsTemplateRule)
 
     if (!hasTemplateSignals) {
-        return defaultOverridePresetTemplateSelection()
+        return null
     }
 
     val inferredUrlTestRegions = orderedRegions
@@ -1053,7 +1090,17 @@ fun buildPresetTemplateYaml(selection: OverridePresetTemplateSelection): String 
         }
     }
 
-    return YamlCodec.dumpMap(document)
+    val yamlContent = YamlCodec.dumpMap(document)
+    runCatching {
+        YamlCodec.validate(yamlContent)
+        YamlCodec.loadMap(yamlContent)
+    }.getOrElse { error ->
+        throw IllegalStateException(
+            "Custom routing YAML self-check failed: ${error.message}",
+            error,
+        )
+    }
+    return yamlContent
 }
 
 private fun normalizeEnabledItems(items: Set<OverridePresetItem>): Set<OverridePresetItem> {
@@ -1307,6 +1354,11 @@ private fun Map<String, Any?>.stringList(key: String): List<String> {
             else -> value.toString()
         }
     }.orEmpty()
+}
+
+private fun Any?.asStringKeyedMap(): Map<String, Any?>? {
+    return (this as? Map<*, *>)?.entries
+        ?.associate { entry -> entry.key.toString() to entry.value }
 }
 
 private fun officialMrsCatalogIconUrl(iconName: String?): String? {
