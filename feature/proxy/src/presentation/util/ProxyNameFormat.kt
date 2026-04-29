@@ -146,24 +146,48 @@ private fun extractCountryCodeFromName(name: String): Pair<String?, String> {
     return countryCode to displayName.ifEmpty { name }
 }
 
+private fun findFlagEmojiCountryCode(text: String): Pair<String, IntRange>? {
+    var i = 0
+    while (i < text.length - 1) {
+        val first = text.codePointAt(i)
+        val firstChars = Character.charCount(first)
+        if (!isRegionalIndicator(first)) {
+            i += firstChars
+            continue
+        }
+        val secondIdx = i + firstChars
+        if (secondIdx >= text.length) break
+        val second = text.codePointAt(secondIdx)
+        if (!isRegionalIndicator(second)) {
+            i += firstChars
+            continue
+        }
+        val countryCode = buildString(2) {
+            append(('A'.code + (first - REGIONAL_INDICATOR_BASE)).toChar())
+            append(('A'.code + (second - REGIONAL_INDICATOR_BASE)).toChar())
+        }
+        return countryCode to i..(secondIdx + Character.charCount(second) - 1)
+    }
+    return null
+}
+
 fun extractFlaggedName(rawName: String): FlaggedName {
     val trimmed = rawName.trim()
     if (trimmed.isEmpty()) return FlaggedName(countryCode = null, displayName = rawName)
 
-    val first = trimmed.codePointAt(0)
-    val firstChars = Character.charCount(first)
-    if (isRegionalIndicator(first) && trimmed.length > firstChars) {
-        val second = trimmed.codePointAt(firstChars)
-        if (isRegionalIndicator(second)) {
-            val countryCode = buildString(2) {
-                append(('A'.code + (first - REGIONAL_INDICATOR_BASE)).toChar())
-                append(('A'.code + (second - REGIONAL_INDICATOR_BASE)).toChar())
-            }
-
-            val afterSecond = firstChars + Character.charCount(second)
-            val rest = trimmed.substring(afterSecond).trimStart { it.isNameSeparator() }
-            return FlaggedName(countryCode = countryCode, displayName = rest.ifEmpty { trimmed })
-        }
+    val flagResult = findFlagEmojiCountryCode(trimmed)
+    if (flagResult != null) {
+        val (countryCode, flagRange) = flagResult
+        val before = trimmed.substring(0, flagRange.first)
+            .trimEnd { it.isNameSeparator() }
+        val after = trimmed.substring(flagRange.last + 1)
+            .trimStart { it.isNameSeparator() }
+        val displayName = when {
+            before.isNotEmpty() && after.isNotEmpty() -> "$before $after"
+            before.isNotEmpty() -> before
+            else -> after
+        }.ifEmpty { trimmed }
+        return FlaggedName(countryCode = countryCode, displayName = displayName)
     }
 
     val (codeFromName, displayName) = extractCountryCodeFromName(trimmed)
