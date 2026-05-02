@@ -38,11 +38,11 @@ data class NodeTags(
 
 fun extractNodeTags(name: String): NodeTags {
     val upperName = name.uppercase()
-    val keywords = NODE_KEYWORDS.filter { kw -> upperName.contains(kw.uppercase()) }
+    val keywords = NODE_KEYWORDS.filter { keyword -> upperName.contains(keyword.uppercase()) }
     val multiplierMatch = MULTIPLIER_REGEX.find(name)
-    val multiplier = multiplierMatch?.let { m ->
-        val v = m.groupValues[1].ifEmpty { m.groupValues[2] }
-        v.toFloatOrNull()
+    val multiplier = multiplierMatch?.let { match ->
+        val value = match.groupValues[1].ifEmpty { match.groupValues[2] }
+        value.toFloatOrNull()
     }
     return NodeTags(keywords = keywords, multiplier = multiplier)
 }

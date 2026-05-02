@@ -85,10 +85,10 @@ class ProfilesViewModel(
 
                 _profiles.value = allProfiles
                 _activeProfile.value = active
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to refresh profiles")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to refresh profiles")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -132,9 +132,9 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileAdded.format(name))
                 refreshProfiles()
                 Timber.i("Profile created: $uuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to create profile")
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to create profile")
                 createdUuid?.let { uuid ->
                     runCatching { profilesRepository.deleteProfile(uuid) }
                         .onFailure { deleteError ->
@@ -142,7 +142,7 @@ class ProfilesViewModel(
                         }
                 }
                 refreshProfiles()
-                showError(MLang.ProfilesVM.Message.AddFailed.format(e.message ?: "Unknown"))
+                showError(MLang.ProfilesVM.Message.AddFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 applyLoading(false)
@@ -175,10 +175,10 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileAdded.format("Clone"))
                 refreshProfiles()
                 Timber.i("Profile cloned: from=$uuid to=$newUuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to clone profile")
-                showError(MLang.ProfilesVM.Message.AddFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to clone profile")
+                showError(MLang.ProfilesVM.Message.AddFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -193,10 +193,10 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileDeleted)
                 refreshProfiles()
                 Timber.i("Profile deleted: $uuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to delete profile")
-                showError(MLang.ProfilesVM.Message.DeleteFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to delete profile")
+                showError(MLang.ProfilesVM.Message.DeleteFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -211,10 +211,10 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format("Active"))
                 refreshProfiles()
                 Timber.i("Profile activated: $uuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to activate profile")
-                showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to activate profile")
+                showError(MLang.ProfilesVM.Message.ToggleFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -244,10 +244,10 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(uuid.toString()))
                 refreshProfiles()
                 Timber.i("Profile updated: $uuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to update profile")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to update profile")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 applyLoading(false)
@@ -263,10 +263,10 @@ class ProfilesViewModel(
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(name))
                 refreshProfiles()
                 Timber.i("Profile patched: $uuid")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to patch profile")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to patch profile")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -294,9 +294,9 @@ class ProfilesViewModel(
                 _profiles.value = reordered
                 profilesRepository.reorderProfiles(reordered.map { it.uuid })
                 Timber.d("Profiles reordered: $from->$to")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to reorder profiles")
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to reorder profiles")
                 refreshProfiles()
             }
         }
@@ -317,10 +317,10 @@ class ProfilesViewModel(
                 }
                 refreshProfiles()
                 Timber.d("Profile toggled: $uuid, active=${!profile.active}")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to toggle profile")
-                showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to toggle profile")
+                showError(MLang.ProfilesVM.Message.ToggleFailed.format(error.message ?: "Unknown"))
             }
         }
     }

@@ -79,8 +79,8 @@ class CaseEngine(backendPort: Int, frontendPort: Int, allowLan: Boolean) : Close
 
             runtime.allowEval(true)
             runtime.getExecutor(argv2EnvScript).executeVoid()
-        } catch (e: Exception) {
-            Timber.e(e, "CaseEngine init failed")
+        } catch (error: Exception) {
+            Timber.e(error, "CaseEngine init failed")
         }
     }
 
@@ -105,8 +105,8 @@ class CaseEngine(backendPort: Int, frontendPort: Int, allowLan: Boolean) : Close
                     runtime.await(V8AwaitMode.RunNoWait)
                 }
             } catch (_: InterruptedException) {
-            } catch (e: Exception) {
-                Timber.e(e, "CaseEngine run failed")
+            } catch (error: Exception) {
+                Timber.e(error, "CaseEngine run failed")
             } finally {
                 cleanup()
             }
@@ -133,8 +133,8 @@ class CaseEngine(backendPort: Int, frontendPort: Int, allowLan: Boolean) : Close
                 thread.interrupt()
                 thread.join(5000)
             }
-        } catch (e: Exception) {
-            Timber.e(e, "CaseEngine stop failed")
+        } catch (error: Exception) {
+            Timber.e(error, "CaseEngine stop failed")
         }
     }
 
@@ -148,8 +148,8 @@ class CaseEngine(backendPort: Int, frontendPort: Int, allowLan: Boolean) : Close
                 }
             }
             nodeRuntime = null
-        }.onFailure { e ->
-            Timber.e(e, "CaseEngine cleanup failed")
+        }.onFailure { error ->
+            Timber.e(error, "CaseEngine cleanup failed")
         }
     }
 }

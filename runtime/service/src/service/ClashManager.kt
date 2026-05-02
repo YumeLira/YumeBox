@@ -25,15 +25,7 @@ package com.github.yumelira.yumebox.service
 import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.model.ConnectionSnapshot
-import com.github.yumelira.yumebox.core.model.LogMessage
-import com.github.yumelira.yumebox.core.model.Proxy
-import com.github.yumelira.yumebox.core.model.Provider
-import com.github.yumelira.yumebox.core.model.ProviderList
-import com.github.yumelira.yumebox.core.model.ProxyGroup
-import com.github.yumelira.yumebox.core.model.ProxySort
-import com.github.yumelira.yumebox.core.model.TunnelState
-import com.github.yumelira.yumebox.core.model.UiConfiguration
+import com.github.yumelira.yumebox.core.model.*
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.log.Log
@@ -43,25 +35,18 @@ import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
 import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipeline
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
+import com.github.yumelira.yumebox.service.runtime.util.mergeProxyGroupNames
 import com.github.yumelira.yumebox.service.runtime.util.sendBroadcastSelf
 import com.tencent.mmkv.MMKV
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.io.File
 
-class ClashManager(private val context: Context) : IClashManager,
-    CoroutineScope by CoroutineScope(Dispatchers.IO) {
+class ClashManager(private val context: Context) : IClashManager, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private val store = ServiceStore()
     private val compiledConfigPipeline = CompiledConfigPipeline(context)
     private val runtimeSpecFactory = SessionRuntimeSpecFactory(context)
@@ -174,8 +159,8 @@ class ClashManager(private val context: Context) : IClashManager,
     override suspend fun healthCheckProxy(group: String, proxyName: String): Int {
         Timber.d("ClashManager healthCheckProxy: group=%s proxy=%s", group, proxyName)
         val json = Clash.healthCheckProxy(proxyName).await()
-        val obj = kotlinx.serialization.json.Json.parseToJsonElement(json)
-        return obj.jsonObject["delay"]?.jsonPrimitive?.int ?: -1
+        val jsonElement = kotlinx.serialization.json.Json.parseToJsonElement(json)
+        return jsonElement.jsonObject["delay"]?.jsonPrimitive?.int ?: -1
     }
 
     override suspend fun updateProvider(type: Provider.Type, name: String) {
@@ -214,20 +199,7 @@ class ClashManager(private val context: Context) : IClashManager,
             return runtimeNames
         }
 
-        return buildList(expectedNames.size + runtimeNames.size) {
-            expectedNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
-            runtimeNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
-        }
+        return mergeProxyGroupNames(expectedNames, runtimeNames)
     }
 
     private fun queryRuntimeProxyGroupOrNull(groupName: String): ProxyGroup? {
@@ -235,12 +207,7 @@ class ClashManager(private val context: Context) : IClashManager,
         if (group.name.isBlank()) {
             return null
         }
-        return if (
-            group.type == Proxy.Type.Unknown &&
-            group.proxies.isEmpty() &&
-            group.now.isBlank() &&
-            group.icon.isNullOrBlank()
-        ) {
+        return if (group.type == Proxy.Type.Unknown && group.proxies.isEmpty() && group.now.isBlank() && group.icon.isNullOrBlank()) {
             null
         } else {
             group
@@ -256,19 +223,19 @@ class ClashManager(private val context: Context) : IClashManager,
             }
 
             if (observer != null) {
-                logReceiver = Clash.subscribeLogcat().also { c ->
+                logReceiver = Clash.subscribeLogcat().also { receiver ->
                     launch {
                         try {
                             while (isActive) {
-                                observer.newItem(c.receive())
+                                observer.newItem(receiver.receive())
                             }
                         } catch (_: CancellationException) {
 
-                        } catch (e: Exception) {
-                            Log.w("UI crashed", e)
+                        } catch (error: Exception) {
+                            Log.w("UI crashed", error)
                         } finally {
                             withContext(NonCancellable) {
-                                c.cancel()
+                                receiver.cancel()
 
                                 Clash.forceGc()
                             }

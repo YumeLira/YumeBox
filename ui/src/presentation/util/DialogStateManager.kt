@@ -28,7 +28,7 @@ import androidx.compose.runtime.remember
 /**
  * Type-safe Dialog state management utility.
  *
- * Provides a consistent pattern for managing dialog visibility and data across the app,
+ * Provides a consistent pattern for managing dialog visibility and payload across the app,
  * reducing boilerplate show/hide/dismiss logic.
  *
  * Usage example:
@@ -50,14 +50,14 @@ import androidx.compose.runtime.remember
  *     )
  * }
  *
- * // Dialog with data
+ * // Dialog with payload
  * val editDialog = rememberDialogState<User>()
  *
  * Button(onClick = { editDialog.show(currentUser) }) {
  *     Text("Edit")
  * }
  *
- * editDialog.data?.let { user ->
+ * editDialog.payload?.let { user ->
  *     EditDialog(
  *         user = user,
  *         onDismiss = { editDialog.dismiss() },
@@ -71,7 +71,7 @@ import androidx.compose.runtime.remember
  */
 class DialogState<T>(
     private val isShownState: MutableState<Boolean> = mutableStateOf(false),
-    private val dataState: MutableState<T?> = mutableStateOf(null),
+    private val payloadState: MutableState<T?> = mutableStateOf(null),
 ) {
     /**
      * Whether the dialog is currently shown.
@@ -80,39 +80,39 @@ class DialogState<T>(
         get() = isShownState.value
 
     /**
-     * The data associated with this dialog, if any.
+     * The payload associated with this dialog, if any.
      */
-    val data: T?
-        get() = dataState.value
+    val payload: T?
+        get() = payloadState.value
 
     /**
-     * Shows the dialog without data.
+     * Shows the dialog without payload.
      */
     fun show() {
         isShownState.value = true
     }
 
     /**
-     * Shows the dialog with associated data.
+     * Shows the dialog with associated payload.
      */
-    fun show(data: T) {
-        dataState.value = data
+    fun show(payload: T) {
+        payloadState.value = payload
         isShownState.value = true
     }
 
     /**
-     * Dismisses the dialog and clears data.
+     * Dismisses the dialog and clears payload.
      */
     fun dismiss() {
         isShownState.value = false
-        dataState.value = null
+        payloadState.value = null
     }
 
     /**
-     * Updates the dialog data without changing visibility.
+     * Updates the dialog payload without changing visibility.
      */
-    fun updateData(data: T?) {
-        dataState.value = data
+    fun updatePayload(payload: T?) {
+        payloadState.value = payload
     }
 }
 
@@ -127,9 +127,9 @@ fun rememberDialogVisibilityState(): DialogState<Unit> {
 }
 
 /**
- * Creates and remembers a [DialogState] with associated data type.
+ * Creates and remembers a [DialogState] with associated payload type.
  *
- * @param T The type of data associated with the dialog
+ * @param T The type of payload associated with the dialog
  * @return A remembered DialogState instance
  */
 @Composable
@@ -154,7 +154,7 @@ fun <T> rememberDialogState(): DialogState<T> {
  *         message = confirmDelete.message,
  *         onDismiss = { confirmDelete.dismiss() },
  *         onConfirm = {
- *             confirmDelete.data?.let { deleteFile(it) }
+ *             confirmDelete.payload?.let { deleteFile(it) }
  *             confirmDelete.dismiss()
  *         }
  *     )
@@ -163,22 +163,22 @@ fun <T> rememberDialogState(): DialogState<T> {
  */
 class ConfirmDialogState<T>(
     private val isShownState: MutableState<Boolean> = mutableStateOf(false),
-    private val dataState: MutableState<T?> = mutableStateOf(null),
+    private val payloadState: MutableState<T?> = mutableStateOf(null),
     private val messageState: MutableState<String> = mutableStateOf(""),
 ) {
     val isShown: Boolean get() = isShownState.value
-    val data: T? get() = dataState.value
+    val payload: T? get() = payloadState.value
     val message: String get() = messageState.value
 
-    fun show(data: T, message: String) {
-        dataState.value = data
+    fun show(payload: T, message: String) {
+        payloadState.value = payload
         messageState.value = message
         isShownState.value = true
     }
 
     fun dismiss() {
         isShownState.value = false
-        dataState.value = null
+        payloadState.value = null
         messageState.value = ""
     }
 }

@@ -62,8 +62,8 @@ class OverrideService(
             notifyRuntimeOverrideChanged()
 
             true
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to apply override for profile: %s", profileId)
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to apply override for profile: %s", profileId)
             false
         }
     }

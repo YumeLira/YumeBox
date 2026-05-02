@@ -59,8 +59,8 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     val coreVersion by produceState(initialValue = MLang.About.App.VersionLoading) {
         value = try {
             Bridge.nativeCoreVersion()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             MLang.About.App.VersionFailed
         }
     }

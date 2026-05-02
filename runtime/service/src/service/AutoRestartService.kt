@@ -86,8 +86,8 @@ class AutoRestartService : Service() {
             try {
                 runCatching {
                     checkAndAutoStart(reason)
-                }.onFailure { e ->
-                    Timber.tag(TAG).e(e, "Auto start failed: ${e.message}")
+                }.onFailure { error ->
+                    Timber.tag(TAG).e(error, "Auto start failed: ${error.message}")
                 }
             } finally {
                 AutoStartExecutionGate.clear(serviceCache)
@@ -196,8 +196,8 @@ class AutoRestartService : Service() {
         try {
             profileManager.update(activeProfile.uuid, null)
             Timber.tag(TAG).i("Boot update ok: ${activeProfile.uuid}")
-        } catch (e: Exception) {
-            Timber.tag(TAG).w(e, "Boot update failed")
+        } catch (error: Exception) {
+            Timber.tag(TAG).w(error, "Boot update failed")
         }
     }
 

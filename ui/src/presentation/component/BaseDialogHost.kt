@@ -36,12 +36,12 @@ fun BaseDialogVisibilityHost(
 @Composable
 fun <T> BaseDialogPayloadHost(
     dialogState: DialogState<T>,
-    content: @Composable (data: T, dismiss: () -> Unit) -> Unit,
+    content: @Composable (payload: T, dismiss: () -> Unit) -> Unit,
 ) {
     val dismiss: () -> Unit = { dialogState.dismiss() }
-    val data = dialogState.data
-    if (dialogState.isShown && data != null) {
-        content(data, dismiss)
+    val payload = dialogState.payload
+    if (dialogState.isShown && payload != null) {
+        content(payload, dismiss)
     } else {
         // Ensure stale payload does not survive invisible state transitions.
         LaunchedEffect(dialogState.isShown) {

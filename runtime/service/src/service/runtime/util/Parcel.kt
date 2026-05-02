@@ -27,30 +27,30 @@ import android.os.Parcel
 import android.os.Parcelable
 
 private class SliceParcelableListBpBinder(
-    val list: List<Parcelable>,
+    val items: List<Parcelable>,
     val flags: Int
 ) : Binder() {
-    override fun onTransact(code: Int, data: Parcel, reply: Parcel?, tFlags: Int): Boolean {
+    override fun onTransact(code: Int, request: Parcel, reply: Parcel?, transactionFlags: Int): Boolean {
         when (code) {
             TRANSACTION_GET_ITEMS -> {
                 reply ?: return false
 
-                val offset = data.readInt()
-                val chunk = data.readInt()
+                val offset = request.readInt()
+                val chunk = request.readInt()
 
-                val end = (offset + chunk).coerceAtMost(list.size)
+                val end = (offset + chunk).coerceAtMost(items.size)
 
                 reply.writeInt(end - offset)
 
                 for (i in offset until end) {
-                    list[i].writeToParcel(reply, flags)
+                    items[i].writeToParcel(reply, flags)
                 }
 
                 return true
             }
         }
 
-        return super.onTransact(code, data, reply, flags)
+        return super.onTransact(code, request, reply, transactionFlags)
     }
 
     companion object {
@@ -77,16 +77,16 @@ fun <T : Parcelable> Parcelable.Creator<T>.createListFromParcelSlice(
     var offset = 0
 
     while (offset < total) {
-        val data = Parcel.obtain()
+        val request = Parcel.obtain()
         val reply = Parcel.obtain()
 
         try {
-            data.writeInt(offset)
-            data.writeInt(chunk)
+            request.writeInt(offset)
+            request.writeInt(chunk)
 
             if (!remote.transact(
                     SliceParcelableListBpBinder.TRANSACTION_GET_ITEMS,
-                    data,
+                    request,
                     reply,
                     flags
                 )
@@ -105,7 +105,7 @@ fun <T : Parcelable> Parcelable.Creator<T>.createListFromParcelSlice(
             if (size == 0)
                 break
         } finally {
-            data.recycle()
+            request.recycle()
             reply.recycle()
         }
     }

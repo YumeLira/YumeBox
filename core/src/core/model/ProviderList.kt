@@ -27,7 +27,7 @@ import android.os.Parcelable
 import com.github.yumelira.yumebox.core.util.createListFromParcelSlice
 import com.github.yumelira.yumebox.core.util.writeToParcelSlice
 
-class ProviderList(data: List<Provider>) : List<Provider> by data, Parcelable {
+class ProviderList(providers: List<Provider>) : List<Provider> by providers, Parcelable {
     constructor(parcel: Parcel) : this(Provider.createListFromParcelSlice(parcel, 0, 20))
 
     override fun describeContents(): Int {

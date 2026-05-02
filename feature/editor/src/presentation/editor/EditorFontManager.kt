@@ -37,8 +37,8 @@ object EditorFontManager {
                 cachedFont = it
                 Timber.d("JetBrainsMono font loaded successfully")
             }
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to load JetBrainsMono font, falling back to MONOSPACE")
+        } catch (error: Exception) {
+            Timber.w(error, "Failed to load JetBrainsMono font, falling back to MONOSPACE")
             Typeface.MONOSPACE
         }
     }

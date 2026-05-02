@@ -253,8 +253,8 @@ class FeatureViewModel(
                 if (success) {
                     _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
                 }
-            }.onFailure { e ->
-                showToast(MLang.Feature.SubStore.DownloadError.format(e.message ?: MLang.Util.Error.UnknownError))
+            }.onFailure { error ->
+                showToast(MLang.Feature.SubStore.DownloadError.format(error.message ?: MLang.Util.Error.UnknownError))
             }
             loadingState.value = false
         }

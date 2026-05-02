@@ -282,9 +282,9 @@ internal fun NodeCard(
                         verticalArrangement = Arrangement.spacedBy(spacing.space4),
                     ) {
                         NodeTagChip(label = typeLabel)
-                        tags.keywords.forEach { kw -> NodeTagChip(label = kw) }
-                        tags.multiplier?.let { m ->
-                            if (m > 0f) NodeMultiplierChip(multiplier = m)
+                        tags.keywords.forEach { keyword -> NodeTagChip(label = keyword) }
+                        tags.multiplier?.let { multiplier ->
+                            if (multiplier > 0f) NodeMultiplierChip(multiplier = multiplier)
                         }
                     }
                     when {
@@ -298,12 +298,12 @@ internal fun NodeCard(
                                 textAlign = TextAlign.End,
                                 modifier = Modifier
                                     .padding(start = sizes.nodeCardTrailingGap)
-                                    .let { m ->
-                                        if (onNodeTestClick != null && singleNodeTestEnabled) m.clickable(
+                                    .let { modifier ->
+                                        if (onNodeTestClick != null && singleNodeTestEnabled) modifier.clickable(
                                             interactionSource = delayInteractionSource,
                                             indication = null,
                                             onClick = onNodeTestClick,
-                                        ) else m
+                                        ) else modifier
                                     },
                             )
                         }

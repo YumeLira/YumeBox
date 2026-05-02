@@ -120,8 +120,8 @@ internal fun StableQrScanner(
                             previewUseCase,
                         )
                     }
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to bind camera lifecycle")
+                } catch (error: Exception) {
+                    Timber.w(error, "Failed to bind camera lifecycle")
                 }
             }
 

@@ -129,7 +129,7 @@ class HomeViewModel(
         mainProxyNode.map { it?.name }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val selectedServerPing: StateFlow<Int?> = mainProxyNode.map { node ->
-        node?.delay?.takeIf { d -> d > 0 }
+        node?.delay?.takeIf { delay -> delay > 0 }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,9 +163,9 @@ class HomeViewModel(
                 _profiles.value = allProfiles
                 _recommendedProfile.value = active
                 _profilesLoaded.value = true
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to refresh profiles")
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to refresh profiles")
                 _profilesLoaded.value = true
             }
         }
@@ -310,10 +310,10 @@ class HomeViewModel(
 
             profilesRepository.setActiveProfile(activeProfile.uuid)
             showMessage(MLang.Home.Message.ConfigSwitched)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.e(e, "Failed to reload profile")
-            showError(MLang.Home.Message.ConfigSwitchFailed.format(e.message))
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.e(error, "Failed to reload profile")
+            showError(MLang.Home.Message.ConfigSwitchFailed.format(error.message))
         } finally {
             applyLoading(false)
         }
@@ -365,11 +365,11 @@ class HomeViewModel(
                 AutoStartSessionGate.markManualPaused()
                 proxyFacade.stopProxy()
             }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             _pendingTransition.value = PendingTransition.None
-            Timber.e(e, "Failed to stop proxy")
-            showError(MLang.Home.Message.StopFailed.format(e.message))
+            Timber.e(error, "Failed to stop proxy")
+            showError(MLang.Home.Message.StopFailed.format(error.message))
         }
     }
 
@@ -430,16 +430,16 @@ class HomeViewModel(
             }
 
             Timber.i("Home startProxy completed in ${System.currentTimeMillis() - startedAt}ms, mode=${request.mode}")
-        } catch (e: com.github.yumelira.yumebox.remote.VpnPermissionRequired) {
+        } catch (error: com.github.yumelira.yumebox.remote.VpnPermissionRequired) {
             _pendingTransition.value = PendingTransition.AwaitingPermission
-            _vpnPrepareIntent.emit(e.intent)
+            _vpnPrepareIntent.emit(error.intent)
             Timber.i("VPN permission required")
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             clearPendingStart()
             _pendingTransition.value = PendingTransition.None
-            Timber.e(e, "Failed to start proxy")
-            showError(MLang.Home.Message.StartFailed.format(e.message))
+            Timber.e(error, "Failed to start proxy")
+            showError(MLang.Home.Message.StartFailed.format(error.message))
         }
     }
 

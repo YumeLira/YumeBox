@@ -68,8 +68,8 @@ class SubStoreService : Service() {
             SubStoreServiceController.markRunning()
 
             START_STICKY
-        }.getOrElse { e ->
-            Timber.e(e, "Sub-Store service start failed")
+        }.getOrElse { error ->
+            Timber.e(error, "Sub-Store service start failed")
             cleanupService()
             stopSelf(startId)
             START_NOT_STICKY
@@ -98,16 +98,16 @@ class SubStoreService : Service() {
             Timber.e("Javet load failed: ${NativeLibraryManager.getLibraryStatus(javetLibBaseName)}")
         }
         loaded
-    }.getOrElse { e ->
-        Timber.e(e, "Javet load error")
+    }.getOrElse { error ->
+        Timber.e(error, "Javet load error")
         false
     }
 
     private fun cleanupService() {
         runCatching {
             caseEngine?.stopServer()
-        }.onFailure { e ->
-            Timber.e(e, "Failed to stop Sub-Store service")
+        }.onFailure { error ->
+            Timber.e(error, "Failed to stop Sub-Store service")
         }
         caseEngine = null
         isRunning = false

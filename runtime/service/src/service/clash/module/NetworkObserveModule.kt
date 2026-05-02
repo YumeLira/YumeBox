@@ -97,8 +97,8 @@ class NetworkObserveModule(service: Service) : Module<Network>(service) {
         return try {
             connectivityManager.registerNetworkCallback(request, callback)
             true
-        } catch (e: Exception) {
-            Log.w("Register network callback failed", e)
+        } catch (error: Exception) {
+            Log.w("Register network callback failed", error)
             false
         }
     }
@@ -108,8 +108,8 @@ class NetworkObserveModule(service: Service) : Module<Network>(service) {
         try {
             connectivityManager.unregisterNetworkCallback(callback)
             return true
-        } catch (e: Exception) {
-            Log.w("Unregister network callback failed", e)
+        } catch (error: Exception) {
+            Log.w("Unregister network callback failed", error)
         }
 
         return false
@@ -134,7 +134,7 @@ class NetworkObserveModule(service: Service) : Module<Network>(service) {
 
     private fun notifyDnsChange() {
         val dnsList = (networkInfos.asSequence().minByOrNull { networkToInt(it) }?.value?.dnsList
-            ?: emptyList()).map { x -> x.asSocketAddressText(53) }
+            ?: emptyList()).map { address -> address.asSocketAddressText(53) }
         val prevDnsList = curDnsList
         if (dnsList.isNotEmpty() && prevDnsList != dnsList) {
             curDnsList = dnsList

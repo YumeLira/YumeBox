@@ -310,8 +310,8 @@ internal fun AddProfileSheet(
                         } else {
                             context.toast(MLang.ProfilesPage.QrScanner.RecognizeFailed)
                         }
-                    } catch (e: Exception) {
-                        context.toast(MLang.ProfilesPage.QrScanner.RecognizeError.format(e.message ?: ""))
+                    } catch (error: Exception) {
+                        context.toast(MLang.ProfilesPage.QrScanner.RecognizeError.format(error.message ?: ""))
                     }
                 }
             }

@@ -74,10 +74,10 @@ class ImportConfigViewModel(
                 applyLoading(true)
                 _profiles.value = profilesRepository.queryAllProfiles()
                 _activeProfile.value = profilesRepository.queryActiveProfile()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to refresh lite profiles")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to refresh lite profiles")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -114,12 +114,12 @@ class ImportConfigViewModel(
                 )
                 showMessage(MLang.ProfilesVM.Message.ProfileAdded.format(name))
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to create lite profile")
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to create lite profile")
                 createdUuid?.let { uuid -> runCatching { profilesRepository.deleteProfile(uuid) } }
                 refreshProfiles()
-                showError(MLang.ProfilesVM.Message.AddFailed.format(e.message ?: "Unknown"))
+                showError(MLang.ProfilesVM.Message.AddFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 applyLoading(false)
@@ -141,10 +141,10 @@ class ImportConfigViewModel(
                 profilesRepository.patchProfile(uuid, name, source, interval)
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(name))
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to update lite profile")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to update lite profile")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 applyLoading(false)
@@ -171,10 +171,10 @@ class ImportConfigViewModel(
                 )
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(uuid.toString()))
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to update lite profile")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to update lite profile")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 applyLoading(false)
@@ -202,10 +202,10 @@ class ImportConfigViewModel(
                     showMessage(MLang.ProfilesPage.Action.UpdateAll)
                 }
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to update all lite url profiles")
-                showError(MLang.ProfilesVM.Message.UpdateFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to update all lite url profiles")
+                showError(MLang.ProfilesVM.Message.UpdateFailed.format(error.message ?: "Unknown"))
                 _downloadProgress.value = null
             } finally {
                 onComplete?.invoke()
@@ -220,10 +220,10 @@ class ImportConfigViewModel(
                 profilesRepository.deleteProfile(uuid)
                 showMessage(MLang.ProfilesVM.Message.ProfileDeleted)
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to delete lite profile")
-                showError(MLang.ProfilesVM.Message.DeleteFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to delete lite profile")
+                showError(MLang.ProfilesVM.Message.DeleteFailed.format(error.message ?: "Unknown"))
             } finally {
                 applyLoading(false)
             }
@@ -240,8 +240,8 @@ class ImportConfigViewModel(
                 reordered.add(to, moved)
                 _profiles.value = reordered
                 profilesRepository.reorderProfiles(reordered.map { it.uuid })
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
                 refreshProfiles()
             }
         }
@@ -267,10 +267,10 @@ class ImportConfigViewModel(
                 }
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(profile.name))
                 refreshProfiles()
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Timber.e(e, "Failed to toggle lite profile")
-                showError(MLang.ProfilesVM.Message.ToggleFailed.format(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                Timber.e(error, "Failed to toggle lite profile")
+                showError(MLang.ProfilesVM.Message.ToggleFailed.format(error.message ?: "Unknown"))
             }
         }
     }

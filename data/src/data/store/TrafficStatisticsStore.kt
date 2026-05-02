@@ -337,14 +337,14 @@ class TrafficStatisticsStore(private val mmkv: MMKV) {
         return calendar.timeInMillis
     }
 
-    private fun cleanOldDailyAppData(data: MutableMap<Long, DailyAppTrafficSummary>): Map<Long, DailyAppTrafficSummary> {
+    private fun cleanOldDailyAppData(summaries: MutableMap<Long, DailyAppTrafficSummary>): Map<Long, DailyAppTrafficSummary> {
         val cutoffTime = System.currentTimeMillis() - (MAX_APP_DAYS_TO_KEEP * DAY_MS)
-        return data.filterKeys { it >= cutoffTime }
+        return summaries.filterKeys { it >= cutoffTime }
     }
 
-    private fun cleanOldDailyRouteData(data: MutableMap<Long, DailyRouteTrafficSummary>): Map<Long, DailyRouteTrafficSummary> {
+    private fun cleanOldDailyRouteData(summaries: MutableMap<Long, DailyRouteTrafficSummary>): Map<Long, DailyRouteTrafficSummary> {
         val cutoffTime = System.currentTimeMillis() - (MAX_APP_DAYS_TO_KEEP * DAY_MS)
-        return data.filterKeys { it >= cutoffTime }
+        return summaries.filterKeys { it >= cutoffTime }
     }
 
     private fun markDailyDataDirty(routeChanges: Boolean) {

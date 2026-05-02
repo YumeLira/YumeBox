@@ -50,8 +50,8 @@ class RestartReceiver : BroadcastReceiver() {
                     } else {
                         context.startService(serviceIntent)
                     }
-                }.onFailure { e ->
-                    Timber.e(e, "Start auto-restart service failed")
+                }.onFailure { error ->
+                    Timber.e(error, "Start auto-restart service failed")
                 }
             }
         }

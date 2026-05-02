@@ -65,8 +65,8 @@ object AppIconHelper {
                 targetState,
                 PackageManager.DONT_KILL_APP,
             )
-        }.onFailure { e ->
-            Timber.w(e, "Failed to ${if (hide) "hide" else "show"} app icon")
+        }.onFailure { error ->
+            Timber.w(error, "Failed to ${if (hide) "hide" else "show"} app icon")
         }
     }
 

@@ -39,7 +39,7 @@ object AppUtil {
             val rootJsonFile = File(SubStorePaths.dataDir, "root.json")
             rootJsonFile.parentFile?.mkdirs()
             if (!rootJsonFile.exists()) rootJsonFile.writeText("{}")
-        }.onFailure { e -> timber.log.Timber.e(e, "Create root.json failed") }
+        }.onFailure { error -> timber.log.Timber.e(error, "Create root.json failed") }
     }
 
     private fun extractBackendFile() {
@@ -51,7 +51,7 @@ object AppUtil {
                     inputStream.copyTo(outputStream)
                 }
             }
-        }.onFailure { e -> timber.log.Timber.e(e, "Extract backend bundle failed") }
+        }.onFailure { error -> timber.log.Timber.e(error, "Extract backend bundle failed") }
     }
 
     private fun extractFrontendDist() {
@@ -86,6 +86,6 @@ object AppUtil {
 
             stagingDir.deleteRecursively()
             zipPath.delete()
-        }.onFailure { e -> timber.log.Timber.e(e, "Extract frontend assets failed") }
+        }.onFailure { error -> timber.log.Timber.e(error, "Extract frontend assets failed") }
     }
 }

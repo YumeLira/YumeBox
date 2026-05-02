@@ -120,8 +120,8 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                             if (!isDownloading && urlProfiles.isNotEmpty()) {
                                 isDownloading = true
                                 scope.launch {
-                                    urlProfiles.forEach { p ->
-                                        profilesViewModel.updateProfile(p.uuid)
+                                    urlProfiles.forEach { profile ->
+                                        profilesViewModel.updateProfile(profile.uuid)
                                     }
                                     isDownloading = false
                                 }

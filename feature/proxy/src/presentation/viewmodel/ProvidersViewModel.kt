@@ -60,9 +60,9 @@ class ProvidersViewModel(
             val result = providersRepository.queryProviders()
             result.onSuccess { providerList ->
                 _providers.value = providerList.sorted()
-            }.onFailure { e ->
+            }.onFailure { error ->
                 _uiState.update {
-                    it.copy(error = MLang.Providers.Message.FetchFailed.format(e.message ?: "Unknown error"))
+                    it.copy(error = MLang.Providers.Message.FetchFailed.format(error.message ?: "Unknown error"))
                 }
             }
             _uiState.update { it.copy(isLoading = false) }
@@ -77,9 +77,9 @@ class ProvidersViewModel(
             result.onSuccess {
                 refreshProviders()
                 _uiState.update { it.copy(message = MLang.Providers.Message.UpdateSuccess.format(provider.name)) }
-            }.onFailure { e ->
+            }.onFailure { error ->
                 _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: "Unknown error"))
+                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(error.message ?: "Unknown error"))
                 }
             }
             _uiState.update { it.copy(updatingProviders = it.updatingProviders - providerKey) }
@@ -109,9 +109,9 @@ class ProvidersViewModel(
                         )
                     }
                 }
-            }.onFailure { e ->
+            }.onFailure { error ->
                 _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(e.message ?: "Unknown error"))
+                    it.copy(error = MLang.Providers.Message.UpdateFailed.format(error.message ?: "Unknown error"))
                 }
             }
 
@@ -136,9 +136,9 @@ class ProvidersViewModel(
             result.onSuccess {
                 refreshProviders()
                 _uiState.update { it.copy(message = MLang.Providers.Message.UploadSuccess.format(provider.name)) }
-            }.onFailure { e ->
+            }.onFailure { error ->
                 _uiState.update {
-                    it.copy(error = MLang.Providers.Message.UploadFailed.format(e.message ?: "Unknown error"))
+                    it.copy(error = MLang.Providers.Message.UploadFailed.format(error.message ?: "Unknown error"))
                 }
             }
 

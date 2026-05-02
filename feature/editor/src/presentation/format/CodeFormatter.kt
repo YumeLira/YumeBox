@@ -54,7 +54,7 @@ object CodeFormatter {
                 trimmed.startsWith("[") -> JSONArray(trimmed).toString(2)
                 else -> null
             }
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             null
         }
     }
@@ -68,7 +68,7 @@ object CodeFormatter {
                 else -> return false
             }
             true
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             false
         }
     }
@@ -79,7 +79,7 @@ object CodeFormatter {
                 .map { it.trimEnd() }
                 .joinToString("\n")
                 .replace(Regex("\n{3,}"), "\n\n")
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             null
         }
     }

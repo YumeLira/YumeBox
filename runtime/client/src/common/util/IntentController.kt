@@ -73,8 +73,8 @@ class IntentController(
                 proxyFacade.startProxy(mode)
 
                 Timber.i("External start ok")
-            }.onFailure { e ->
-                Timber.e(e, "External start failed")
+            }.onFailure { error ->
+                Timber.e(error, "External start failed")
             }
         }
     }
@@ -86,8 +86,8 @@ class IntentController(
                 AutoStartSessionGate.markManualPaused()
                 proxyFacade.stopProxy()
                 Timber.i("External stop ok")
-            } catch (e: Exception) {
-                Timber.e(e, "External stop failed")
+            } catch (error: Exception) {
+                Timber.e(error, "External stop failed")
             }
         }
     }

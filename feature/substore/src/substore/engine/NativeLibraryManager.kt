@@ -112,8 +112,8 @@ object NativeLibraryManager {
                 LibrarySource.MAIN_APK -> extractFromMainApk(info, targetFile)
                 LibrarySource.EXTENSION_APK -> extractFromExtensionApk(info, targetFile)
             }
-        }.getOrElse { e ->
-            Timber.w(e, "Library extract failed: ${info.name}")
+        }.getOrElse { error ->
+            Timber.w(error, "Library extract failed: ${info.name}")
             false
         }
     }
@@ -170,8 +170,8 @@ object NativeLibraryManager {
         ZipFile(extensionApk).use { zip ->
             val pattern =
                 Regex("lib/($abi|${Build.SUPPORTED_ABIS.joinToString("|")})/${info.name}\\.v\\.\\d+\\.\\d+\\.\\d+\\.so")
-            val entry = zip.entries().asSequence().firstOrNull { e ->
-                pattern.matches(e.name)
+            val entry = zip.entries().asSequence().firstOrNull { error ->
+                pattern.matches(error.name)
             }
 
             if (entry == null) {
@@ -238,8 +238,8 @@ object NativeLibraryManager {
         return runCatching {
             System.load(path)
             true
-        }.getOrElse { e ->
-            Timber.e(e, "JNI load failed: $name")
+        }.getOrElse { error ->
+            Timber.e(error, "JNI load failed: $name")
             false
         }
     }

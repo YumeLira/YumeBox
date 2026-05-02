@@ -35,10 +35,10 @@ object RepositoryUtils {
     ): Result<T> {
         return try {
             Result.success(block())
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.tag(tag).e(e, "Failed to execute $operation")
-            Result.failure(e)
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.tag(tag).e(error, "Failed to execute $operation")
+            Result.failure(error)
         }
     }
 
@@ -49,10 +49,10 @@ object RepositoryUtils {
     ): Result<T> {
         return try {
             Result.success(block())
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.tag(tag).e(e, "Failed to execute $operation")
-            Result.failure(e)
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.tag(tag).e(error, "Failed to execute $operation")
+            Result.failure(error)
         }
     }
 }

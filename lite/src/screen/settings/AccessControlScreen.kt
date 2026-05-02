@@ -96,11 +96,11 @@ private data class SearchStatus(
     val offsetY: Dp = 0.dp,
     val resultStatus: ResultStatus = ResultStatus.DEFAULT,
 ) {
-    fun isExpand() = current == Status.EXPANDED
+    fun isExpanded() = current == Status.EXPANDED
     fun isCollapsed() = current == Status.COLLAPSED
     fun shouldExpand() = current == Status.EXPANDED || current == Status.EXPANDING
-    fun shouldCollapsed() = current == Status.COLLAPSED || current == Status.COLLAPSING
-    fun isAnimatingExpand() = current == Status.EXPANDING
+    fun shouldCollapse() = current == Status.COLLAPSED || current == Status.COLLAPSING
+    fun isExpanding() = current == Status.EXPANDING
 
     fun onAnimationComplete(): SearchStatus = when (current) {
         Status.EXPANDING -> copy(current = Status.EXPANDED)
@@ -549,7 +549,7 @@ private fun SearchEmptyState(
 @Composable
 private fun SearchStatus.TopAppBarAnim(
     modifier: Modifier = Modifier,
-    visible: Boolean = shouldCollapsed(),
+    visible: Boolean = shouldCollapse(),
     content: @Composable () -> Unit,
 ) {
     val alpha by animateFloatAsState(
@@ -614,7 +614,7 @@ private fun SearchStatus.SearchBox(
     }
 
     AnimatedVisibility(
-        visible = searchStatus.shouldCollapsed(),
+        visible = searchStatus.shouldCollapse(),
         enter = fadeIn(tween(300, easing = LinearOutSlowInEasing)) +
             slideInVertically(tween(300, easing = LinearOutSlowInEasing)) { -with(density) { offsetY.roundToPx() } },
         exit = fadeOut(tween(300, easing = LinearOutSlowInEasing)) +
@@ -707,7 +707,7 @@ private fun SearchStatus.SearchPager(
             }
 
             AnimatedVisibility(
-                visible = searchStatus.isExpand() || searchStatus.isAnimatingExpand(),
+                visible = searchStatus.isExpanded() || searchStatus.isExpanding(),
                 enter = expandHorizontally() + slideInHorizontally(initialOffsetX = { it }),
                 exit = shrinkHorizontally() + slideOutHorizontally(targetOffsetX = { it }),
             ) {
@@ -720,7 +720,7 @@ private fun SearchStatus.SearchPager(
                         .clickable(
                             interactionSource = null,
                             indication = null,
-                            enabled = searchStatus.isExpand(),
+                            enabled = searchStatus.isExpanded(),
                         ) {
                             onSearchStatusChange(
                                 searchStatus.copy(
@@ -734,7 +734,7 @@ private fun SearchStatus.SearchPager(
         }
 
         AnimatedVisibility(
-            visible = searchStatus.isExpand(),
+            visible = searchStatus.isExpanded(),
             modifier = Modifier
                 .fillMaxSize()
                 .zIndex(1f),
@@ -768,7 +768,7 @@ private fun SearchBar(
     }
 
     LaunchedEffect(searchStatus.current) {
-        if (searchStatus.isAnimatingExpand()) {
+        if (searchStatus.isExpanding()) {
             focusRequester.requestFocus()
         }
     }

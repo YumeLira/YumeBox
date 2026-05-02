@@ -160,12 +160,12 @@ internal object NotificationPresentationFactory {
 
     private fun decodeTrafficHalf(encoded: Long): Long {
         val type = (encoded ushr 30) and 0x3L
-        val data = encoded and 0x3FFFFFFFL
+        val payload = encoded and 0x3FFFFFFFL
         return when (type.toInt()) {
-            0 -> data
-            1 -> (data * 1024L) / 100L
-            2 -> (data * 1024L * 1024L) / 100L
-            3 -> (data * 1024L * 1024L * 1024L) / 100L
+            0 -> payload
+            1 -> (payload * 1024L) / 100L
+            2 -> (payload * 1024L * 1024L) / 100L
+            3 -> (payload * 1024L * 1024L * 1024L) / 100L
             else -> 0L
         }
     }

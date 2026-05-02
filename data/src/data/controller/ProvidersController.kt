@@ -38,8 +38,8 @@ class ProvidersController(
     suspend fun queryProviders(): Result<List<Provider>> {
         return try {
             Result.success(queryProvidersAction())
-        } catch (e: Exception) {
-            Result.failure(e)
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 
@@ -84,8 +84,8 @@ class ProvidersController(
                 }
 
                 Result.success(Unit)
-            } catch (e: Exception) {
-                Result.failure(e)
+            } catch (error: Exception) {
+                Result.failure(error)
             }
         }
     }
@@ -94,8 +94,8 @@ class ProvidersController(
         return try {
             Clash.updateProvider(type, name).await()
             Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 

@@ -49,7 +49,7 @@ object EditorThemeManager {
         try {
             val themeRegistry = ThemeRegistry.getInstance()
             editor.colorScheme = TextMateColorScheme.create(themeRegistry)
-        } catch (e: Exception) {
+        } catch (error: Exception) {
 
             editor.colorScheme = EditorColorSynchronizer.createColorScheme(false)
         }
@@ -60,7 +60,7 @@ object EditorThemeManager {
             TextMateInitializer.setTheme(isDark)
 
             editor.colorScheme = TextMateColorScheme.create(ThemeRegistry.getInstance())
-        } catch (e: Exception) {
+        } catch (error: Exception) {
 
             editor.colorScheme = EditorColorSynchronizer.createColorScheme(isDark)
         }

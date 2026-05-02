@@ -67,7 +67,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 @Composable
 fun SearchStatus.TopAppBarAnim(
     modifier: Modifier = Modifier,
-    visible: Boolean = shouldCollapsed(),
+    visible: Boolean = shouldCollapse(),
     content: @Composable () -> Unit,
 ) {
     val alpha by animateFloatAsState(
@@ -141,7 +141,7 @@ fun SearchStatus.SearchBox(
             },
         )
         SearchBoxContentLayer(
-            shouldCollapsed = searchStatus.shouldCollapsed(),
+            shouldCollapsed = searchStatus.shouldCollapse(),
             offsetY = offsetY.intValue,
             boxHeight = boxHeight.value,
             content = content,
@@ -217,7 +217,7 @@ fun SearchStatus.SearchPager(
 
     val searchStatus = this
     val isCollapsed = searchStatus.isCollapsed()
-    val isExpanded = searchStatus.isExpand()
+    val isExpanded = searchStatus.isExpanded()
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
     val topPadding by animateDpAsState(
         targetValue = if (searchStatus.shouldExpand()) {
@@ -327,7 +327,7 @@ private fun SearchPagerCancelButton(
     searchBarTopPadding: Dp,
 ) {
     val spacing = AppTheme.spacing
-    val isExpanded = searchStatus.isExpand() || searchStatus.isAnimatingExpand()
+    val isExpanded = searchStatus.isExpanded() || searchStatus.isExpanding()
     AnimatedVisibility(
         visible = isExpanded,
         enter = expandHorizontally() + slideInHorizontally(initialOffsetX = { it }),
@@ -347,7 +347,7 @@ private fun SearchPagerCancelButton(
                 .clickable(
                     interactionSource = null,
                     indication = null,
-                    enabled = searchStatus.isExpand(),
+                    enabled = searchStatus.isExpanded(),
                 ) {
                     onSearchStatusChange(
                         searchStatus.copy(
@@ -406,7 +406,7 @@ private fun SearchBar(
     }
 
     LaunchedEffect(searchStatus.current) {
-        if (searchStatus.isAnimatingExpand()) {
+        if (searchStatus.isExpanding()) {
             focusRequester.requestFocus()
         }
     }

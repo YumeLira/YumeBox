@@ -87,8 +87,8 @@ class NetworkInfoService : Closeable {
             val body = response.bodyAsText()
             val info = json.decodeFromString<IpInfo>(body)
             return info
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             return null
         }
     }
@@ -105,10 +105,10 @@ class NetworkInfoService : Closeable {
             val newState = IpMonitoringState.Success(localIp, externalIp)
             lastSuccessfulState = newState
             emit(newState)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             if (lastSuccessfulState == null) {
-                emit(IpMonitoringState.Error(e.message ?: "Unknown error"))
+                emit(IpMonitoringState.Error(error.message ?: "Unknown error"))
             }
         }
 
@@ -129,10 +129,10 @@ class NetworkInfoService : Closeable {
                 val newState = IpMonitoringState.Success(localIp, externalIp, isProxyActive)
                 lastSuccessfulState = newState
                 newState
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
                 lastSuccessfulState?.copy(isProxyActive = isProxyActive)
-                    ?: IpMonitoringState.Error(e.message ?: "Unknown error")
+                    ?: IpMonitoringState.Error(error.message ?: "Unknown error")
             }
         }.collect { state ->
             emit(state)

@@ -137,8 +137,8 @@ object ProfileProcessor {
 
                 Pair(true, subInfo)
             }
-        } catch (e: Exception) {
-            Log.w("Failed to download with subscription info: $e", e)
+        } catch (error: Exception) {
+            Log.w("Failed to download with subscription info: $error", error)
             if (targetFile.exists()) targetFile.delete()
             Pair(false, null)
         }
@@ -318,8 +318,8 @@ object ProfileProcessor {
             } else null
             tempFile.delete()
             result
-        } catch (e: Exception) {
-            Log.w("Failed to download with subscription info: $e", e)
+        } catch (error: Exception) {
+            Log.w("Failed to download with subscription info: $error", error)
             null
         }
     }
@@ -389,9 +389,9 @@ object ProfileProcessor {
                             cb?.updateStatus(
                                 it
                             )
-                        } catch (e: Exception) {
+                        } catch (error: Exception) {
                             cb = null
-                            Log.w("Report fetch status: $e", e)
+                            Log.w("Report fetch status: $error", error)
                         }
                     }.await()
 
@@ -423,7 +423,7 @@ object ProfileProcessor {
                             context.sendProfileChanged(snapshot.imported.uuid)
                         }
                     }
-                } catch (e: Exception) {
+                } catch (error: Exception) {
                     profileLock.withLock {
                         if (!snapshot.hasCommittedConfig && ImportedDao.exists(snapshot.imported.uuid)) {
                             ImportedDao.remove(snapshot.imported.uuid)
@@ -432,7 +432,7 @@ object ProfileProcessor {
                             context.sendProfileChanged(snapshot.imported.uuid)
                         }
                     }
-                    throw e
+                    throw error
                 } finally {
                     stagingDir.deleteRecursively()
                 }

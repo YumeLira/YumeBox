@@ -33,6 +33,7 @@ import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecu
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
+import com.github.yumelira.yumebox.service.runtime.util.mergeProxyGroupNames
 import kotlinx.coroutines.*
 import kotlinx.serialization.builtins.serializer
 import timber.log.Timber
@@ -613,20 +614,8 @@ class SessionRuntime(
         }
 
         val selectableNames = if (excludeNotSelectable) runtimeNames.toSet() else null
-        return buildList(expectedNames.size + runtimeNames.size) {
-            expectedNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (selectableNames != null && groupName !in selectableNames) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
-            runtimeNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
+        return mergeProxyGroupNames(expectedNames, runtimeNames) { groupName ->
+            selectableNames == null || groupName in selectableNames
         }
     }
 

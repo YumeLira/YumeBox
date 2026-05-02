@@ -88,8 +88,8 @@ abstract class Module<E>(val service: Service) {
 
                     runCatching {
                         context.unregisterReceiver(receiver)
-                    }.onFailure { e ->
-                        Log.w("$moduleName: unregisterReceiver ignored", e)
+                    }.onFailure { error ->
+                        Log.w("$moduleName: unregisterReceiver ignored", error)
                     }
                 }
             }

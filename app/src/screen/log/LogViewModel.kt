@@ -72,8 +72,8 @@ class LogViewModel(
         try {
             repository.writeLogEntries(targetUri, entries)
             true
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
             false
         }
     }

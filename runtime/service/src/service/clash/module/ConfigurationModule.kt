@@ -35,6 +35,7 @@ import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecu
 import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipeline
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
 import com.github.yumelira.yumebox.service.runtime.util.importedDir
+import com.github.yumelira.yumebox.service.runtime.util.mergeProxyGroupNames
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.selects.select
@@ -101,8 +102,8 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
                 StatusProvider.currentProfile = active.name
 
                 service.sendProfileLoaded(current)
-            } catch (e: Exception) {
-                return enqueueEvent(LoadException(e.message ?: "Unknown"))
+            } catch (error: Exception) {
+                return enqueueEvent(LoadException(error.message ?: "Unknown"))
             }
         }
     }
@@ -121,20 +122,7 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
             }
         }.getOrDefault(emptyList())
 
-        val mergedNames = buildList(expectedNames.size + runtimeNames.size) {
-            expectedNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
-            runtimeNames.forEach { groupName ->
-                if (groupName.isBlank()) return@forEach
-                if (groupName !in this) {
-                    add(groupName)
-                }
-            }
-        }
+        val mergedNames = mergeProxyGroupNames(expectedNames, runtimeNames)
 
         return mergedNames.mapNotNull { groupName ->
             val group = Clash.queryGroup(groupName, ProxySort.Default)

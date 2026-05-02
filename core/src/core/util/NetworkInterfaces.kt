@@ -46,8 +46,8 @@ object NetworkInterfaces {
                 }
             }
             null
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to get local IP address")
+        } catch (error: Exception) {
+            Timber.w(error, "Failed to get local IP address")
             null
         }
     }

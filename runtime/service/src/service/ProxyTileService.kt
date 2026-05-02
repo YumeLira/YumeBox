@@ -166,8 +166,8 @@ class ProxyTileService : TileService() {
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Timber.e(e, "Error toggling proxy from tile")
+            } catch (error: Exception) {
+                Timber.e(error, "Error toggling proxy from tile")
             } finally {
                 PollingTimers.awaitTick(
                     PollingTimerSpecs.dynamic(

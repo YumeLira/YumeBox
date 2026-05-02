@@ -65,8 +65,8 @@ fun CodeEditor(
             editorRef.value?.let { editor ->
                 try {
                     editor.release()
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to release editor")
+                } catch (error: Exception) {
+                    Timber.e(error, "Failed to release editor")
                 }
             }
             state.editor = null
@@ -100,8 +100,8 @@ fun CodeEditor(
         onRelease = { editor ->
             try {
                 editor.release()
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to release editor in onRelease")
+            } catch (error: Exception) {
+                Timber.e(error, "Failed to release editor in onRelease")
             }
         }
     )

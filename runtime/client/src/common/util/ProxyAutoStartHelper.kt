@@ -67,9 +67,9 @@ object ProxyAutoStartHelper {
 
         val activeProfile = try {
             profilesRepository.queryActiveProfile()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.tag(TAG).e(e, "Failed to load active profile")
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.tag(TAG).e(error, "Failed to load active profile")
             return
         }
 
@@ -103,9 +103,9 @@ object ProxyAutoStartHelper {
             profilesRepository.setActiveProfile(activeProfile.uuid)
             proxyFacade.startProxy(mode)
             Timber.tag(TAG).i("Auto start ok: profile=${activeProfile.uuid}, mode=$mode")
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.tag(TAG).e(e, "Auto start failed: ${e.message}")
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.tag(TAG).e(error, "Auto start failed: ${error.message}")
         }
     }
 
@@ -142,9 +142,9 @@ object ProxyAutoStartHelper {
         try {
             profilesRepository.updateProfile(target.uuid)
             Timber.tag(TAG).i("Auto update on start ok: ${target.uuid}")
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Timber.tag(TAG).w(e, "Auto update on start failed")
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            Timber.tag(TAG).w(error, "Auto update on start failed")
         }
     }
 }

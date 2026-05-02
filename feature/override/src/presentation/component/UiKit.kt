@@ -149,9 +149,9 @@ fun OverrideFormField(
             modifier = Modifier.fillMaxWidth(),
             maxLines = maxLines,
         )
-        supportText?.takeIf(String::isNotBlank)?.let { helper ->
+        supportText?.takeIf(String::isNotBlank)?.let { support ->
             OverrideFieldAssistText(
-                text = helper,
+                text = support,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }

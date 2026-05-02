@@ -63,14 +63,14 @@ object ServiceClient {
                     Timber.d(
                         "ServiceClient gateway initialized in pid=${android.os.Process.myPid()}, process=${android.app.Application.getProcessName()}, cost=${System.currentTimeMillis() - startedAt}ms"
                     )
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
+                } catch (error: Exception) {
+                    if (error is CancellationException) throw error
                     initialized = false
                     localClashManager = null
                     clashManager = null
                     profileManager = null
-                    Timber.e(e, "Failed to initialize local service gateway")
-                    throw e
+                    Timber.e(error, "Failed to initialize local service gateway")
+                    throw error
                 }
             }
         }

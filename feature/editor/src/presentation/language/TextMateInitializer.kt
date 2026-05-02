@@ -60,8 +60,8 @@ object TextMateInitializer {
 
             initialized = true
             Timber.tag(TAG).i("TextMate initialized successfully")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to initialize TextMate")
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to initialize TextMate")
         }
     }
 
@@ -103,8 +103,8 @@ object TextMateInitializer {
             } else {
                 Timber.tag(TAG).w("Theme file not found: $path")
             }
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to load theme: $name")
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to load theme: $name")
         }
     }
 
@@ -113,8 +113,8 @@ object TextMateInitializer {
         try {
             GrammarRegistry.getInstance().loadGrammars("textmate/languages.json")
             Timber.tag(TAG).d("Grammars loaded successfully")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to load grammars")
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to load grammars")
         }
     }
 
@@ -131,8 +131,8 @@ object TextMateInitializer {
             )
             editor.setEditorLanguage(textMateLanguage)
             Timber.tag(TAG).d("Language set to: ${language.displayName}")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to set language: ${language.displayName}")
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to set language: ${language.displayName}")
             editor.setEditorLanguage(null)
         }
     }
@@ -142,8 +142,8 @@ object TextMateInitializer {
             val themeName = if (isDark) THEME_DARK else THEME_LIGHT
             ThemeRegistry.getInstance().setTheme(themeName)
             Timber.tag(TAG).d("Theme switched to: $themeName")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to switch theme")
+        } catch (error: Exception) {
+            Timber.e(error, "Failed to switch theme")
         }
     }
 }

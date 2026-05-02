@@ -57,7 +57,7 @@ object ProfileStore {
         val jsonString = mmkv.decodeString(IMPORTED_KEY) ?: return emptyList()
         return try {
             json.decodeFromString(ListSerializer(Imported.serializer()), jsonString)
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             emptyList()
         }
     }
@@ -71,7 +71,7 @@ object ProfileStore {
         val jsonString = mmkv.decodeString(SELECTIONS_KEY) ?: return emptyList()
         return try {
             json.decodeFromString(ListSerializer(Selection.serializer()), jsonString)
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             emptyList()
         }
     }
@@ -120,7 +120,7 @@ object ProfileStore {
         val jsonString = mmkv.decodeString(PROFILE_ORDER_KEY) ?: return emptyList()
         return try {
             json.decodeFromString(ListSerializer(UUIDSerializer()), jsonString)
-        } catch (e: Exception) {
+        } catch (error: Exception) {
             emptyList()
         }
     }

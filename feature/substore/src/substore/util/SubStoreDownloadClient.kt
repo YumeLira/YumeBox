@@ -148,8 +148,8 @@ class SubStoreDownloadClient(
 
                 Pair(true, subscriptionInfo)
             }
-        } catch (e: Exception) {
-            Timber.e(e, "Download failed: %s", url)
+        } catch (error: Exception) {
+            Timber.e(error, "Download failed: %s", url)
             if (targetFile.exists()) targetFile.delete()
             Pair(false, null)
         }

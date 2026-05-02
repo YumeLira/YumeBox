@@ -33,11 +33,11 @@ data class SearchStatus(
     val offsetY: Dp = UiDp.dp0,
     val resultStatus: ResultStatus = ResultStatus.DEFAULT,
 ) {
-    fun isExpand() = current == Status.EXPANDED
+    fun isExpanded() = current == Status.EXPANDED
     fun isCollapsed() = current == Status.COLLAPSED
     fun shouldExpand() = current == Status.EXPANDED || current == Status.EXPANDING
-    fun shouldCollapsed() = current == Status.COLLAPSED || current == Status.COLLAPSING
-    fun isAnimatingExpand() = current == Status.EXPANDING
+    fun shouldCollapse() = current == Status.COLLAPSED || current == Status.COLLAPSING
+    fun isExpanding() = current == Status.EXPANDING
 
     fun onAnimationComplete(): SearchStatus = when (current) {
         Status.EXPANDING -> copy(current = Status.EXPANDED)

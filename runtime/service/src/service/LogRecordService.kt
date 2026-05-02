@@ -140,8 +140,8 @@ class LogRecordService : Service() {
                                     val line = "[${dateFormat.format(log.time)}] [${log.level.name}] ${log.message}\n"
                                     logWriter?.write(line)
                                     logWriter?.flush()
-                                }.onFailure { e ->
-                                    Timber.tag(TAG).e(e, "Log write failed")
+                                }.onFailure { error ->
+                                    Timber.tag(TAG).e(error, "Log write failed")
                                 }
                             }
                         }
@@ -154,12 +154,12 @@ class LogRecordService : Service() {
                     } finally {
                         runCatching { clash.setLogObserver(null) }
                     }
-                } catch (e: Exception) {
-                    Timber.tag(TAG).e(e, "Log observer setup failed")
+                } catch (error: Exception) {
+                    Timber.e(error, "Log observer setup failed")
                 }
             }
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "Log recording start failed")
+        }.onFailure { error ->
+            Timber.tag(TAG).e(error, "Log recording start failed")
             isRecording = false
             currentLogFileName = null
             stopSelf()
@@ -184,8 +184,8 @@ class LogRecordService : Service() {
             logWriter?.close()
             logWriter = null
             logFile = null
-        }.onFailure { e ->
-            Timber.tag(TAG).e(e, "Log writer close failed")
+        }.onFailure { error ->
+            Timber.tag(TAG).e(error, "Log writer close failed")
         }
     }
 

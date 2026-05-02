@@ -206,8 +206,8 @@ object StartupGate {
         )
     )
 
-    private fun unmask(data: IntArray): String = buildString(data.size) {
-        data.forEachIndexed { index, value ->
+    private fun unmask(values: IntArray): String = buildString(values.size) {
+        values.forEachIndexed { index, value ->
             append((value xor (maskBase + (index % 13))).toChar())
         }
     }

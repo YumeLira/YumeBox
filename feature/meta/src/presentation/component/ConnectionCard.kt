@@ -208,7 +208,7 @@ private fun formatRelativeTime(start: String): String {
                 MLang.Connection.RelativeTime.Date.format(date.monthValue, date.dayOfMonth)
             }
         }
-    } catch (e: Exception) {
+    } catch (error: Exception) {
         ""
     }
 }

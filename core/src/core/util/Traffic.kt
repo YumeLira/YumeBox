@@ -48,13 +48,13 @@ private fun trafficString(scaled: Long): String {
 
 fun decodeTrafficValue(value: Long): Long {
     val type = (value ushr 30) and 0x3
-    val data = value and 0x3FFFFFFFL
+    val payload = value and 0x3FFFFFFFL
 
     return when (type) {
-        0L -> data
-        1L -> (data * 1024L) / 100L
-        2L -> (data * 1024L * 1024L) / 100L
-        3L -> (data * 1024L * 1024L * 1024L) / 100L
+        0L -> payload
+        1L -> (payload * 1024L) / 100L
+        2L -> (payload * 1024L * 1024L) / 100L
+        3L -> (payload * 1024L * 1024L * 1024L) / 100L
         else -> 0L
     }
 }

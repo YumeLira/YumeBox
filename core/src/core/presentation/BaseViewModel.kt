@@ -50,8 +50,8 @@ import kotlinx.coroutines.flow.update
  *             try {
  *                 val result = repository.getData()
  *                 updateState { it.copy(data = result, isLoading = false) }
- *             } catch (e: Exception) {
- *                 showError(e.message ?: "Unknown error")
+ *             } catch (error: Exception) {
+ *                 showError(error.message ?: "Unknown error")
  *             }
  *         }
  *     }
@@ -106,8 +106,8 @@ abstract class BaseViewModel<State>(initialState: State) {
  *                     setLoading(false)
  *                     showMessage("Data loaded successfully")
  *                 }
- *                 .onFailure { e ->
- *                     showError(e.message ?: "Failed to load data")
+ *                 .onFailure { error ->
+ *                     showError(error.message ?: "Failed to load data")
  *                 }
  *         }
  *     }

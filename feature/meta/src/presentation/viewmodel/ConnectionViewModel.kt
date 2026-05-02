@@ -93,9 +93,9 @@ class ConnectionViewModel : ViewModel() {
             PollingTimers.ticks(PollingTimerSpecs.ConnectionsPolling).collect {
                 try {
                     refreshConnections(showRefreshing = true)
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to poll connections")
-                    _state.update { it.copy(error = e.message, isRefreshing = false) }
+                } catch (error: Exception) {
+                    Timber.w(error, "Failed to poll connections")
+                    _state.update { it.copy(error = error.message, isRefreshing = false) }
                 }
             }
         }
@@ -154,11 +154,11 @@ class ConnectionViewModel : ViewModel() {
                         isRefreshing = false,
                     )
                 }
-            } catch (e: Exception) {
-                Timber.w(e, "Failed to query connections")
+            } catch (error: Exception) {
+                Timber.w(error, "Failed to query connections")
                 _state.update {
                     it.copy(
-                        error = e.message,
+                        error = error.message,
                         isLoading = false,
                         isRefreshing = false,
                     )

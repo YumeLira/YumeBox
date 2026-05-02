@@ -58,8 +58,8 @@ class DialerReceiver : BroadcastReceiver() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
             context.startActivity(launchIntent)
-        }.onFailure { e ->
-            Timber.e(e, "Open main activity failed")
+        }.onFailure { error ->
+            Timber.e(error, "Open main activity failed")
         }
     }
 }

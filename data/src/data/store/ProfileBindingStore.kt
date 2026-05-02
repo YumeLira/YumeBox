@@ -148,8 +148,8 @@ class ProfileBindingStore(
     private fun loadBindings(): Map<String, ProfileBinding> {
         return try {
             loadMetadataIndex().profileChains
-        } catch (e: Exception) {
-            Timber.w(e, "Failed to load bindings from metadata.yaml, returning empty map")
+        } catch (error: Exception) {
+            Timber.w(error, "Failed to load bindings from metadata.yaml, returning empty map")
             emptyMap()
         }
     }

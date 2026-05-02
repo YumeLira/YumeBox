@@ -62,21 +62,20 @@ object JsonDiagnosticsProvider {
                     )
                 }
             }
-        } catch (e: JSONException) {
-
-            val diagnostic = parseJsonException(e, content)
+        } catch (error: JSONException) {
+            val diagnostic = parseJsonException(error, content)
             if (diagnostic != null) {
                 container.addDiagnostic(diagnostic)
             }
-        } catch (e: Exception) {
-            Timber.w(e, "JSON analysis failed")
+        } catch (error: Exception) {
+            Timber.w(error, "JSON analysis failed")
         }
 
         return container
     }
 
-    private fun parseJsonException(e: JSONException, content: String): DiagnosticRegion? {
-        val message = e.message ?: return null
+    private fun parseJsonException(error: JSONException, content: String): DiagnosticRegion? {
+        val message = error.message ?: return null
 
         val indexPattern = "character (\\d+)".toRegex()
         val match = indexPattern.find(message)
