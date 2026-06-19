@@ -20,7 +20,11 @@
 
 package com.github.yumelira.yumebox.screen.settings
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.yumelira.yumebox.common.util.toast
+import com.github.yumelira.yumebox.core.util.acgWallpaperFile
 import com.github.yumelira.yumebox.data.controller.AppSettingsController
 import com.github.yumelira.yumebox.data.model.AppColorTheme
 import com.github.yumelira.yumebox.data.model.AppLanguage
@@ -29,8 +33,13 @@ import com.github.yumelira.yumebox.data.store.AppSettingsStore
 import com.github.yumelira.yumebox.data.store.FeatureStore
 import com.github.yumelira.yumebox.data.store.Preference
 import com.github.yumelira.yumebox.presentation.theme.DEFAULT_CUSTOM_THEME_SEED_ARGB
+import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AppSettingsViewModel(
+    private val application: Application,
     private val settings: AppSettingsStore,
     private val featureStore: FeatureStore,
     private val controller: AppSettingsController,
@@ -57,6 +66,7 @@ class AppSettingsViewModel(
     val smoothCornerEnabled: Preference<Boolean> = settings.smoothCornerEnabled
     val acgMainUiEnabled: Preference<Boolean> = settings.acgMainUiEnabled
     val acgWallpaperUri: Preference<String> = settings.acgWallpaperUri
+    val acgWallpaperSourceUri: Preference<String> = settings.acgWallpaperSourceUri
     val acgWallpaperZoom: Preference<Float> = settings.acgWallpaperZoom
     val acgWallpaperBiasX: Preference<Float> = settings.acgWallpaperBiasX
     val acgWallpaperBiasY: Preference<Float> = settings.acgWallpaperBiasY
@@ -97,6 +107,27 @@ class AppSettingsViewModel(
 
     fun onAcgWallpaperUriChange(uri: String) = acgWallpaperUri.set(uri)
 
+    /**
+     * Persists the selected ACG wallpaper by copying [sourceUri] into the app-private files dir and
+     * storing the resulting `file://` path as [acgWallpaperUri], while remembering the original
+     * source in [acgWallpaperSourceUri] for lazy re-import. If the copy fails the original source URI
+     * is persisted directly (degraded but working) and a toast is shown.
+     */
+    fun applyAcgWallpaper(sourceUri: String, onApplied: () -> Unit) {
+        viewModelScope.launch {
+            val localPath = AcgWallpaperImporter.importToLocal(application, sourceUri)
+            if (localPath != null) {
+                acgWallpaperUri.set(localPath)
+                acgWallpaperSourceUri.set(sourceUri)
+            } else {
+                acgWallpaperUri.set(sourceUri)
+                acgWallpaperSourceUri.set(sourceUri)
+                application.toast(MLang.AppSettings.Experimental.WallpaperImportFailed)
+            }
+            onApplied()
+        }
+    }
+
     fun onAcgWallpaperCropChange(zoom: Float, biasX: Float, biasY: Float) {
         acgWallpaperZoom.set(zoom.coerceIn(1f, 5f))
         acgWallpaperBiasX.set(biasX.coerceIn(-1f, 1f))
@@ -110,8 +141,12 @@ class AppSettingsViewModel(
     fun onAcgSidebarExpandedChange(expanded: Boolean) = acgSidebarExpanded.set(expanded)
 
     fun clearAcgWallpaperUri() {
-        acgWallpaperUri.set("")
-        onAcgWallpaperCropChange(zoom = 1f, biasX = 0f, biasY = 0f)
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { runCatching { application.acgWallpaperFile().delete() } }
+            acgWallpaperUri.set("")
+            acgWallpaperSourceUri.set("")
+            onAcgWallpaperCropChange(zoom = 1f, biasX = 0f, biasY = 0f)
+        }
     }
 
     fun onPageScaleChange(scale: Float) = pageScale.set(scale)

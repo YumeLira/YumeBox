@@ -81,6 +81,16 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
 
                 val restoreSelections = SelectionDao.queryRestorableSelections(active.uuid)
                 val runtimeGroups = proxyGroupResolver.resolvedGroups(spec, false)
+                // Gate restore on proxy-groups readiness, mirroring SessionRuntime's
+                // awaitProxyGroupsReady. If groups aren't resolved yet (core not fully exposed
+                // / providers loading), skip restore this cycle rather than restoring against an
+                // empty set. SelectionRestoreExecutor is also non-destructive, so a transient
+                // empty fetch can never wipe the user's node memory.
+                if (runtimeGroups.isEmpty()) {
+                    StatusProvider.currentProfile = active.name
+                    service.sendProfileLoaded(current)
+                    continue
+                }
                 SelectionRestoreExecutor.restore(
                     profileUuid = active.uuid,
                     selections = restoreSelections,

@@ -36,7 +36,7 @@ import org.koin.dsl.module
 val appIntegrationModule = module { single<LogRecordGateway> { LogRecordServiceGateway() } }
 
 val appViewModelModule = module {
-    viewModel { AppSettingsViewModel(get(), get(), get()) }
+    viewModel { AppSettingsViewModel(androidApplication(), get(), get(), get()) }
     viewModel { HomeViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { ProfilesViewModel(androidApplication(), get(), get()) }
     viewModel { NetworkSettingsViewModel(androidApplication(), get(), get(), get()) }

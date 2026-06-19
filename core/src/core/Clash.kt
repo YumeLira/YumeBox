@@ -39,6 +39,10 @@ object Clash {
     private val CompilerJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        // Native may emit an explicit `null` for fields that have a non-null default (e.g.
+        // `warnings` in an error summary). Coerce such nulls to the default so the real error
+        // surfaces instead of a deserialization crash.
+        coerceInputValues = true
     }
 
     private val ConnectionJson = Json {

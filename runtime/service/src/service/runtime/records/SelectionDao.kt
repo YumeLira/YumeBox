@@ -34,7 +34,8 @@ object SelectionDao {
     }
 
     fun querySelections(profileUUID: UUID): List<Selection> {
-        return queryAll().filter { it.uuid == profileUUID }
+        migrateLegacyIfNeeded()
+        return ProfileStore.loadSelections(profileUUID)
     }
 
     fun queryRestorableSelections(profileUUID: UUID): List<Selection> {
@@ -65,14 +66,10 @@ object SelectionDao {
         if (normalized.proxy.isEmpty() || normalized.selected.isEmpty()) {
             return
         }
-        val list = ProfileStore.loadSelections().toMutableList()
-        val index = list.indexOfFirst { it.uuid == normalized.uuid && it.proxy == normalized.proxy }
-        if (index >= 0) {
-            list[index] = normalized
-        } else {
-            list.add(normalized)
-        }
-        ProfileStore.saveSelections(list)
+        // Single atomic per-key write — no whole-list read-modify-write, so concurrent
+        // writes from the app process (ClashManager) and the root process (SessionRuntime)
+        // to different selections never clobber one another.
+        ProfileStore.putSelection(normalized)
     }
 
     fun setSelected(selection: Selection) {
@@ -81,28 +78,22 @@ object SelectionDao {
 
     fun clear(profileUUID: UUID) {
         migrateLegacyIfNeeded()
-        val list = ProfileStore.loadSelections().toMutableList()
-        list.removeAll { it.uuid == profileUUID }
-        ProfileStore.saveSelections(list)
+        ProfileStore.clearSelections(profileUUID)
     }
 
     fun clearAll() {
         migrateLegacyIfNeeded()
-        ProfileStore.saveSelections(emptyList())
+        ProfileStore.clearAllSelections()
         ProfileStore.removeAllSelectionScopeKeys()
     }
 
     fun remove(profileUUID: UUID, proxy: String) {
         migrateLegacyIfNeeded()
-        val list = ProfileStore.loadSelections().toMutableList()
-        list.removeAll { it.uuid == profileUUID && it.proxy == proxy }
-        ProfileStore.saveSelections(list)
+        ProfileStore.removeSelection(profileUUID, proxy.trim())
     }
 
     fun removeSelections(profileUUID: UUID, proxies: List<String>) {
         migrateLegacyIfNeeded()
-        val list = ProfileStore.loadSelections().toMutableList()
-        list.removeAll { it.uuid == profileUUID && it.proxy in proxies }
-        ProfileStore.saveSelections(list)
+        proxies.forEach { proxy -> ProfileStore.removeSelection(profileUUID, proxy.trim()) }
     }
 }

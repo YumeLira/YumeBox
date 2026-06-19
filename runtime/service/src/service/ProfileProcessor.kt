@@ -106,7 +106,12 @@ object ProfileProcessor {
 
                     UpdateSnapshot(
                         imported = imported,
-                        hasCommittedConfig = targetDir.resolve("runtime.yaml").isFile,
+                        // Sentinel for "this profile has already committed a config", used below to
+                        // decide whether a failed update may roll back (delete) the profile. The
+                        // source profile file is config.yaml (written by fetchAndValid on a
+                        // successful fetch); runtime.yaml is no longer produced by any path, so it
+                        // can never serve as this sentinel.
+                        hasCommittedConfig = targetDir.resolve("config.yaml").isFile,
                     )
                 }
 

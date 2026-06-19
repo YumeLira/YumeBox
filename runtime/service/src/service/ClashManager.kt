@@ -85,7 +85,7 @@ class ClashManager(private val context: Context) :
                 ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
             }
         return runBlocking(Dispatchers.Default) {
-            compiledConfigPipeline.previewGroups(spec, excludeNotSelectable)
+            proxyGroupResolver.resolvedGroups(spec, excludeNotSelectable, enrichLive = false)
         }
     }
 

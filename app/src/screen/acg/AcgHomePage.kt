@@ -20,6 +20,7 @@
 
 package com.github.yumelira.yumebox.screen.acg
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
@@ -72,6 +73,7 @@ import com.github.yumelira.yumebox.screen.home.HomeProxyControlState
 import com.github.yumelira.yumebox.screen.home.HomeViewModel
 import com.github.yumelira.yumebox.screen.settings.AppSettingsViewModel
 import dev.oom_wg.purejoy.mlang.MLang
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -437,9 +439,22 @@ private fun AcgWallpaperBackground(
     modifier: Modifier = Modifier,
 ) {
     val clampedZoom = wallpaperZoom.coerceIn(1f, 5f)
-    val model = wallpaperUri.ifBlank { "file:///android_asset/wallpaper.jpg" }
     val context = LocalContext.current
     val density = LocalDensity.current
+
+    // Resolve the render model off the compose hot path: a stored file:// copy is used only when it
+    // actually exists; a non-blank-but-missing value (cleared cache, partially wiped data, or a
+    // legacy content:// that became unreadable) falls back to the bundled asset.
+    val model by
+        produceState(
+            initialValue = wallpaperUri.ifBlank { ACG_BUNDLED_WALLPAPER },
+            wallpaperUri,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    resolveAcgWallpaperModel(context, wallpaperUri)
+                }
+        }
 
     val imageBounds by
         produceState<Pair<Int, Int>?>(initialValue = null, model) {
@@ -515,4 +530,29 @@ private fun AcgWallpaperBackground(
             modifier = Modifier.align(Alignment.Center).fillMaxSize(),
         )
     }
+}
+
+private const val ACG_BUNDLED_WALLPAPER = "file:///android_asset/wallpaper.jpg"
+
+/**
+ * Maps a stored wallpaper preference value to a Sketch-loadable model. A `file://` path is only used
+ * when the backing file exists; otherwise (blank value, missing local copy, or a dead source) the
+ * bundled asset is returned. Must be called off the main thread because it touches the filesystem.
+ */
+private fun resolveAcgWallpaperModel(context: Context, wallpaperUri: String): String {
+    if (wallpaperUri.isBlank()) return ACG_BUNDLED_WALLPAPER
+    if (wallpaperUri.startsWith("file://")) {
+        val path = wallpaperUri.removePrefix("file://")
+        if (path.startsWith("/android_asset/")) return wallpaperUri
+        return if (File(path).exists()) wallpaperUri else ACG_BUNDLED_WALLPAPER
+    }
+    // Legacy content:// (pre-feature installs) or other schemes: try to read it; if unreadable,
+    // fall back to the bundled asset instead of rendering nothing.
+    val readable =
+        runCatching {
+                context.contentResolver.openInputStream(Uri.parse(wallpaperUri))?.use { true }
+                    ?: false
+            }
+            .getOrDefault(false)
+    return if (readable) wallpaperUri else ACG_BUNDLED_WALLPAPER
 }

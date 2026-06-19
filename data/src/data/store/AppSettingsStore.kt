@@ -47,6 +47,7 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val smoothCornerEnabled by boolFlow(true)
     val acgMainUiEnabled by boolFlow(false)
     val acgWallpaperUri by strFlow("")
+    val acgWallpaperSourceUri by strFlow("")
     val acgWallpaperZoom by floatFlow(1.0f)
     val acgWallpaperBiasX by floatFlow(0.0f)
     val acgWallpaperBiasY by floatFlow(0.0f)

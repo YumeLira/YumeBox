@@ -378,6 +378,17 @@ class ProxyFacade(private val context: Context) {
                 ServiceClient.clash().patchSelector(group, proxyName)
             }
         if (ok) {
+            // Optimistically reflect the user's pick immediately. For a Selector group the user's
+            // choice IS authoritative, so set the group's `now` right away instead of waiting for
+            // the core to commit it (a slow URLTest can delay `now` past the refresh window, which
+            // would otherwise keep the highlight stale until the next periodic sync). The changed
+            // `now` makes the summary differ so publishProxyGroups actually republishes. Only do
+            // this when the group is already cached; otherwise rely on the refresh below.
+            val cachedGroup = _proxyGroups.value.find { it.name == group }
+            if (cachedGroup != null && cachedGroup.now != proxyName) {
+                val optimisticGroups = updateCachedProxyGroup(cachedGroup.copy(now = proxyName))
+                publishProxyGroups(optimisticGroups, cacheForPreview = true)
+            }
             PollingTimers.awaitTick(
                 PollingTimerSpecs.dynamic(
                     name = "proxy_select_refresh",

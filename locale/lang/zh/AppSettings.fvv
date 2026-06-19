@@ -100,6 +100,7 @@ AppSettings = {
         ResetWallpaperTitle = "重置 ACG 壁纸"
         EditAcgQuoteTitle = "编辑 ACG 一言"
         EditAcgQuoteAuthorTitle = "编辑 ACG 一言作者"
+        WallpaperImportFailed = "无法将壁纸复制到本地，已改用原始来源"
     }
 
     ServiceSection = {

@@ -129,103 +129,68 @@ class CompiledConfigPipeline(private val context: Context) {
             load.await()
         }
 
+    /**
+     * Loads the active profile into the live core. Every profile — encrypted and non-encrypted
+     * alike — goes through the native in-memory compile-and-load path, so no plaintext runtime.yaml
+     * is ever written to disk.
+     */
     suspend fun compileAndLoad(spec: RuntimeSpec, logger: ((String) -> Unit)?): Unit {
-        if (spec.ageSecretKey != null) {
-            logger?.invoke("runtime native: compile-and-load begin (encrypted profile)")
-            compileAndLoadNative(spec, logger)
-            logger?.invoke("runtime native: compile-and-load done")
-            return
-        }
-
-        logger?.invoke("runtime prepare: begin output=${spec.runtimeConfigPath.safeLogHash()}")
-        applyOverrideToRuntimeFile(spec, logger)
-        logger?.invoke("runtime override: done ${describeRuntimeFile(File(spec.runtimeConfigPath))}")
         logger?.invoke(
-            "runtime load: loadCompiledConfig begin output=${spec.runtimeConfigPath.safeLogHash()}"
+            "runtime native: compile-and-load begin (ageKey=${spec.ageSecretKey != null})"
         )
-        Clash.setAgeSecretKey(spec.ageSecretKey)
-        withContext(Dispatchers.Default) {
-            Clash.loadCompiledConfig(File(spec.runtimeConfigPath)).await()
-        }
-        logger?.invoke("runtime load: loadCompiledConfig done")
+        compileAndLoadNative(spec, logger)
+        logger?.invoke("runtime native: compile-and-load done")
     }
 
-    suspend fun applyOverrideToRuntimeFile(spec: RuntimeSpec): String =
-        withContext(Dispatchers.Default) { applyOverrideToRuntimeFile(spec, logger = null) }
-
-    suspend fun applyOverrideToRuntimeFile(spec: RuntimeSpec, logger: ((String) -> Unit)?): String =
-        withContext(Dispatchers.Default) {
-            val profileDir = File(spec.profileDir)
-
-            logger?.invoke(
-                "runtime prepare: mode=compile-overrides count=${spec.overrideSpecs.size} " +
-                    spec.overrideSpecs.joinToString(prefix = "[", postfix = "]") { overrideSpec ->
-                        "${overrideSpec.ext}:${overrideSpec.path.safeLogHash()}"
-                    }
-            )
-
-            val request = buildRequest(spec)
-            val result = Clash.compileToFile(request)
-            check(result.success) {
-                val failureMessage = result.error ?: "apply override to runtime config failed"
-                logger?.invoke("runtime prepare: compile failed reason=$failureMessage")
-                failureMessage
-            }
-            validateCompiledProviderPaths(result.finalYaml, profileDir)
-            logger?.invoke(
-                "runtime prepare: compile done fingerprint=${result.fingerprint} runtimeSha=${result.finalYaml.sha256Short()}"
-            )
-            result.fingerprint
-        }
-
+    /**
+     * Deletes any leftover runtime.yaml before loading a profile. runtime.yaml is no longer produced
+     * by any code path, but historical builds may have left one on disk; clearing it for every
+     * profile keeps the invariant "no runtime.yaml ever exists". A missing file is the normal case
+     * and returns silently; only a failed delete of an existing file is treated as an error.
+     */
     private fun removeStaleRuntimeYaml(spec: RuntimeSpec, logger: ((String) -> Unit)?) {
-        if (spec.ageSecretKey == null) {
-            return
-        }
         val runtimeFile = File(spec.runtimeConfigPath)
         if (!runtimeFile.exists()) {
             return
         }
         if (!runtimeFile.delete()) {
-            error("Encrypted profile stale runtime.yaml cleanup failed")
+            error("Stale runtime.yaml cleanup failed")
         }
         logger?.invoke("runtime native: removed stale runtime.yaml output=${runtimeFile.safeLogHash()}")
     }
 
+    /**
+     * Authoritative group list straight from the compiled rawConfig. Always goes through the native
+     * in-memory compile (`compileAndInspectGroups`) for every profile — encrypted and non-encrypted
+     * alike — so no plaintext finalYaml is ever returned to Kotlin and no runtime.yaml is written.
+     */
     suspend fun previewGroups(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<ProxyGroup> {
-        if (spec.ageSecretKey != null) {
-            return withContext(Dispatchers.Default) {
-                Clash.compileAndInspectGroups(
-                    buildRequest(spec),
-                    File(spec.profileDir),
-                    excludeNotSelectable,
-                )
-            }
-        }
-        val result = previewOverride(spec)
-        if (!result.success || result.finalYaml.isBlank()) return emptyList()
         return withContext(Dispatchers.Default) {
-            Clash.inspectCompiledGroups(
-                result.finalYaml,
+            Clash.compileAndInspectGroups(
+                buildRequest(spec),
                 File(spec.profileDir),
                 excludeNotSelectable,
             )
         }
     }
 
+    /**
+     * Always inspects the tun `route-exclude-address` via the native in-memory compile for every
+     * profile, so no plaintext finalYaml leaves native and no runtime.yaml is written.
+     */
     suspend fun previewTunRouteExcludeAddress(spec: RuntimeSpec): List<String> {
-        if (spec.ageSecretKey != null) {
-            return withContext(Dispatchers.Default) {
-                Clash.compileAndInspectTunRouteExcludeAddress(buildRequest(spec))
-            }
+        return withContext(Dispatchers.Default) {
+            Clash.compileAndInspectTunRouteExcludeAddress(buildRequest(spec))
         }
-        val result = previewOverride(spec)
-        return result.finalYaml.routeExcludeAddress()
     }
 
     /**
-     * Returns the compiled YAML for non-encrypted profiles.
-     * Throws for encrypted profiles since full YAML must not reach Kotlin heap.
+     * Returns the compiled YAML for non-encrypted profiles (the user-initiated "view compiled
+     * config" export). This is the ONLY path that materialises plaintext finalYaml in Kotlin, and it
+     * is intentionally retained: it is out of scope for the runtime.yaml elimination because it is an
+     * explicit user export, not a runtime/load path. `Clash.compilePreview` returns the YAML in
+     * memory and does NOT write `outputPath` to disk. Throws for encrypted profiles since full YAML
+     * must not reach the Kotlin heap.
      */
     suspend fun previewCompiledYaml(
         profileUuid: String,
@@ -246,15 +211,6 @@ class CompiledConfigPipeline(private val context: Context) {
             val result = Clash.compilePreview(request)
             check(result.success) { result.error ?: "override preview failed" }
             validateCompiledProviderPaths(result.finalYaml, profileDir)
-            result
-        }
-
-    suspend fun previewOverride(spec: RuntimeSpec): CompileResult =
-        withContext(Dispatchers.Default) {
-            require(spec.ageSecretKey == null) { "previewOverride is not supported for encrypted profiles" }
-            val result = Clash.compilePreview(buildRequest(spec))
-            check(result.success) { result.error ?: "override preview failed" }
-            validateCompiledProviderPaths(result.finalYaml, File(spec.profileDir))
             result
         }
 
@@ -446,14 +402,6 @@ class CompiledConfigPipeline(private val context: Context) {
         }
     }
 
-    private fun describeRuntimeFile(file: File): String {
-        if (!file.exists()) {
-            return "output=${file.safeLogHash()} exists=false"
-        }
-        val content = file.readText()
-        return "output=${file.safeLogHash()} exists=true size=${content.length} sha=${content.sha256Short()}"
-    }
-
     suspend fun previewGroupNames(spec: RuntimeSpec, excludeNotSelectable: Boolean): List<String> {
         return previewGroups(spec, excludeNotSelectable)
             .map(ProxyGroup::name)
@@ -518,11 +466,4 @@ private fun String.toOverrideExtension(): String? {
         "javascript" -> "js"
         else -> null
     }
-}
-
-private fun String.routeExcludeAddress(): List<String> {
-    val root = runCatching { YamlCodec.loadMap(this) }.getOrDefault(emptyMap())
-    val tun = root["tun"] as? Map<*, *> ?: return emptyList()
-    val raw = tun["route-exclude-address"] as? List<*> ?: return emptyList()
-    return raw.mapNotNull { item -> item?.toString()?.trim()?.takeIf(String::isNotEmpty) }
 }

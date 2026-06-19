@@ -192,10 +192,7 @@ class SessionRuntime(
     fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         if (currentSnapshot.phase != RuntimePhase.Running) return emptyList()
         val groups =
-            runCatching {
-                    resolveRuntimeProxyGroupNames(excludeNotSelectable)
-                        .mapNotNull(::queryRuntimeProxyGroupOrNull)
-                }
+            runCatching { resolveRuntimeProxyGroups(excludeNotSelectable) }
                 .getOrElse {
                     if (excludeNotSelectable) {
                         val selectable = Clash.queryGroupNames(true).toSet()
@@ -547,10 +544,7 @@ class SessionRuntime(
             return
         }
         val runtimeGroups =
-            runCatching {
-                    resolveRuntimeProxyGroupNames(excludeNotSelectable = false)
-                        .mapNotNull(::queryRuntimeProxyGroupOrNull)
-                }
+            runCatching { resolveRuntimeProxyGroups(excludeNotSelectable = false) }
                 .getOrDefault(emptyList())
         SelectionRestoreExecutor.restore(
             profileUuid = profileUuid,
@@ -600,10 +594,7 @@ class SessionRuntime(
             runCatching { Clash.queryConfiguration() }.getOrDefault(UiConfiguration())
         val providers = runCatching { Clash.queryProviders() }.getOrDefault(emptyList())
         val proxyGroups =
-            runCatching {
-                    resolveRuntimeProxyGroupNames(excludeNotSelectable = false)
-                        .mapNotNull(::queryRuntimeProxyGroupOrNull)
-                }
+            runCatching { resolveRuntimeProxyGroups(excludeNotSelectable = false) }
                 .getOrDefault(emptyList())
         val trafficNow = runCatching { Clash.queryTrafficNow() }.getOrDefault(0L)
         val trafficTotal = runCatching { Clash.queryTrafficTotal() }.getOrDefault(0L)
@@ -638,8 +629,10 @@ class SessionRuntime(
         }
     }
 
-    private fun queryRuntimeProxyGroupOrNull(name: String): ProxyGroup? {
-        return proxyGroupResolver.queryUsableGroup(name)
+    private fun resolveRuntimeProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
+        return runBlocking {
+            proxyGroupResolver.resolvedGroups(currentSpec, excludeNotSelectable, enrichLive = true)
+        }
     }
 
     private fun ensureRuntimeSnapshot(): SessionRuntimeQuerySnapshot {

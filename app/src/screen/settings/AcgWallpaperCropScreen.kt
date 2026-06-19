@@ -210,13 +210,14 @@ fun AcgWallpaperCropScreen(
                         .clip(RoundedCornerShape(UiDp.dp12)),
                 colors = ButtonDefaults.buttonColorsPrimary(),
                 onClick = {
-                    viewModel.onAcgWallpaperUriChange(wallpaperUri)
                     viewModel.onAcgWallpaperCropChange(
                         zoom = 1f,
                         biasX = viewportLayout.biasX,
                         biasY = viewportLayout.biasY,
                     )
-                    navigator.popBackStack()
+                    viewModel.applyAcgWallpaper(sourceUri = wallpaperUri) {
+                        navigator.popBackStack()
+                    }
                 },
             ) {
                 Text(
