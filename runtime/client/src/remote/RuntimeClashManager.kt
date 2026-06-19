@@ -84,6 +84,10 @@ class RuntimeClashManager(context: Context, private val local: IClashManager) : 
         return local.queryProfileProxyGroups(excludeNotSelectable)
     }
 
+    override fun queryActiveProfileTunRouteExcludeAddress(): List<String> {
+        return local.queryActiveProfileTunRouteExcludeAddress()
+    }
+
     override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         return queryWithRuntime(
             rootCall = {

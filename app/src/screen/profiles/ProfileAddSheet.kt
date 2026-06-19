@@ -21,35 +21,22 @@
 package com.github.yumelira.yumebox.screen.profiles
 
 import android.Manifest
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.pm.PackageManager
-import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -57,18 +44,22 @@ import com.github.yumelira.yumebox.common.util.toast
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmAction
-import com.github.yumelira.yumebox.presentation.icon.Yume
-import com.github.yumelira.yumebox.presentation.icon.yume.`Package-check`
 import com.github.yumelira.yumebox.presentation.theme.UiDp
+import com.github.yumelira.yumebox.presentation.util.PROFILE_IMPORT_TYPE_FILE
+import com.github.yumelira.yumebox.presentation.util.PROFILE_IMPORT_TYPE_QR
+import com.github.yumelira.yumebox.presentation.util.PROFILE_IMPORT_TYPE_URL
+import com.github.yumelira.yumebox.presentation.util.importTypeIndexFor
+import com.github.yumelira.yumebox.presentation.util.isYamlConfigFileName
+import com.github.yumelira.yumebox.presentation.util.profileNameFromConfigFileName
+import com.github.yumelira.yumebox.presentation.util.readClipboardSubscriptionUrl
+import com.github.yumelira.yumebox.presentation.util.readDisplayName
+import com.github.yumelira.yumebox.presentation.util.sourceFileName
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import dev.oom_wg.purejoy.mlang.MLang
-import java.io.File
 import java.util.*
 import kotlin.math.max
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
-import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun AddProfileSheet(
@@ -96,14 +87,10 @@ internal fun AddProfileSheet(
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
     var selectedTypeIndex by remember { mutableIntStateOf(0) }
-    var name by remember { mutableStateOf("") }
     var nameTextFieldValue by remember { mutableStateOf(TextFieldValue()) }
-    var url by remember { mutableStateOf("") }
     var urlTextFieldValue by remember { mutableStateOf(TextFieldValue()) }
     var filePath by remember { mutableStateOf("") }
-    var fileName by remember { mutableStateOf("") }
     var fileNameTextFieldValue by remember { mutableStateOf(TextFieldValue()) }
-    var ageSecretKey by remember { mutableStateOf("") }
     var ageSecretKeyTextFieldValue by remember { mutableStateOf(TextFieldValue()) }
     var error by remember { mutableStateOf("") }
     var isDownloading by remember { mutableStateOf(false) }
@@ -120,43 +107,14 @@ internal fun AddProfileSheet(
         }
     }
 
-    val urlPattern = remember {
-        Regex(pattern = "^https?://\\S+$", options = setOf(RegexOption.IGNORE_CASE))
-    }
-
     val applyNameText: (String) -> Unit = { updatedText ->
-        name = updatedText
         nameTextFieldValue = textFieldValueAtEnd(updatedText)
     }
     val applyUrlText: (String) -> Unit = { updatedText ->
-        url = updatedText
         urlTextFieldValue = textFieldValueAtEnd(updatedText)
     }
     val applyFileNameText: (String) -> Unit = { updatedText ->
-        fileName = updatedText
         fileNameTextFieldValue = textFieldValueAtEnd(updatedText)
-    }
-
-    val readClipboardAndCheckUrl: () -> String? = {
-        try {
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clipData = clipboard.primaryClip
-            if (clipData != null && clipData.itemCount > 0) {
-                val item = clipData.getItemAt(0)
-                val clipText = item?.text?.toString()?.trim() ?: ""
-                if (clipText.isNotEmpty() && urlPattern.matches(clipText)) {
-                    clipText
-                } else {
-                    null
-                }
-            } else {
-                null
-            }
-        } catch (_: SecurityException) {
-            null
-        } catch (_: Exception) {
-            null
-        }
     }
 
     val clearAllState = {
@@ -164,7 +122,6 @@ internal fun AddProfileSheet(
         applyUrlText("")
         filePath = ""
         applyFileNameText("")
-        ageSecretKey = ""
         ageSecretKeyTextFieldValue = TextFieldValue()
         error = ""
         isDownloading = false
@@ -173,13 +130,13 @@ internal fun AddProfileSheet(
 
     val clearCurrentTypeState = {
         when (selectedTypeIndex) {
-            0 -> applyUrlText("")
-            1 -> {
+            PROFILE_IMPORT_TYPE_URL -> applyUrlText("")
+            PROFILE_IMPORT_TYPE_FILE -> {
                 filePath = ""
                 applyFileNameText("")
             }
 
-            2 -> {}
+            PROFILE_IMPORT_TYPE_QR -> {}
         }
         error = ""
     }
@@ -197,12 +154,12 @@ internal fun AddProfileSheet(
             hasCameraPermission = isGranted
             if (!isGranted) {
                 context.toast(MLang.ProfilesPage.QrScanner.NeedCamera, Toast.LENGTH_LONG)
-                selectedTypeIndex = 0
+                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
             }
         }
 
     LaunchedEffect(selectedTypeIndex) {
-        if (selectedTypeIndex == 2 && !hasCameraPermission) {
+        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_QR && !hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -210,7 +167,10 @@ internal fun AddProfileSheet(
     val showCameraPreview by
         remember(show.value, selectedTypeIndex, isDownloading, hasCameraPermission) {
             derivedStateOf {
-                show.value && selectedTypeIndex == 2 && !isDownloading && hasCameraPermission
+                show.value &&
+                    selectedTypeIndex == PROFILE_IMPORT_TYPE_QR &&
+                    !isDownloading &&
+                    hasCameraPermission
             }
         }
 
@@ -220,27 +180,19 @@ internal fun AddProfileSheet(
             if (profileToEdit != null) {
                 applyNameText(profileToEdit.name)
                 if (profileToEdit.type == Profile.Type.Url) {
-                    selectedTypeIndex = 0
+                    selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
                     applyUrlText(profileToEdit.source)
                 } else {
-                    selectedTypeIndex = 1
+                    selectedTypeIndex = importTypeIndexFor(profileToEdit.type)
                     filePath = profileToEdit.source
-                    applyFileNameText(
-                        if (profileToEdit.source.isNotEmpty()) File(profileToEdit.source).name
-                        else ""
-                    )
+                    applyFileNameText(sourceFileName(profileToEdit.source))
                 }
             } else if (!importUrl.isNullOrBlank()) {
-                selectedTypeIndex = 0
+                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
                 applyUrlText(importUrl)
             } else {
-                selectedTypeIndex = 0
-                try {
-                    val clipboardUrl = readClipboardAndCheckUrl()
-                    if (clipboardUrl != null) {
-                        applyUrlText(clipboardUrl)
-                    }
-                } catch (_: Exception) {}
+                selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
+                readClipboardSubscriptionUrl(context)?.let(applyUrlText)
             }
         }
         onDispose {}
@@ -278,19 +230,9 @@ internal fun AddProfileSheet(
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
                 val actualFileName =
-                    context.contentResolver
-                        .query(it, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-                        ?.use { cursor ->
-                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                            cursor.moveToFirst()
-                            cursor.getString(nameIndex)
-                        } ?: MLang.ProfilesPage.Message.UnknownFile
+                    readDisplayName(context, it, MLang.ProfilesPage.Message.UnknownFile)
 
-                val extension = actualFileName.substringAfterLast(".", "")
-                if (
-                    !extension.equals("yaml", ignoreCase = true) &&
-                        !extension.equals("yml", ignoreCase = true)
-                ) {
+                if (!isYamlConfigFileName(actualFileName)) {
                     error = MLang.ProfilesPage.Validation.YamlOnly
                     return@let
                 }
@@ -299,10 +241,15 @@ internal fun AddProfileSheet(
                 error = ""
                 applyFileNameText(actualFileName)
 
-                val fileNameWithoutExt = actualFileName.substringBeforeLast(".")
-                if (name.isBlank() || name == actualFileName) {
+                if (
+                    nameTextFieldValue.text.isBlank() ||
+                        nameTextFieldValue.text == actualFileName
+                ) {
                     applyNameText(
-                        fileNameWithoutExt.ifBlank { MLang.ProfilesPage.Input.NewProfile }
+                        profileNameFromConfigFileName(
+                            actualFileName,
+                            MLang.ProfilesPage.Input.NewProfile,
+                        )
                     )
                 }
             }
@@ -316,7 +263,7 @@ internal fun AddProfileSheet(
                         val result = readQrFromImage(context, it)
                         if (result != null) {
                             applyUrlText(result)
-                            selectedTypeIndex = 0
+                            selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
                             context.toast(MLang.ProfilesPage.QrScanner.RecognizeSuccess)
                         } else {
                             context.toast(MLang.ProfilesPage.QrScanner.RecognizeFailed)
@@ -338,14 +285,14 @@ internal fun AddProfileSheet(
     }
 
     fun submitProfile() {
-        if (selectedTypeIndex == 2 || isDownloading) {
+        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_QR || isDownloading) {
             return
         }
-        if (selectedTypeIndex == 0 && urlTextFieldValue.text.isBlank()) {
+        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_URL && urlTextFieldValue.text.isBlank()) {
             error = MLang.ProfilesPage.Validation.EnterUrl
             return
         }
-        if (selectedTypeIndex == 1 && filePath.isBlank()) {
+        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_FILE && filePath.isBlank()) {
             error = MLang.ProfilesPage.Validation.SelectFile
             return
         }
@@ -355,7 +302,7 @@ internal fun AddProfileSheet(
         hasShownCompleteAnimation = false
         isDownloading = true
 
-        if (selectedTypeIndex == 0) {
+        if (selectedTypeIndex == PROFILE_IMPORT_TYPE_URL) {
             if (profileToEdit != null) {
                 onUpdateProfile(
                     profileToEdit.uuid,
@@ -370,14 +317,14 @@ internal fun AddProfileSheet(
                     Profile.Type.Url,
                     0L,
                     null,
-                    ageSecretKey,
+                    ageSecretKeyTextFieldValue.text.trim(),
                 )
             }
         } else {
             if (profileToEdit != null) {
                 onUpdateProfile(
                     profileToEdit.uuid,
-                    name,
+                    nameTextFieldValue.text,
                     profileToEdit.source,
                     profileToEdit.interval,
                 )
@@ -388,7 +335,7 @@ internal fun AddProfileSheet(
                     Profile.Type.File,
                     0L,
                     filePath.toUri(),
-                    ageSecretKey,
+                    ageSecretKeyTextFieldValue.text.trim(),
                 )
             }
         }
@@ -405,7 +352,7 @@ internal fun AddProfileSheet(
             }
         },
         endAction = {
-            if (!isDownloading && selectedTypeIndex != 2) {
+            if (!isDownloading && selectedTypeIndex != PROFILE_IMPORT_TYPE_QR) {
                 AppBottomSheetConfirmAction(
                     contentDescription = "Confirm",
                     onClick = { submitProfile() },
@@ -477,295 +424,24 @@ internal fun AddProfileSheet(
                         },
                         onNameChange = { updatedTextFieldValue ->
                             nameTextFieldValue = updatedTextFieldValue
-                            name = updatedTextFieldValue.text
                             error = ""
                         },
                         onUrlChange = { updatedTextFieldValue ->
                             urlTextFieldValue = updatedTextFieldValue
-                            url = updatedTextFieldValue.text
                             error = ""
                         },
                         onAgeSecretKeyChange = { updatedTextFieldValue ->
                             ageSecretKeyTextFieldValue = updatedTextFieldValue
-                            ageSecretKey = updatedTextFieldValue.text
                         },
                         onPickFile = { launcher.launch("*/*") },
                         onSelectQrImage = { qrImageLauncher.launch("image/*") },
                         onQrScanned = { scannedUrl ->
                             applyUrlText(scannedUrl)
-                            selectedTypeIndex = 0
+                            selectedTypeIndex = PROFILE_IMPORT_TYPE_URL
                         },
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DownloadProgressContent(
-    downloadProgress: DownloadProgress?,
-    stableSheetHeightPx: Int,
-    stableSheetHeight: androidx.compose.ui.unit.Dp,
-    downloadSheetContentHeight: androidx.compose.ui.unit.Dp,
-    downloadCompleteSheetContentHeight: androidx.compose.ui.unit.Dp,
-) {
-    val isCompleted = downloadProgress?.isCompleted == true
-    Column(
-        modifier =
-            Modifier.fillMaxWidth()
-                .height(
-                    if (isCompleted) {
-                        downloadCompleteSheetContentHeight
-                    } else if (stableSheetHeightPx > 0) {
-                        stableSheetHeight
-                    } else {
-                        downloadSheetContentHeight
-                    }
-                ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp16, Alignment.CenterVertically),
-    ) {
-        AnimatedContent(
-            targetState = isCompleted,
-            modifier = Modifier.size(UiDp.dp48),
-            contentAlignment = Alignment.Center,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-            },
-            label = "ProgressIcon",
-        ) { complete ->
-            if (complete) {
-                Icon(
-                    imageVector = Yume.`Package-check`,
-                    contentDescription = "Complete",
-                    tint = MiuixTheme.colorScheme.onPrimary,
-                    modifier =
-                        Modifier.fillMaxSize()
-                            .clip(RoundedCornerShape(UiDp.dp16))
-                            .background(MiuixTheme.colorScheme.primary)
-                            .padding(UiDp.dp10),
-                )
-            } else {
-                InfiniteProgressIndicator(modifier = Modifier.size(UiDp.dp32))
-            }
-        }
-
-        downloadProgress?.message?.let { message ->
-            Text(
-                text = message,
-                style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProfileFormContent(
-    selectedTypeIndex: Int,
-    profileLocked: Boolean,
-    nameTextFieldValue: TextFieldValue,
-    urlTextFieldValue: TextFieldValue,
-    fileNameTextFieldValue: TextFieldValue,
-    ageSecretKeyTextFieldValue: TextFieldValue,
-    error: String,
-    hasCameraPermission: Boolean,
-    showCameraPreview: Boolean,
-    onContainerMeasured: (androidx.compose.ui.unit.IntSize) -> Unit,
-    onTypeSelected: (Int) -> Unit,
-    onNameChange: (TextFieldValue) -> Unit,
-    onUrlChange: (TextFieldValue) -> Unit,
-    onAgeSecretKeyChange: (TextFieldValue) -> Unit,
-    onPickFile: () -> Unit,
-    onSelectQrImage: () -> Unit,
-    onQrScanned: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().onSizeChanged(onContainerMeasured),
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
-    ) {
-        ProfileTypeSelectorCard(
-            selectedTypeIndex = selectedTypeIndex,
-            profileLocked = profileLocked,
-            onTypeSelected = onTypeSelected,
-        )
-
-        Crossfade(
-            targetState = selectedTypeIndex,
-            animationSpec = tween(200),
-            label = "ProfileTypeContent",
-        ) { typeIndex ->
-            when (typeIndex) {
-                2 ->
-                    QrScannerContent(
-                        hasCameraPermission = hasCameraPermission,
-                        showCameraPreview = showCameraPreview,
-                        onSelectQrImage = onSelectQrImage,
-                        onQrScanned = onQrScanned,
-                    )
-
-                else ->
-                    ManualProfileContent(
-                        typeIndex = typeIndex,
-                        profileLocked = profileLocked,
-                        nameTextFieldValue = nameTextFieldValue,
-                        urlTextFieldValue = urlTextFieldValue,
-                        fileNameTextFieldValue = fileNameTextFieldValue,
-                        ageSecretKeyTextFieldValue = ageSecretKeyTextFieldValue,
-                        error = error,
-                        onNameChange = onNameChange,
-                        onUrlChange = onUrlChange,
-                        onAgeSecretKeyChange = onAgeSecretKeyChange,
-                        onPickFile = onPickFile,
-                    )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileTypeSelectorCard(
-    selectedTypeIndex: Int,
-    profileLocked: Boolean,
-    onTypeSelected: (Int) -> Unit,
-) {
-    top.yukonga.miuix.kmp.basic.Card {
-        Box(
-            modifier =
-                Modifier.alpha(if (profileLocked) 0.5f else 1f)
-                    .clickable(
-                        enabled = profileLocked,
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                        onClick = {},
-                    )
-        ) {
-            WindowSpinnerPreference(
-                title = MLang.ProfilesPage.Type.Title,
-                items =
-                    listOf(
-                        SpinnerEntry(title = MLang.ProfilesPage.Type.Subscription),
-                        SpinnerEntry(title = MLang.ProfilesPage.Type.LocalFile),
-                        SpinnerEntry(title = MLang.ProfilesPage.Type.QrScan),
-                    ),
-                selectedIndex = selectedTypeIndex,
-                onSelectedIndexChange = onTypeSelected,
-            )
-        }
-    }
-}
-
-@Composable
-private fun QrScannerContent(
-    hasCameraPermission: Boolean,
-    showCameraPreview: Boolean,
-    onSelectQrImage: () -> Unit,
-    onQrScanned: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
-    ) {
-        Column(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .height(UiDp.dp200)
-                    .clip(RoundedCornerShape(UiDp.dp12))
-                    .background(MiuixTheme.colorScheme.surfaceVariant),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            if (showCameraPreview) {
-                key("qr_scanner_stable") { StableQrScanner(onScanned = onQrScanned) }
-            } else if (!hasCameraPermission) {
-                Text(MLang.ProfilesPage.QrScanner.NeedPermission)
-            } else {
-                CircularProgressIndicator(modifier = Modifier.size(UiDp.dp32))
-            }
-        }
-
-        TextButton(
-            text = MLang.ProfilesPage.QrScanner.SelectFromAlbum,
-            onClick = onSelectQrImage,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun ManualProfileContent(
-    typeIndex: Int,
-    profileLocked: Boolean,
-    nameTextFieldValue: TextFieldValue,
-    urlTextFieldValue: TextFieldValue,
-    fileNameTextFieldValue: TextFieldValue,
-    ageSecretKeyTextFieldValue: TextFieldValue,
-    error: String,
-    onNameChange: (TextFieldValue) -> Unit,
-    onUrlChange: (TextFieldValue) -> Unit,
-    onAgeSecretKeyChange: (TextFieldValue) -> Unit,
-    onPickFile: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(UiDp.dp16),
-    ) {
-        TextField(
-            value = nameTextFieldValue,
-            onValueChange = onNameChange,
-            label = MLang.ProfilesPage.Input.ProfileName,
-            useLabelAsPlaceholder = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        if (typeIndex == 0) {
-            TextField(
-                value = urlTextFieldValue,
-                onValueChange = onUrlChange,
-                label = MLang.ProfilesPage.Input.SubscriptionUrl,
-                useLabelAsPlaceholder = true,
-                maxLines = 2,
-                readOnly = profileLocked,
-                enabled = !profileLocked,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            TextField(
-                value = fileNameTextFieldValue,
-                onValueChange = {},
-                label = MLang.ProfilesPage.Input.SelectFile,
-                useLabelAsPlaceholder = true,
-                readOnly = true,
-                enabled = false,
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() },
-                            onClick = onPickFile,
-                        ),
-            )
-        }
-
-        TextField(
-            value = ageSecretKeyTextFieldValue,
-            onValueChange = onAgeSecretKeyChange,
-            label = MLang.ProfilesPage.Input.AgeSecretKey,
-            useLabelAsPlaceholder = true,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (error.isNotEmpty()) {
-            Text(
-                text = error,
-                color = MiuixTheme.colorScheme.error,
-                style = MiuixTheme.textStyles.body2,
-            )
         }
     }
 }

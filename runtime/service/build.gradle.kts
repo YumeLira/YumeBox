@@ -48,8 +48,6 @@ dependencies {
     implementation("com.tencent:mmkv:$mmkvVersion")
 
     implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("com.squareup.okhttp3:okhttp:${gropify.dep.version.okhttp}")
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
     implementation("com.github.topjohnwu.libsu:service:6.0.0")
 }
-

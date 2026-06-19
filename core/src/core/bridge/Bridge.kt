@@ -34,6 +34,17 @@ object Bridge {
 
     external fun nativeCompileToFile(requestJson: String): String
 
+    external fun nativeCompileAndLoadConfig(completable: CompletableDeferred<Unit>, requestJson: String)
+
+    external fun nativeCompileAndLoadConfigSummary(
+        completable: CompletableDeferred<Unit>,
+        requestJson: String,
+    ): String
+
+    external fun nativeCompileAndInspectGroups(requestJson: String, profileDir: String, excludeNotSelectable: Boolean): String?
+
+    external fun nativeCompileAndInspectTunRouteExcludeAddress(requestJson: String): String?
+
     external fun nativeReset()
 
     external fun nativeForceGc()
@@ -120,7 +131,15 @@ object Bridge {
 
     external fun nativeSetCustomUserAgent(userAgent: String)
 
-    external fun nativeSetAgeSecretKey(key: String)
+    external fun nativeSetAgeSecretKey(key: String?)
+
+    external fun nativeGenX25519KeyPair(): String?
+
+    external fun nativeVerifySecretKeys(secretKeys: String): Boolean
+
+    external fun nativeToPublicKeys(secretKeys: String): String?
+
+    external fun nativeVerifyPublicKeys(publicKeys: String): Boolean
 
     private external fun nativeInit(home: String, versionName: String, sdkVersion: Int)
 

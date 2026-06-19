@@ -30,6 +30,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,6 +52,55 @@ object Clash {
                 CompilerJson.encodeToString(CompileRequest.serializer(), request)
             )
         return CompilerJson.decodeFromString(CompileResult.serializer(), payload)
+    }
+
+    fun compileAndLoadConfig(request: CompileRequest): CompletableDeferred<Unit> {
+        return CompletableDeferred<Unit>().apply {
+            Bridge.nativeCompileAndLoadConfig(
+                this,
+                CompilerJson.encodeToString(CompileRequest.serializer(), request)
+            )
+        }
+    }
+
+    fun compileAndLoadConfigSummary(
+        request: CompileRequest,
+        completable: CompletableDeferred<Unit>,
+    ): CompileRawSummary {
+        val payload =
+            Bridge.nativeCompileAndLoadConfigSummary(
+                completable,
+                CompilerJson.encodeToString(CompileRequest.serializer(), request),
+            )
+        return CompilerJson.decodeFromString(CompileRawSummary.serializer(), payload)
+    }
+
+    fun compileAndInspectGroups(
+        request: CompileRequest,
+        profileDir: java.io.File,
+        excludeNotSelectable: Boolean,
+    ): List<ProxyGroup> {
+        val payload =
+            Bridge.nativeCompileAndInspectGroups(
+                CompilerJson.encodeToString(CompileRequest.serializer(), request),
+                profileDir.absolutePath,
+                excludeNotSelectable,
+            ) ?: error("native compile-and-inspect groups failed")
+        val result = CompilerJson.decodeFromString(NativeInspectResult.serializer(), payload)
+        check(result.success) { result.error ?: "native compile-and-inspect groups failed" }
+        return YamlCodec.decode(ListSerializer(ProxyGroup.serializer()), result.payload)
+    }
+
+    fun compileAndInspectTunRouteExcludeAddress(request: CompileRequest): List<String> {
+        val payload =
+            Bridge.nativeCompileAndInspectTunRouteExcludeAddress(
+                CompilerJson.encodeToString(CompileRequest.serializer(), request)
+            ) ?: error("native compile-and-inspect tun route-exclude-address failed")
+        val result = CompilerJson.decodeFromString(NativeInspectResult.serializer(), payload)
+        check(result.success) {
+            result.error ?: "native compile-and-inspect tun route-exclude-address failed"
+        }
+        return Json.decodeFromString(ListSerializer(String.serializer()), result.payload)
     }
 
     fun compileToFile(request: CompileRequest): CompileResult {
@@ -291,7 +341,27 @@ object Clash {
         Bridge.nativeSetCustomUserAgent(userAgent)
     }
 
-    fun setAgeSecretKey(key: String) {
-        Bridge.nativeSetAgeSecretKey(key)
+    fun setAgeSecretKey(key: String?) {
+        Bridge.nativeSetAgeSecretKey(key?.trim()?.takeIf { it.isNotEmpty() })
+    }
+
+    fun genX25519KeyPair(): AgeKeyPair? {
+        return Bridge.nativeGenX25519KeyPair()?.let {
+            Json.decodeFromString(AgeKeyPair.serializer(), it)
+        }
+    }
+
+    fun verifySecretKeys(secretKeys: String): Boolean {
+        return Bridge.nativeVerifySecretKeys(secretKeys.trim())
+    }
+
+    fun toPublicKeys(secretKeys: String): List<String>? {
+        return Bridge.nativeToPublicKeys(secretKeys.trim())?.let {
+            Json.decodeFromString(ListSerializer(String.serializer()), it)
+        }
+    }
+
+    fun verifyPublicKeys(publicKeys: String): Boolean {
+        return Bridge.nativeVerifyPublicKeys(publicKeys.trim())
     }
 }

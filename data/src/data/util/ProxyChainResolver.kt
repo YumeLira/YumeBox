@@ -21,6 +21,7 @@
 package com.github.yumelira.yumebox.data.util
 
 import com.github.yumelira.yumebox.core.model.Proxy
+import com.github.yumelira.yumebox.core.model.isProxyGroup
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
 import timber.log.Timber
 
@@ -52,7 +53,7 @@ class ProxyChainResolver {
         for (group in groups) {
             val proxy = group.proxies.find { it.name == proxyName }
             if (proxy != null) {
-                if (proxy.type.group) {
+                if (proxy.isProxyGroup) {
                     val targetGroup = groups.find { it.name == proxyName }
                     if (targetGroup != null && targetGroup.now.isNotBlank()) {
                         return resolveProxyChain(targetGroup.now, groups, visitedNames)

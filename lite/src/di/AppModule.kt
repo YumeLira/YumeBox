@@ -146,7 +146,7 @@ private val appDataRuntimeModule = module {
     single { OverrideConfigStore(androidContext(), get()) }
     single<OverrideConfigProvider> { get<OverrideConfigStore>() }
 
-    single { TunProfileSync(androidContext(), get(), get()) }
+    single { TunProfileSync(androidContext(), get()) }
 
     single { ProxyFacade(androidContext()) }
     single { AppIdentityResolver(androidContext()) }

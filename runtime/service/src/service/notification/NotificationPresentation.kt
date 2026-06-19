@@ -23,6 +23,7 @@ package com.github.yumelira.yumebox.service.notification
 import com.github.yumelira.yumebox.common.util.formatBytes
 import com.github.yumelira.yumebox.common.util.formatSpeed
 import com.github.yumelira.yumebox.core.model.ProxyGroup
+import com.github.yumelira.yumebox.core.model.isProxyGroup
 
 internal data class NotificationPresentation(
     val title: String,
@@ -145,7 +146,7 @@ internal object NotificationPresentationFactory {
     }
 
     private fun isSelectableGroup(group: ProxyGroup): Boolean {
-        return group.type.group && (group.now.isNotBlank() || group.proxies.isNotEmpty())
+        return group.isProxyGroup
     }
 
     private fun decodeTrafficHalf(encoded: Long): Long {

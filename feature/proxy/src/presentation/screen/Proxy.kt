@@ -29,9 +29,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.data.model.ProxySortMode
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumelira.yumebox.domain.model.isSelectable
 import com.github.yumelira.yumebox.presentation.component.CenteredText
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.ScreenLazyColumn
@@ -432,7 +432,7 @@ private fun NodeListPage(
             proxies = group.proxies,
             selectedProxyName = group.now,
             onProxyClick = { proxyName ->
-                if (group.type == Proxy.Type.Selector) {
+                if (group.isSelectable) {
                     onSelectProxy(group.name, proxyName)
                 } else {
                     onTestDelay()

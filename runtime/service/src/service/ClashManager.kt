@@ -24,6 +24,7 @@ import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.*
+import com.github.yumelira.yumebox.core.model.isSelectable
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.log.Log
@@ -32,11 +33,11 @@ import com.github.yumelira.yumebox.service.remote.ILogObserver
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
 import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipeline
+import com.github.yumelira.yumebox.service.runtime.session.RuntimeProxyGroupResolver
+import com.github.yumelira.yumebox.service.runtime.session.RuntimeSpec
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
-import com.github.yumelira.yumebox.service.runtime.util.mergeProxyGroupNames
 import com.github.yumelira.yumebox.service.runtime.util.sendBroadcastSelf
 import com.tencent.mmkv.MMKV
-import java.io.File
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.serialization.json.int
@@ -48,6 +49,7 @@ class ClashManager(private val context: Context) :
     IClashManager, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private val store = ServiceStore()
     private val compiledConfigPipeline = CompiledConfigPipeline(context)
+    private val proxyGroupResolver = RuntimeProxyGroupResolver(compiledConfigPipeline)
     private val runtimeSpecFactory = SessionRuntimeSpecFactory(context)
     private val networkSettings = MMKV.mmkvWithID("network_settings", MMKV.MULTI_PROCESS_MODE)
     private var logReceiver: ReceiveChannel<LogMessage>? = null
@@ -87,13 +89,24 @@ class ClashManager(private val context: Context) :
         }
     }
 
+    override fun queryActiveProfileTunRouteExcludeAddress(): List<String> {
+        if (store.activeProfile == null) return emptyList()
+        val spec = runtimeSpecFactory.createTunSpec()
+        return runBlocking(Dispatchers.Default) {
+            compiledConfigPipeline.previewTunRouteExcludeAddress(spec)
+        }
+    }
+
     override fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
-        val groupNames = resolveRuntimeProxyGroupNames(excludeNotSelectable)
-        return groupNames.mapNotNull(::queryRuntimeProxyGroupOrNull)
+        return runBlocking(Dispatchers.Default) {
+            proxyGroupResolver.resolvedGroups(activeRuntimeSpec(), excludeNotSelectable)
+        }
     }
 
     override fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
-        return resolveRuntimeProxyGroupNames(excludeNotSelectable)
+        return runBlocking(Dispatchers.Default) {
+            proxyGroupResolver.resolvedGroupNames(activeRuntimeSpec(), excludeNotSelectable)
+        }
     }
 
     override fun queryProxyGroup(name: String, proxySort: ProxySort): ProxyGroup {
@@ -119,7 +132,7 @@ class ClashManager(private val context: Context) :
 
             val patchedGroup =
                 runCatching { Clash.queryGroup(group, ProxySort.Default) }.getOrNull()
-            if (patchedGroup?.type == Proxy.Type.Selector) {
+            if (patchedGroup?.isSelectable == true) {
                 SelectionDao.upsertManualSelection(current, group, name)
             } else {
                 SelectionDao.remove(current, group)
@@ -172,55 +185,15 @@ class ClashManager(private val context: Context) :
         return runCatching { ProxyMode.valueOf(raw) }.getOrDefault(ProxyMode.Tun)
     }
 
-    private fun resolveRuntimeProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
-        val runtimeNames = Clash.queryGroupNames(excludeNotSelectable)
-        val activeProfile = store.activeProfile ?: return runtimeNames
+    private fun activeRuntimeSpec(): RuntimeSpec? {
+        val activeProfile = store.activeProfile ?: return null
         val spec =
             when (configuredProxyMode()) {
                 ProxyMode.RootTun -> runtimeSpecFactory.createRootTunSpec()
                 ProxyMode.Http -> runtimeSpecFactory.createHttpSpec()
                 ProxyMode.Tun -> runtimeSpecFactory.createTunSpec()
             }
-        if (spec.profileUuid != activeProfile.toString()) {
-            return runtimeNames
-        }
-
-        val runtimeFile = File(spec.runtimeConfigPath)
-        if (!runtimeFile.isFile) {
-            return runtimeNames
-        }
-        val expectedNames =
-            runCatching {
-                    Clash.inspectCompiledGroups(
-                            runtimeFile.readText(),
-                            File(spec.profileDir),
-                            excludeNotSelectable,
-                        )
-                        .map(ProxyGroup::name)
-                }
-                .getOrDefault(emptyList())
-        if (expectedNames.isEmpty()) {
-            return runtimeNames
-        }
-
-        return mergeProxyGroupNames(expectedNames, runtimeNames)
-    }
-
-    private fun queryRuntimeProxyGroupOrNull(groupName: String): ProxyGroup? {
-        val group = Clash.queryGroup(groupName, ProxySort.Default)
-        if (group.name.isBlank()) {
-            return null
-        }
-        return if (
-            group.type == Proxy.Type.Unknown &&
-                group.proxies.isEmpty() &&
-                group.now.isBlank() &&
-                group.icon.isNullOrBlank()
-        ) {
-            null
-        } else {
-            group
-        }
+        return spec.takeIf { it.profileUuid == activeProfile.toString() }
     }
 
     override fun setLogObserver(observer: ILogObserver?) {

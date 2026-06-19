@@ -262,14 +262,15 @@ fun ProfilesPager(mainInnerPadding: PaddingValues) {
                 profileToEdit = null
                 profileBinding = null
             },
-            onSaveProfileMeta = { newName, newSource, ageSecretKey ->
-                if (newName.isNotBlank() && newSource.isNotBlank()) {
+            onSaveProfileMeta = { update ->
+                if (update.name.isNotBlank() && update.source.isNotBlank()) {
                     profilesViewModel.patchProfile(
-                        currentProfileToEdit.uuid,
-                        newName,
-                        newSource,
-                        currentProfileToEdit.interval,
-                        ageSecretKey,
+                        uuid = currentProfileToEdit.uuid,
+                        name = update.name,
+                        source = update.source,
+                        interval = currentProfileToEdit.interval,
+                        updateAgeSecretKey = update.updateAgeSecretKey,
+                        ageSecretKey = update.ageSecretKey,
                     )
                 }
             },

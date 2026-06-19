@@ -135,7 +135,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     )
                     AboutLinkItem(
                         title = MLang.About.Link.TelegramChannel,
-                        url = "https://t.me/YumeRiMoe",
+                        url = "https://t.me/YumeLira",
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = true,
                     )

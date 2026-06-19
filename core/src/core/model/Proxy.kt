@@ -32,6 +32,7 @@ data class Proxy(
     val subtitle: String,
     val type: Type,
     val delay: Int,
+    val isGroup: Boolean = type.group,
 ) : Parcelable {
     @Suppress("unused")
     enum class Type(val group: Boolean) {
@@ -68,6 +69,7 @@ data class Proxy(
         URLTest(true),
         LoadBalance(true),
         Smart(true),
+        PassRule(false),
         Unknown(false),
     }
 
@@ -89,3 +91,6 @@ data class Proxy(
         }
     }
 }
+
+val Proxy.isProxyGroup: Boolean
+    get() = isGroup || type.group

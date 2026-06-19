@@ -249,11 +249,25 @@ class ProfilesViewModel(
         }
     }
 
-    fun patchProfile(uuid: UUID, name: String, source: String, interval: Long, ageSecretKey: String? = null) {
+    fun patchProfile(
+        uuid: UUID,
+        name: String,
+        source: String,
+        interval: Long,
+        updateAgeSecretKey: Boolean = false,
+        ageSecretKey: String? = null,
+    ) {
         viewModelScope.launch {
             try {
                 applyLoading(true)
-                profilesRepository.patchProfile(uuid, name, source, interval, ageSecretKey)
+                profilesRepository.patchProfile(
+                    uuid = uuid,
+                    name = name,
+                    source = source,
+                    interval = interval,
+                    updateAgeSecretKey = updateAgeSecretKey,
+                    ageSecretKey = ageSecretKey,
+                )
                 showMessage(MLang.ProfilesVM.Message.ProfileUpdated.format(name))
                 refreshProfiles()
                 Timber.i("Profile patched: $uuid")
@@ -380,6 +394,10 @@ private fun FetchStatus.toDownloadProgress(): DownloadProgress {
 
             FetchStatus.Action.FetchProviders -> {
                 if (detail.isNotBlank()) detail else ""
+            }
+
+            FetchStatus.Action.SubscriptionInfo -> {
+                ""
             }
 
             FetchStatus.Action.Verifying -> {

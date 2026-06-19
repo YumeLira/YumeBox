@@ -42,9 +42,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.data.model.normalizeProxySheetHeightFraction
 import com.github.yumelira.yumebox.domain.model.ProxyGroupInfo
+import com.github.yumelira.yumebox.domain.model.isSelectable
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeState
 import com.github.yumelira.yumebox.presentation.component.LocalTopBarHazeStyle
 import com.github.yumelira.yumebox.presentation.theme.UiDp
@@ -239,7 +239,7 @@ fun NodeSheetContent(
             proxies = group.proxies,
             selectedProxyName = group.now,
             onProxyClick = { proxyName ->
-                if (group.type == Proxy.Type.Selector) {
+                if (group.isSelectable) {
                     onSelectProxy(proxyName)
                 } else {
                     onTestDelay()

@@ -38,16 +38,9 @@ func LoadCompiled(path string) error {
 	return nil
 }
 
-func QueryProxyGroupsFromCompiledYaml(yamlText string, profileDir string, excludeNotSelectable bool) ([]*ProxyGroup, error) {
+func QueryProxyGroupsFromCompiledRaw(configRaw string, profileDir string, excludeNotSelectable bool) ([]*ProxyGroup, error) {
 	_ = profileDir
-	configData := []byte(yamlText)
-
-	rawCfg, err := config.UnmarshalRawConfig(configData)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := config.Parse(configData)
+	rawCfg, cfg, err := ParseCompiledRaw(configRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +63,35 @@ func QueryProxyGroupsFromCompiledYaml(yamlText string, profileDir string, exclud
 	}
 
 	return buildProxyGroupsFromParsed(cfg, groupNames, excludeNotSelectable), nil
+}
+
+func QueryTunRouteExcludeAddressFromCompiledRaw(configRaw string) ([]string, error) {
+	rawCfg, err := UnmarshalCompiledRaw(configRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	addresses := make([]string, 0, len(rawCfg.Tun.RouteExcludeAddress))
+	for _, prefix := range rawCfg.Tun.RouteExcludeAddress {
+		addresses = append(addresses, prefix.String())
+	}
+	return addresses, nil
+}
+
+func UnmarshalCompiledRaw(configRaw string) (*config.RawConfig, error) {
+	return config.UnmarshalRawConfig([]byte(configRaw))
+}
+
+func ParseCompiledRaw(configRaw string) (*config.RawConfig, *config.Config, error) {
+	rawCfg, err := UnmarshalCompiledRaw(configRaw)
+	if err != nil {
+		return nil, nil, err
+	}
+	cfg, err := config.ParseRawConfig(rawCfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return rawCfg, cfg, nil
 }
 
 func QueryConfigFromCompiledYaml(yamlText string) (map[string]any, error) {

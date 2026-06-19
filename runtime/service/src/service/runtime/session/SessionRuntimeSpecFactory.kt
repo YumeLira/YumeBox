@@ -51,35 +51,46 @@ class SessionRuntimeSpecFactory(
         val profile = requireActiveProfile()
         val profileDir = context.importedDir.resolve(profile.uuid.toString())
         val overrideSpecs = compiledConfigPipeline.resolveOverrideSpecs(profile.uuid.toString())
+        val ageSecretKey = normalizeAgeSecretKey(profile.ageSecretKey)
         return RuntimeSpec(
             owner = owner,
             profileUuid = profile.uuid.toString(),
             profileName = profile.name,
             profileDir = profileDir.absolutePath,
             runtimeConfigPath = profileDir.resolve("runtime.yaml").absolutePath,
+            ageSecretKey = ageSecretKey,
             overrideSpecs = overrideSpecs,
             effectiveFingerprint =
-                buildEffectiveFingerprint(profile.uuid.toString(), overrideSpecs),
+                buildEffectiveFingerprint(profile.uuid.toString(), overrideSpecs, ageSecretKey),
             profileFingerprint = buildProfileFingerprint(profile.uuid.toString()),
         )
     }
 
     fun createRootTunSpec(): RuntimeSpec {
         val rootResult = RootTunConfigFactory(context).create()
+        val profile =
+            ImportedDao.queryByUUID(rootResult.profileUuid)
+                ?: error("Root tun profile metadata not found: ${rootResult.profileUuid}")
         val overrideSpecs =
             compiledConfigPipeline.resolveOverrideSpecs(rootResult.profileUuid.toString())
+        val ageSecretKey = normalizeAgeSecretKey(profile.ageSecretKey)
         return RuntimeSpec(
             owner = RuntimeOwner.RootTun,
             profileUuid = rootResult.profileUuid.toString(),
             profileName = rootResult.profileName,
             profileDir = rootResult.profileDir.absolutePath,
             runtimeConfigPath = rootResult.profileDir.resolve("runtime.yaml").absolutePath,
+            ageSecretKey = ageSecretKey,
             overrideSpecs = overrideSpecs,
             rootTunConfig = rootResult.config,
             staticPlanFingerprint = rootResult.staticPlan.fingerprint,
             transportFingerprint = rootResult.dynamicOverrides.transportFingerprint,
             effectiveFingerprint =
-                buildEffectiveFingerprint(rootResult.profileUuid.toString(), overrideSpecs),
+                buildEffectiveFingerprint(
+                    rootResult.profileUuid.toString(),
+                    overrideSpecs,
+                    ageSecretKey,
+                ),
             profileFingerprint = rootResult.dynamicOverrides.profileFingerprint,
         )
     }
@@ -103,11 +114,13 @@ class SessionRuntimeSpecFactory(
     private fun buildEffectiveFingerprint(
         profileUuid: String,
         overrideSpecs: List<OverrideSpec>,
+        ageSecretKey: String?,
     ): String {
         val profileDir = context.importedDir.resolve(profileUuid)
         val metadataFile = context.filesDir.resolve("overrides/metadata.yaml")
         return sha256 {
             update(profileUuid.toByteArray())
+            updateAgeSecretKeyDigest(ageSecretKey)
             updateFile(profileDir.resolve("config.yaml"))
             updateFile(metadataFile)
             overrideSpecs.forEach { overrideSpec ->
@@ -116,6 +129,11 @@ class SessionRuntimeSpecFactory(
                 updateFile(File(overrideSpec.path))
             }
         }
+    }
+
+    private fun MessageDigest.updateAgeSecretKeyDigest(ageSecretKey: String?) {
+        update("age-secret-key:".toByteArray())
+        update((ageSecretKey?.let(::sha256String) ?: "none").toByteArray())
     }
 
     private inline fun sha256(block: MessageDigest.() -> Unit): String {
@@ -131,5 +149,14 @@ class SessionRuntimeSpecFactory(
         }
         update(file.absolutePath.toByteArray())
         update(file.readBytes())
+    }
+
+    private fun normalizeAgeSecretKey(value: String?): String? {
+        return value?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun sha256String(value: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

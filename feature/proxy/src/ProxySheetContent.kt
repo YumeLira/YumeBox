@@ -28,7 +28,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.DpSize
-import com.github.yumelira.yumebox.core.model.Proxy
+import com.github.yumelira.yumebox.domain.model.isSelectable
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetIconAction
 import com.github.yumelira.yumebox.presentation.icon.Yume
@@ -297,7 +297,7 @@ private fun ProxySheetNodeContent(
     val onSelectProxy =
         remember(group.name, group.type, proxyViewModel, onTestDelay) {
             { proxyName: String ->
-                if (group.type == Proxy.Type.Selector) {
+                if (group.isSelectable) {
                     proxyViewModel.selectProxy(group.name, proxyName)
                 } else {
                     onTestDelay()

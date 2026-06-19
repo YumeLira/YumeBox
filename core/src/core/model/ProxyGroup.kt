@@ -91,3 +91,9 @@ data class ProxyGroup(
         }
     }
 }
+
+val ProxyGroup.isSelectable: Boolean
+    get() = type == Proxy.Type.Selector
+
+val ProxyGroup.isProxyGroup: Boolean
+    get() = type.group || now.isNotBlank() || proxies.isNotEmpty()

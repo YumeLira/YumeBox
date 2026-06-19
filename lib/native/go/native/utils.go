@@ -20,6 +20,14 @@ func marshalJson(obj any) *C.char {
 	return C.CString(string(res))
 }
 
+func jsonString(obj any) (string, error) {
+	res, err := json.Marshal(obj)
+	if err != nil {
+		return "", err
+	}
+	return string(res), nil
+}
+
 func marshalString(obj any) *C.char {
 	if obj == nil {
 		return nil
@@ -44,4 +52,12 @@ func marshalYaml(obj any) *C.char {
 	}
 
 	return C.CString(string(res))
+}
+
+func yamlString(obj any) (string, error) {
+	res, err := yaml.Marshal(obj)
+	if err != nil {
+		return "", err
+	}
+	return string(res), nil
 }

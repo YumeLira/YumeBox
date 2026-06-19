@@ -358,6 +358,7 @@ private fun FetchStatus.toDownloadProgress(): DownloadProgress {
                 else detail.ifBlank { MLang.ProfilesPage.Progress.Downloading }
             }
             FetchStatus.Action.FetchProviders -> if (detail.isNotBlank()) detail else ""
+            FetchStatus.Action.SubscriptionInfo -> ""
             FetchStatus.Action.Verifying -> detail.ifBlank { MLang.ProfilesVM.Progress.Verifying }
         }
     return DownloadProgress(percent = percent, message = message)

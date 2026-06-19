@@ -1288,6 +1288,8 @@ class ProxyFacade(private val context: Context) {
                     append(':')
                     append(proxy.type.name)
                     append(':')
+                    append(proxy.isGroup)
+                    append(':')
                     append(proxy.delay)
                 }
             }
@@ -1325,7 +1327,7 @@ class ProxyFacade(private val context: Context) {
 
         groups.forEach { proxyGroup ->
             val proxy = proxyGroup.proxies.firstOrNull { it.name == nodeName } ?: return@forEach
-            if (proxy.type.group) {
+            if (proxy.isProxyGroup) {
                 val nextGroup = groups.firstOrNull { it.name == proxy.name } ?: return null
                 val nextNode = nextGroup.now.trim()
                 return nextNode

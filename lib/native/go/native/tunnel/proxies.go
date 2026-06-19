@@ -27,6 +27,7 @@ type Proxy struct {
 	Subtitle string `json:"subtitle"`
 	Type     string `json:"type"`
 	Delay    int    `json:"delay"`
+	IsGroup  bool   `json:"isGroup"`
 }
 
 type ProxyGroup struct {
@@ -125,7 +126,7 @@ func QueryProxyGroup(name string, sortMode SortMode, uiSubtitlePattern *regexp2.
 
 	return &ProxyGroup{
 		Name:    name,
-		Type:    g.Type().String(),
+		Type:    normalizeProxyType(g.Type().String()),
 		Now:     g.Now(),
 		Icon:    proxyGroupIcon(g),
 		Hidden:  g.Hidden(),
@@ -145,6 +146,49 @@ func proxyGroupIcon(group outboundgroup.ProxyGroup) string {
 		return g.Icon()
 	default:
 		return ""
+	}
+}
+
+func normalizeProxyType(proxyType string) string {
+	switch proxyType {
+	case "Direct",
+		"Reject",
+		"RejectDrop",
+		"Compatible",
+		"Pass",
+		"PassRule",
+		"Shadowsocks",
+		"ShadowsocksR",
+		"Snell",
+		"Socks5",
+		"Http",
+		"Vmess",
+		"Vless",
+		"Trojan",
+		"Hysteria",
+		"Hysteria2",
+		"Tuic",
+		"WireGuard",
+		"Dns",
+		"Ssh",
+		"Mieru",
+		"AnyTLS",
+		"Sudoku",
+		"Masque",
+		"TrustTunnel",
+		"OpenVPN",
+		"Tailscale",
+		"GostRelay",
+		"Relay",
+		"Selector",
+		"Fallback",
+		"URLTest",
+		"LoadBalance",
+		"Smart",
+		"Unknown":
+		return proxyType
+	default:
+		return "Unknown"
 	}
 }
 
@@ -190,9 +234,10 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 		name := p.Name()
 		title := name
 		subtitle := p.Type().String()
+		_, isGroup := p.Adapter().(outboundgroup.ProxyGroup)
 
 		if uiSubtitlePattern != nil {
-			if _, ok := p.Adapter().(outboundgroup.ProxyGroup); !ok {
+			if !isGroup {
 				runes := []rune(name)
 				match, err := uiSubtitlePattern.FindRunesMatch(runes)
 				if err == nil && match != nil {
@@ -213,8 +258,9 @@ func convertProxies(proxies []C.Proxy, uiSubtitlePattern *regexp2.Regexp) []*Pro
 			Name:     name,
 			Title:    strings.TrimSpace(title),
 			Subtitle: strings.TrimSpace(subtitle),
-			Type:     p.Type().String(),
+			Type:     normalizeProxyType(p.Type().String()),
 			Delay:    int(p.LastDelayForTestUrl(testURL)),
+			IsGroup:  isGroup,
 		})
 	}
 	return result
@@ -228,9 +274,10 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 			name := px.Name()
 			title := name
 			subtitle := px.Type().String()
+			_, isGroup := px.Adapter().(outboundgroup.ProxyGroup)
 
 			if uiSubtitlePattern != nil {
-				if _, ok := px.Adapter().(outboundgroup.ProxyGroup); !ok {
+				if !isGroup {
 					runes := []rune(name)
 					match, err := uiSubtitlePattern.FindRunesMatch(runes)
 					if err == nil && match != nil {
@@ -252,8 +299,9 @@ func collectProviders(providers []provider.ProxyProvider, uiSubtitlePattern *reg
 				Name:     name,
 				Title:    strings.TrimSpace(title),
 				Subtitle: strings.TrimSpace(subtitle),
-				Type:     px.Type().String(),
+				Type:     normalizeProxyType(px.Type().String()),
 				Delay:    int(px.LastDelayForTestUrl(testURL)),
+				IsGroup:  isGroup,
 			})
 		}
 	}

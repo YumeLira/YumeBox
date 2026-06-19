@@ -21,8 +21,8 @@
 package com.github.yumelira.yumebox.service.runtime.records
 
 import com.github.yumelira.yumebox.core.Clash
-import com.github.yumelira.yumebox.core.model.Proxy
 import com.github.yumelira.yumebox.core.model.ProxyGroup
+import com.github.yumelira.yumebox.core.model.isSelectable
 import com.github.yumelira.yumebox.core.util.PollingTimerSpecs
 import com.github.yumelira.yumebox.core.util.PollingTimers
 import com.github.yumelira.yumebox.service.common.log.Log
@@ -48,7 +48,7 @@ internal object SelectionRestoreExecutor {
                         removeSelection(profileUuid, selection, tag, "group missing")
                         return@forEach
                     }
-            if (group.type != Proxy.Type.Selector) {
+            if (!group.isSelectable) {
                 removeSelection(profileUuid, selection, tag, "group not selector")
                 return@forEach
             }

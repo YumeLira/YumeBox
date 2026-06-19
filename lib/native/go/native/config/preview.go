@@ -19,6 +19,7 @@ type Proxy struct {
 	Subtitle string `json:"subtitle"`
 	Type     string `json:"type"`
 	Delay    int    `json:"delay"`
+	IsGroup  bool   `json:"isGroup"`
 }
 
 // ProxyGroup 代理组结构体（本地定义，避免依赖 tunnel 包）
@@ -59,7 +60,7 @@ func buildProxyGroupsFromParsed(
 
 		result = append(result, &ProxyGroup{
 			Name:    name,
-			Type:    proxy.Type().String(),
+			Type:    normalizeProxyType(proxy.Type().String()),
 			Now:     group.Now(),
 			Icon:    group.Icon(),
 			Hidden:  group.Hidden(),
@@ -88,9 +89,10 @@ func buildPreviewProxy(
 	name := proxy.Name()
 	title := name
 	subtitle := proxy.Type().String()
+	_, isGroup := proxy.Adapter().(outboundgroup.ProxyGroup)
 
 	if uiSubtitlePattern != nil {
-		if _, ok := proxy.Adapter().(outboundgroup.ProxyGroup); !ok {
+		if !isGroup {
 			runes := []rune(name)
 			match, err := uiSubtitlePattern.FindRunesMatch(runes)
 			if err == nil && match != nil {
@@ -104,8 +106,9 @@ func buildPreviewProxy(
 		Name:     name,
 		Title:    strings.TrimSpace(title),
 		Subtitle: strings.TrimSpace(subtitle),
-		Type:     proxy.Type().String(),
+		Type:     normalizeProxyType(proxy.Type().String()),
 		Delay:    int(proxy.LastDelayForTestUrl(getPreviewTestURL(proxy))),
+		IsGroup:  isGroup,
 	}
 }
 
@@ -116,4 +119,47 @@ func getPreviewTestURL(proxy C.Proxy) string {
 		}
 	}
 	return "https://www.gstatic.com/generate_204"
+}
+
+func normalizeProxyType(proxyType string) string {
+	switch proxyType {
+	case "Direct",
+		"Reject",
+		"RejectDrop",
+		"Compatible",
+		"Pass",
+		"PassRule",
+		"Shadowsocks",
+		"ShadowsocksR",
+		"Snell",
+		"Socks5",
+		"Http",
+		"Vmess",
+		"Vless",
+		"Trojan",
+		"Hysteria",
+		"Hysteria2",
+		"Tuic",
+		"WireGuard",
+		"Dns",
+		"Ssh",
+		"Mieru",
+		"AnyTLS",
+		"Sudoku",
+		"Masque",
+		"TrustTunnel",
+		"OpenVPN",
+		"Tailscale",
+		"GostRelay",
+		"Relay",
+		"Selector",
+		"Fallback",
+		"URLTest",
+		"LoadBalance",
+		"Smart",
+		"Unknown":
+		return proxyType
+	default:
+		return "Unknown"
+	}
 }

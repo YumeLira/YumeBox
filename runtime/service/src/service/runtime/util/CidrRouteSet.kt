@@ -154,11 +154,7 @@ private fun bigIntegerToAddressString(value: BigInteger, bitSize: Int): String {
 }
 
 private fun rootRouteAddress(bitSize: Int): String {
-    return if (bitSize == IPV4_BITS) {
-        "0.0.0.0"
-    } else {
-        "::"
-    }
+    return "0.0.0.0".takeIf { bitSize == IPV4_BITS } ?: "::"
 }
 
 private const val IPV4_BITS = 32

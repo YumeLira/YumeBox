@@ -47,7 +47,7 @@ class ProfileManager(private val context: Context) :
         launch { context.importedDir.mkdirs() }
     }
 
-    override suspend fun create(type: Profile.Type, name: String, source: String, ageSecretKey: String): UUID {
+    override suspend fun create(type: Profile.Type, name: String, source: String, ageSecretKey: String?): UUID {
         val uuid = generateProfileUUID()
         val normalizedName = name.trim().ifBlank { "New Profile" }
         val now = System.currentTimeMillis()
@@ -64,7 +64,7 @@ class ProfileManager(private val context: Context) :
                 download = 0,
                 expire = 0,
                 createdAt = now,
-                ageSecretKey = ageSecretKey,
+                ageSecretKey = normalizeAgeSecretKey(ageSecretKey),
             )
 
         ImportedDao.insert(imported)
@@ -107,16 +107,26 @@ class ProfileManager(private val context: Context) :
         return newUUID
     }
 
-    override suspend fun patch(uuid: UUID, name: String, source: String, interval: Long, ageSecretKey: String?) {
+    override suspend fun patch(
+        uuid: UUID,
+        name: String,
+        source: String,
+        interval: Long,
+        updateAgeSecretKey: Boolean,
+        ageSecretKey: String?,
+    ) {
         val imported =
             ImportedDao.queryByUUID(uuid) ?: throw FileNotFoundException("profile $uuid not found")
 
-        val updated = imported.copy(
-            name = name,
-            source = source,
-            interval = interval,
-            ageSecretKey = ageSecretKey ?: imported.ageSecretKey,
-        )
+        val updated =
+            imported.copy(
+                name = name,
+                source = source,
+                interval = interval,
+                ageSecretKey =
+                    if (updateAgeSecretKey) normalizeAgeSecretKey(ageSecretKey)
+                    else imported.ageSecretKey,
+            )
 
         ImportedDao.update(updated)
         context.sendProfileChanged(uuid)
@@ -161,7 +171,7 @@ class ProfileManager(private val context: Context) :
 
     override suspend fun setActive(profile: Profile) {
         store.activeProfile = profile.uuid
-        StatusProvider.currentProfile = profile.toString()
+        StatusProvider.currentProfile = profile.name
         context.sendProfileChanged(profile.uuid)
     }
 
@@ -190,22 +200,26 @@ class ProfileManager(private val context: Context) :
         val name = ProfileNameUtils.resolveDisplayName(imported.name, imported.source)
 
         return Profile(
-            uuid,
-            name,
-            imported.type,
-            imported.source,
-            active != null && imported.uuid == active,
-            imported.interval,
-            imported.upload,
-            imported.download,
-            imported.total,
-            imported.expire,
-            resolveUpdatedAt(uuid),
-            imported.ageSecretKey,
+            uuid = uuid,
+            name = name,
+            type = imported.type,
+            source = imported.source,
+            active = active != null && imported.uuid == active,
+            interval = imported.interval,
+            upload = imported.upload,
+            download = imported.download,
+            total = imported.total,
+            expire = imported.expire,
+            updatedAt = resolveUpdatedAt(uuid),
+            hasAgeSecretKey = imported.ageSecretKey != null,
         )
     }
 
     private fun resolveUpdatedAt(uuid: UUID): Long {
         return context.importedDir.resolve(uuid.toString()).directoryLastModified ?: -1
+    }
+
+    private fun normalizeAgeSecretKey(value: String?): String? {
+        return value?.trim()?.takeIf { it.isNotEmpty() }
     }
 }

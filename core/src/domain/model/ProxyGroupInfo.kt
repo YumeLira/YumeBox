@@ -32,3 +32,9 @@ data class ProxyGroupInfo(
     val icon: String? = null,
     val hidden: Boolean = false,
 )
+
+val ProxyGroupInfo.isSelectable: Boolean
+    get() = type == Proxy.Type.Selector
+
+val ProxyGroupInfo.isProxyGroup: Boolean
+    get() = type.group || now.isNotBlank() || proxies.isNotEmpty()

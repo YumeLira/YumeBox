@@ -41,7 +41,7 @@ import com.github.yumelira.yumebox.presentation.theme.AppTheme
 import com.github.yumelira.yumebox.presentation.theme.TrafficChartConfig
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private const val SPEED_CHART_SAMPLE_LIMIT = AppConstants.Limits.SPEED_HISTORY_SIZE
+private const val SPEED_CHART_SAMPLE_LIMIT = 24
 private const val SPEED_CHART_IDLE_SCROLL_DURATION_MS = 900
 private const val SPEED_CHART_IDLE_WAVE_AMPLITUDE = 0.022f
 private const val SPEED_CHART_IDLE_WAVE_SPAN = 4f

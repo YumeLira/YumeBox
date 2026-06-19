@@ -32,6 +32,7 @@ data class RuntimeSpec(
     val profileName: String,
     val profileDir: String,
     val runtimeConfigPath: String = "",
+    val ageSecretKey: String? = null,
     val overrideSpecs: List<OverrideSpec> = emptyList(),
     val rootTunConfig: RootTunConfig? = null,
     val staticPlanFingerprint: String = "",

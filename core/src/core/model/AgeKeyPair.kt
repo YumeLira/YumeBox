@@ -14,25 +14,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeLira 2025 - Present
  *
  */
 
-package com.github.yumelira.yumebox.common
+package com.github.yumelira.yumebox.core.model
 
-import androidx.compose.ui.unit.sp
-import com.github.yumelira.yumebox.presentation.theme.UiDp
+import kotlinx.serialization.Serializable
 
-object AppConstants {
-
-    object UI {
-        val TRAFFIC_FONT_SIZE = 96.sp
-        val TRAFFIC_LETTER_SPACING = (-3).sp
-        val TRAFFIC_UNIT_FONT_SIZE = 24.sp
-        val CARD_CORNER_RADIUS = UiDp.dp12
-        val BUTTON_CORNER_RADIUS = UiDp.dp32
-        val DEFAULT_HORIZONTAL_PADDING = UiDp.dp24
-        val DEFAULT_VERTICAL_SPACING = UiDp.dp24
-        val SPEED_CHART_HEIGHT = UiDp.dp130
-    }
-}
+@Serializable
+data class AgeKeyPair(
+    val secretKey: String,
+    val publicKey: String,
+)

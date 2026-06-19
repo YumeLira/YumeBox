@@ -31,9 +31,6 @@ import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecu
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
-import com.github.yumelira.yumebox.service.runtime.util.mergeProxyGroupNames
-import java.io.File
-import java.security.MessageDigest
 import java.util.TimeZone
 import java.util.UUID
 import kotlin.math.min
@@ -47,6 +44,7 @@ class SessionRuntime(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     private val compiledConfigPipeline = CompiledConfigPipeline(host.context.appContextOrSelf)
+    private val proxyGroupResolver = RuntimeProxyGroupResolver(compiledConfigPipeline)
     private val lock = Any()
     @Volatile private var interruptReason: String? = null
     private var currentSpec: RuntimeSpec? = null
@@ -251,7 +249,7 @@ class SessionRuntime(
                     currentSnapshot.phase == RuntimePhase.Starting
             ) {
                 val refreshedGroup = refreshRuntimeProxyGroup(group)
-                if (refreshedGroup?.type == Proxy.Type.Selector) {
+                if (refreshedGroup?.isSelectable == true) {
                     profileUuid?.let { SelectionDao.upsertManualSelection(it, group, name) }
                 } else {
                     profileUuid?.let { SelectionDao.remove(it, group) }
@@ -480,17 +478,12 @@ class SessionRuntime(
 
     private fun compileAndLoad(spec: RuntimeSpec) {
         ensureNotInterrupted(spec)
-        startupLog(spec, "runtime prepare: begin path=${spec.runtimeConfigPath}")
         runBlocking {
-            compiledConfigPipeline.applyOverrideToRuntimeFile(spec) { message ->
+            compiledConfigPipeline.compileAndLoad(spec) { message ->
                 startupLog(spec, message)
+                ensureNotInterrupted(spec)
             }
         }
-        startupLog(spec, "runtime override: done ${describeFile(File(spec.runtimeConfigPath))}")
-        ensureNotInterrupted(spec)
-        startupLog(spec, "runtime load: loadCompiledConfig(${spec.runtimeConfigPath}) begin")
-        runBlocking { Clash.loadCompiledConfig(File(spec.runtimeConfigPath)).await() }
-        startupLog(spec, "runtime load: loadCompiledConfig done")
         ensureNotInterrupted(spec)
     }
 
@@ -538,30 +531,11 @@ class SessionRuntime(
     }
 
     private fun readExpectedGroupNames(spec: RuntimeSpec): List<String> {
-        val runtimeFile = File(spec.runtimeConfigPath)
-        if (!runtimeFile.exists()) {
-            startupLog(
-                spec,
-                "runtime verify: runtime.yaml missing path=${runtimeFile.absolutePath}",
-            )
-            return emptyList()
-        }
-        val yamlText = runtimeFile.readText()
-        if (yamlText.isBlank()) {
-            startupLog(spec, "runtime verify: runtime.yaml empty")
-            return emptyList()
-        }
         return runCatching {
-                Clash.inspectCompiledGroups(
-                        yamlText,
-                        File(spec.profileDir),
-                        excludeNotSelectable = false,
-                    )
-                    .map { it.name }
-                    .filter { it.isNotBlank() }
+                runBlocking { proxyGroupResolver.expectedGroupNames(spec, false) }
             }
             .getOrElse { error ->
-                startupLog(spec, "runtime verify: inspect failed=${error.message}")
+                startupLog(spec, "runtime verify: expected group inspect failed=${error.message}")
                 emptyList()
             }
     }
@@ -659,32 +633,13 @@ class SessionRuntime(
     }
 
     private fun resolveRuntimeProxyGroupNames(excludeNotSelectable: Boolean): List<String> {
-        val expectedNames = currentSpec?.let(::readExpectedGroupNames).orEmpty()
-        val runtimeNames = Clash.queryGroupNames(excludeNotSelectable)
-
-        if (expectedNames.isEmpty()) {
-            return runtimeNames
-        }
-
-        val selectableNames = if (excludeNotSelectable) runtimeNames.toSet() else null
-        return mergeProxyGroupNames(expectedNames, runtimeNames) { groupName ->
-            selectableNames == null || groupName in selectableNames
+        return runBlocking {
+            proxyGroupResolver.resolvedGroupNames(currentSpec, excludeNotSelectable)
         }
     }
 
     private fun queryRuntimeProxyGroupOrNull(name: String): ProxyGroup? {
-        val runtimeGroup = Clash.queryGroup(name, ProxySort.Default)
-        return runtimeGroup.takeIf(::isRuntimeProxyGroupUsable)
-    }
-
-    private fun isRuntimeProxyGroupUsable(group: ProxyGroup): Boolean {
-        if (group.name.isBlank()) {
-            return false
-        }
-        return group.type != Proxy.Type.Unknown ||
-            group.proxies.isNotEmpty() ||
-            group.now.isNotBlank() ||
-            !group.icon.isNullOrBlank()
+        return proxyGroupResolver.queryUsableGroup(name)
     }
 
     private fun ensureRuntimeSnapshot(): SessionRuntimeQuerySnapshot {
@@ -737,35 +692,6 @@ class SessionRuntime(
 
     private fun clearInterruptRequest() {
         interruptReason = null
-    }
-
-    private fun describeFile(file: File): String {
-        if (!file.exists()) {
-            return "path=${file.absolutePath} exists=false"
-        }
-        val content = file.readText()
-        return buildString {
-            append("path=")
-            append(file.absolutePath)
-            append(" exists=true size=")
-            append(content.length)
-            append(" sha=")
-            append(content.sha256Short())
-            content
-                .lineSequence()
-                .map(String::trim)
-                .firstOrNull { it.isNotEmpty() }
-                ?.let {
-                    append(" firstLine=")
-                    append(it.take(160))
-                }
-        }
-    }
-
-    private fun String.sha256Short(): String {
-        if (isBlank()) return "empty"
-        val digest = MessageDigest.getInstance("SHA-256").digest(toByteArray())
-        return digest.take(8).joinToString("") { "%02x".format(it) }
     }
 
     private companion object {

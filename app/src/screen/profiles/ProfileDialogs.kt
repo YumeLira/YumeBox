@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.data.model.OverrideConfig
 import com.github.yumelira.yumebox.data.model.ProfileBinding
+import com.github.yumelira.yumebox.presentation.component.AgeSecretKeyField
 import com.github.yumelira.yumebox.presentation.component.AppActionBottomSheet
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetCloseAction
 import com.github.yumelira.yumebox.presentation.component.AppBottomSheetConfirmAction
@@ -172,7 +173,7 @@ internal fun ProfileSettingsDialog(
     binding: ProfileBinding?,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
-    onSaveProfileMeta: (String, String, String?) -> Unit,
+    onSaveProfileMeta: (ProfileMetaUpdate) -> Unit,
     onSaveOverrideSettings: (List<String>) -> Unit,
 ) {
     val spacing = AppTheme.spacing
@@ -191,17 +192,23 @@ internal fun ProfileSettingsDialog(
     }
     var editSource by remember { mutableStateOf(TextFieldValue()) }
     var editAgeSecretKey by remember { mutableStateOf(TextFieldValue()) }
-    var initialAgeSecretKey by remember { mutableStateOf("") }
+    var ageSecretKeyEdited by remember { mutableStateOf(false) }
     var customRoutingSelected by remember { mutableStateOf(initialCustomRoutingEnabled) }
     var pendingSelectedUserOverrideIds by remember { mutableStateOf(emptyList<String>()) }
 
-    LaunchedEffect(show, profile.uuid, profile.name, binding?.overrideIds) {
+    LaunchedEffect(
+        show,
+        profile.uuid,
+        profile.name,
+        profile.source,
+        profile.hasAgeSecretKey,
+        binding?.overrideIds,
+    ) {
         if (show) {
             editName = TextFieldValue(profile.name, TextRange(profile.name.length))
             editSource = TextFieldValue()
-            val currentKey = profile.ageSecretKey
-            editAgeSecretKey = TextFieldValue(currentKey, TextRange(currentKey.length))
-            initialAgeSecretKey = currentKey
+            editAgeSecretKey = TextFieldValue()
+            ageSecretKeyEdited = false
             customRoutingSelected = initialCustomRoutingEnabled
             pendingSelectedUserOverrideIds = initialOverrideIds
         }
@@ -224,12 +231,17 @@ internal fun ProfileSettingsDialog(
         if (
             trimmedName.isNotEmpty() &&
                 targetSource.isNotEmpty() &&
-                (trimmedName != profile.name || targetSource != profile.source || trimmedAgeSecretKey != initialAgeSecretKey)
+                (trimmedName != profile.name ||
+                    targetSource != profile.source ||
+                    ageSecretKeyEdited)
         ) {
             onSaveProfileMeta(
-                trimmedName,
-                targetSource,
-                if (trimmedAgeSecretKey != initialAgeSecretKey) trimmedAgeSecretKey else null,
+                ProfileMetaUpdate(
+                    name = trimmedName,
+                    source = targetSource,
+                    updateAgeSecretKey = ageSecretKeyEdited,
+                    ageSecretKey = if (ageSecretKeyEdited) trimmedAgeSecretKey else null,
+                )
             )
         }
 
@@ -294,13 +306,14 @@ internal fun ProfileSettingsDialog(
                     )
                 }
 
-                TextField(
+                AgeSecretKeyField(
                     value = editAgeSecretKey,
-                    onValueChange = { editAgeSecretKey = it },
+                    onValueChange = {
+                        editAgeSecretKey = it
+                        ageSecretKeyEdited = true
+                    },
                     label = MLang.ProfilesPage.SettingsDialog.AgeSecretKey,
-                    useLabelAsPlaceholder = true,
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
                 )
 
                 Card {
@@ -374,3 +387,10 @@ private fun toggleOverrideIdSelection(
 private fun buildFinalOverrideIds(selectedUserOverrideIds: List<String>): List<String> {
     return selectedUserOverrideIds.distinct()
 }
+
+internal data class ProfileMetaUpdate(
+    val name: String,
+    val source: String,
+    val updateAgeSecretKey: Boolean,
+    val ageSecretKey: String?,
+)

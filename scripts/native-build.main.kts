@@ -538,6 +538,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
         println("[building] Building for $abi (C++)...")
         val buildDir = File(outputDir, abi)
         val objDir = File(outputDir, "obj/$abi")
+        clearStaleCmakeCache(abi, buildDir)
         buildDir.mkdirs()
         objDir.mkdirs()
 
@@ -599,6 +600,55 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
         stripLibrary(builtLib)
         copyToAppJni(abi, builtLib)
         println("[building][$abi] Successfully built (C++)")
+    }
+
+    private fun clearStaleCmakeCache(abi: String, buildDir: File) {
+        val cacheFile = File(buildDir, "CMakeCache.txt")
+        if (!cacheFile.isFile) {
+            return
+        }
+
+        val currentNdkPath = normalizePath(ndkTools.ndkDir.absolutePath)
+        val currentToolchainPath = normalizePath(
+            File(ndkTools.ndkDir, "build/cmake/android.toolchain.cmake").absolutePath
+        )
+        val currentClangPath = normalizePath(ndkTools.getClangPath(abi))
+        val currentStripPath = normalizePath(ndkTools.getStripPath())
+        val currentPrebuiltPath = normalizePath(
+            File(ndkTools.ndkDir, "toolchains/llvm/prebuilt/${SystemDetector.hostTag}").absolutePath
+        )
+        val cacheContent = cacheFile.readText().replace('\\', '/')
+        val hasCurrentToolPaths = listOf(
+            currentNdkPath,
+            currentToolchainPath
+        ).all { cacheContent.contains(it) } &&
+            listOf(
+                currentClangPath,
+                currentStripPath,
+                currentPrebuiltPath
+            ).any { cacheContent.contains(it) }
+        val staleNdkPaths = findCachedNdkPaths(cacheContent, currentNdkPath)
+
+        if (hasCurrentToolPaths && staleNdkPaths.isEmpty()) {
+            return
+        }
+
+        println("[building][$abi] Clearing stale CMake cache for changed NDK: ${buildDir.absolutePath}")
+        buildDir.deleteRecursively()
+    }
+
+    private fun normalizePath(path: String): String {
+        return path.replace('\\', '/').trimEnd('/')
+    }
+
+    private fun findCachedNdkPaths(cacheContent: String, currentNdkPath: String): Set<String> {
+        val escapedCurrent = Regex.escape(currentNdkPath)
+        val ndkPathPattern = Regex("""(?i)([A-Z]:)?[^=\r\n;"]*/ndk/[^/\s;"]+""")
+        return ndkPathPattern.findAll(cacheContent)
+            .map { normalizePath(it.value) }
+            .filter { !it.equals(currentNdkPath, ignoreCase = SystemDetector.os == "windows") }
+            .filterNot { it.matches(Regex("""$escapedCurrent(/.*)?""", RegexOption.IGNORE_CASE)) }
+            .toSet()
     }
 
     private fun stripLibrary(libFile: File) {

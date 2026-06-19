@@ -35,6 +35,8 @@ interface IClashManager {
 
     fun queryProfileProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup>
 
+    fun queryActiveProfileTunRouteExcludeAddress(): List<String>
+
     fun queryAllProxyGroups(excludeNotSelectable: Boolean): List<ProxyGroup>
 
     fun queryProxyGroupNames(excludeNotSelectable: Boolean): List<String>
