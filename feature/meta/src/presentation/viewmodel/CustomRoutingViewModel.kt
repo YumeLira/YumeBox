@@ -26,6 +26,7 @@ import com.github.yumelira.yumebox.core.model.OverrideInternalConstants
 import com.github.yumelira.yumebox.core.util.YamlCodec
 import com.github.yumelira.yumebox.data.controller.ActiveProfileOverrideReloader
 import com.github.yumelira.yumebox.data.store.OverrideConfigStore
+import com.github.yumelira.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumelira.yumebox.feature.meta.presentation.util.OverridePresetTemplateSelection
 import com.github.yumelira.yumebox.feature.meta.presentation.util.analyzePresetTemplateContent
 import com.github.yumelira.yumebox.feature.meta.presentation.util.buildPresetTemplateYaml
@@ -34,10 +35,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class CustomRoutingViewModel(
     private val overrideConfigRepository: OverrideConfigStore,
     private val activeProfileOverrideReloader: ActiveProfileOverrideReloader,
+    private val customRoutingBootstrapper: CustomRoutingBootstrapper,
 ) : ViewModel() {
 
     private val presetSelectionState = MutableStateFlow(defaultOverridePresetTemplateSelection())
@@ -51,7 +54,12 @@ class CustomRoutingViewModel(
     val templateRoundTripSafe: StateFlow<Boolean> = templateRoundTripSafeState.asStateFlow()
 
     init {
-        viewModelScope.launch { reloadStateFromStoredContent() }
+        viewModelScope.launch {
+            runCatching { reloadStateFromStoredContent() }
+                .onFailure {
+                    Timber.e(it, "Failed to reload custom routing state from stored content")
+                }
+        }
     }
 
     suspend fun savePresetSelection(
@@ -69,11 +77,15 @@ class CustomRoutingViewModel(
 
     suspend fun saveCustomRoutingYaml(content: String): Result<Unit> {
         return runCatching {
-            if (content.isNotBlank()) {
-                YamlCodec.validate(content)
-            }
-            overrideConfigRepository.saveCustomRoutingContent(content)
-            applyContentState(content.takeIf(String::isNotBlank))
+            val contentToSave =
+                if (content.isBlank()) {
+                    buildPresetTemplateYaml(defaultOverridePresetTemplateSelection())
+                } else {
+                    YamlCodec.validate(content)
+                    content
+                }
+            overrideConfigRepository.saveCustomRoutingContent(contentToSave)
+            applyContentState(contentToSave)
             activeProfileOverrideReloader.reapplyActiveProfileIfUsingOverride(
                 OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
             )
@@ -81,7 +93,7 @@ class CustomRoutingViewModel(
     }
 
     private suspend fun reloadStateFromStoredContent() {
-        applyContentState(overrideConfigRepository.loadCustomRoutingContent())
+        applyContentState(customRoutingBootstrapper.ensureDefaultContent())
     }
 
     private fun applyContentState(content: String?) {

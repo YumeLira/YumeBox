@@ -32,6 +32,7 @@ import com.github.yumelira.yumebox.data.controller.AppTrafficStatisticsCollector
 import com.github.yumelira.yumebox.data.store.AppSettingsStore
 import com.github.yumelira.yumebox.data.store.FeatureStore
 import com.github.yumelira.yumebox.di.appModule
+import com.github.yumelira.yumebox.feature.meta.presentation.util.CustomRoutingBootstrapper
 import com.github.yumelira.yumebox.runtime.client.ProxyFacade
 import com.github.yumelira.yumebox.substore.util.AppUtil
 import com.tencent.mmkv.MMKV
@@ -113,6 +114,8 @@ class App : Application() {
 
     private fun scheduleDeferredStartupTasks(koin: Koin, featureStore: FeatureStore) {
         StartupTaskCoordinator.startRuntimeWarmup(startupScope) {
+            runCatching { koin.get<CustomRoutingBootstrapper>().ensureDefaultContent() }
+                .onFailure { Timber.e(it, "Failed to bootstrap custom routing default content") }
             runCatching { koin.get<AppTrafficStatisticsCollector>() }
             runCatching { koin.get<ProxyFacade>().awaitProxyGroupWarmUp() }
 
@@ -125,5 +128,3 @@ class App : Application() {
         }
     }
 }
-
-    

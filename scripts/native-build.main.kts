@@ -603,8 +603,8 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
     }
 
     private fun clearStaleCmakeCache(abi: String, buildDir: File) {
-        val cacheFile = File(buildDir, "CMakeCache.txt")
-        if (!cacheFile.isFile) {
+        val cacheFiles = cmakeCacheFiles(buildDir)
+        if (cacheFiles.isEmpty()) {
             return
         }
 
@@ -617,7 +617,7 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
         val currentPrebuiltPath = normalizePath(
             File(ndkTools.ndkDir, "toolchains/llvm/prebuilt/${SystemDetector.hostTag}").absolutePath
         )
-        val cacheContent = cacheFile.readText().replace('\\', '/')
+        val cacheContent = cacheFiles.joinToString("\n") { it.readText() }.replace('\\', '/')
         val hasCurrentToolPaths = listOf(
             currentNdkPath,
             currentToolchainPath
@@ -635,6 +635,20 @@ class CppBuilder(private val config: ProjectConfig, private val ndkTools: NdkToo
 
         println("[building][$abi] Clearing stale CMake cache for changed NDK: ${buildDir.absolutePath}")
         buildDir.deleteRecursively()
+    }
+
+    private fun cmakeCacheFiles(buildDir: File): List<File> {
+        if (!buildDir.isDirectory) {
+            return emptyList()
+        }
+        return buildList {
+            File(buildDir, "CMakeCache.txt").takeIf(File::isFile)?.let(::add)
+            File(buildDir, "CMakeFiles")
+                .takeIf(File::isDirectory)
+                ?.walkTopDown()
+                ?.filter { file -> file.isFile && file.name == "CMakeSystem.cmake" }
+                ?.forEach(::add)
+        }
     }
 
     private fun normalizePath(path: String): String {

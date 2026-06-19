@@ -87,10 +87,6 @@ class CompiledConfigPipeline(private val context: Context) {
                     ?: error("Override config not found for profile=$profileUuid id=$overrideId")
             val spec = file.toOverrideSpec()
             logger?.invoke(describeOverrideFile(file, overrideId))
-            if (isCustomRoutingId(overrideId)) {
-                overrides += spec
-                return@forEach
-            }
             userOverrides += spec
             overrides += spec
         }
@@ -369,6 +365,7 @@ class CompiledConfigPipeline(private val context: Context) {
                             binding.overrideIds.filter { overrideId ->
                                 !isLegacyPresetId(overrideId) &&
                                     (isReservedOverrideId(overrideId) ||
+                                        isCustomRoutingOverrideId(overrideId) ||
                                         sanitizedConfigs.containsKey(overrideId))
                             }
                     )
@@ -421,12 +418,12 @@ class CompiledConfigPipeline(private val context: Context) {
         return overrideId.startsWith(LEGACY_PRESET_PREFIX)
     }
 
-    private fun isReservedOverrideId(overrideId: String): Boolean {
-        return isInternalRuntimeId(overrideId) || isLegacyPresetId(overrideId)
+    private fun isCustomRoutingOverrideId(overrideId: String): Boolean {
+        return overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
     }
 
-    private fun isCustomRoutingId(overrideId: String): Boolean {
-        return overrideId == OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
+    private fun isReservedOverrideId(overrideId: String): Boolean {
+        return isInternalRuntimeId(overrideId) || isLegacyPresetId(overrideId)
     }
 
     private fun isUserOverrideId(overrideId: String): Boolean {

@@ -66,7 +66,7 @@ internal class ProxyGroupSorter {
         originalOrder: List<String>,
     ): List<Proxy> =
         when (sortMode) {
-            ProxySortMode.DEFAULT -> reorderByNameSequence(proxies, originalOrder)
+            ProxySortMode.DEFAULT -> proxies
             ProxySortMode.BY_NAME -> {
                 val originalIndex =
                     originalOrder.withIndex().associate { (index, name) -> name to index }

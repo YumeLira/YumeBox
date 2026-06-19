@@ -180,43 +180,50 @@ internal fun ProfileSettingsDialog(
     val opacity = AppTheme.opacity
     val componentSizes = AppTheme.sizes
 
-    val initialCustomRoutingEnabled =
-        binding?.overrideIds?.contains(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID) == true
-
-    val initialOverrideIds =
-        binding?.overrideIds.orEmpty().filter {
-            it != OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-        }
     var editName by remember {
         mutableStateOf(TextFieldValue(profile.name, TextRange(profile.name.length)))
     }
     var editSource by remember { mutableStateOf(TextFieldValue()) }
     var editAgeSecretKey by remember { mutableStateOf(TextFieldValue()) }
     var ageSecretKeyEdited by remember { mutableStateOf(false) }
-    var customRoutingSelected by remember { mutableStateOf(initialCustomRoutingEnabled) }
-    var pendingSelectedUserOverrideIds by remember { mutableStateOf(emptyList<String>()) }
+    var customRoutingSelected by remember { mutableStateOf(false) }
+    var pendingSelectedOverrideIds by remember { mutableStateOf(emptyList<String>()) }
+    // True once override selection has been seeded from the binding (or from the user editing it).
+    // The binding loads ASYNCHRONOUSLY after the dialog is interactive, so a late binding arrival
+    // must not clobber a toggle the user already changed.
+    var overrideSelectionInitialized by remember { mutableStateOf(false) }
 
-    LaunchedEffect(
-        show,
-        profile.uuid,
-        profile.name,
-        profile.source,
-        profile.hasAgeSecretKey,
-        binding?.overrideIds,
-    ) {
+    // Reset per dialog-open identity only (NOT on every binding change), so re-firing when the
+    // async binding loads cannot wipe edits already in progress.
+    LaunchedEffect(show, profile.uuid, profile.name, profile.source, profile.hasAgeSecretKey) {
         if (show) {
             editName = TextFieldValue(profile.name, TextRange(profile.name.length))
             editSource = TextFieldValue()
             editAgeSecretKey = TextFieldValue()
             ageSecretKeyEdited = false
-            customRoutingSelected = initialCustomRoutingEnabled
-            pendingSelectedUserOverrideIds = initialOverrideIds
+            overrideSelectionInitialized = false
+            customRoutingSelected = false
+            pendingSelectedOverrideIds = emptyList()
+        }
+    }
+
+    // Seed override selection from the binding exactly once it becomes available, and only while
+    // the user has not yet edited it. Preserves correct initial state when the binding loads before
+    // any user interaction; ignores the late load otherwise.
+    LaunchedEffect(show, profile.uuid, binding) {
+        if (show && !overrideSelectionInitialized && binding != null) {
+            val overrideIds = binding.overrideIds
+            customRoutingSelected =
+                overrideIds.contains(OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID)
+            pendingSelectedOverrideIds = overrideIds
+            overrideSelectionInitialized = true
         }
     }
 
     val toggleUserOverrideSelection: (String, Boolean) -> Unit = { overrideId, isSelected ->
-        pendingSelectedUserOverrideIds =
-            toggleOverrideIdSelection(pendingSelectedUserOverrideIds, overrideId, isSelected)
+        overrideSelectionInitialized = true
+        pendingSelectedOverrideIds =
+            toggleOverrideIdSelection(pendingSelectedOverrideIds, overrideId, isSelected)
     }
     val saveSettings = {
         val trimmedName = editName.text.trim()
@@ -245,13 +252,11 @@ internal fun ProfileSettingsDialog(
             )
         }
 
-        val basicFinalIds = buildFinalOverrideIds(pendingSelectedUserOverrideIds)
         val finalSelectedOverrideIds =
-            if (customRoutingSelected) {
-                basicFinalIds + OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-            } else {
-                basicFinalIds - OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
-            }
+            buildFinalOverrideIds(
+                selectedOverrideIds = pendingSelectedOverrideIds,
+                customRoutingSelected = customRoutingSelected,
+            )
         onSaveOverrideSettings(finalSelectedOverrideIds)
         onDismiss()
     }
@@ -322,7 +327,10 @@ internal fun ProfileSettingsDialog(
                             title = MLang.ProfilesPage.SettingsDialog.CustomRouting,
                             summary = MLang.ProfilesPage.SettingsDialog.CustomRoutingSummary,
                             checked = customRoutingSelected,
-                            onCheckedChange = { customRoutingSelected = it },
+                            onCheckedChange = {
+                                overrideSelectionInitialized = true
+                                customRoutingSelected = it
+                            },
                         )
                     }
                 }
@@ -337,7 +345,7 @@ internal fun ProfileSettingsDialog(
                             itemsIndexed(userConfigs, key = { _, config -> config.id }) {
                                 index,
                                 config ->
-                                val isSelected = config.id in pendingSelectedUserOverrideIds
+                                val isSelected = config.id in pendingSelectedOverrideIds
                                 BasicComponent(
                                     title = config.name,
                                     summary =
@@ -384,8 +392,19 @@ private fun toggleOverrideIdSelection(
     }
 }
 
-private fun buildFinalOverrideIds(selectedUserOverrideIds: List<String>): List<String> {
-    return selectedUserOverrideIds.distinct()
+private fun buildFinalOverrideIds(
+    selectedOverrideIds: List<String>,
+    customRoutingSelected: Boolean,
+): List<String> {
+    val customRoutingId = OverrideInternalConstants.CUSTOM_ROUTING_OVERRIDE_ID
+    val normalizedIds = selectedOverrideIds.distinct()
+    if (!customRoutingSelected) {
+        return normalizedIds - customRoutingId
+    }
+    if (customRoutingId in normalizedIds) {
+        return normalizedIds
+    }
+    return normalizedIds + customRoutingId
 }
 
 internal data class ProfileMetaUpdate(
