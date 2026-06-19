@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -39,7 +39,11 @@ import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 
 @Composable
-fun FeatureContent(onOpenExternalUrl: (String) -> Unit, onOpenInAppUrl: (String) -> Unit) {
+fun FeatureContent(
+    onOpenExternalUrl: (String) -> Unit,
+    onOpenInAppUrl: (String) -> Unit,
+    onCreatePanelShortcut: (url: String, label: String) -> Unit = { _, _ -> },
+) {
     val scrollBehavior = MiuixScrollBehavior()
     val viewModel = koinViewModel<FeatureViewModel>()
     val isServiceRunning by viewModel.serviceRunningState.collectAsState()
@@ -184,6 +188,13 @@ fun FeatureContent(onOpenExternalUrl: (String) -> Unit, onOpenInAppUrl: (String)
                                 }
                             )
                         },
+                    )
+
+                    ArrowPreference(
+                        title = MLang.Feature.Panel.CreateShortcut,
+                        summary = MLang.Feature.Panel.CreateShortcutSummary,
+                        enabled = panelUrl.isNotBlank(),
+                        onClick = { onCreatePanelShortcut(panelUrl, currentPanelName) },
                     )
                 }
             }

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -24,14 +24,12 @@ import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.model.*
-import com.github.yumelira.yumebox.core.model.isSelectable
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.common.log.Log
 import com.github.yumelira.yumebox.service.remote.IClashManager
 import com.github.yumelira.yumebox.service.remote.ILogObserver
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
-import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
 import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipeline
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeProxyGroupResolver
 import com.github.yumelira.yumebox.service.runtime.session.RuntimeSpec
@@ -122,22 +120,7 @@ class ClashManager(private val context: Context) :
     }
 
     override fun patchSelector(group: String, name: String): Boolean {
-        return Clash.patchSelector(group, name).also { patched ->
-            val current = store.activeProfile ?: return@also
-
-            if (!patched) {
-                SelectionDao.remove(current, group)
-                return@also
-            }
-
-            val patchedGroup =
-                runCatching { Clash.queryGroup(group, ProxySort.Default) }.getOrNull()
-            if (patchedGroup?.isSelectable == true) {
-                SelectionDao.upsertManualSelection(current, group, name)
-            } else {
-                SelectionDao.remove(current, group)
-            }
-        }
+        return Clash.patchSelector(group, name)
     }
 
     override fun closeConnection(id: String): Boolean {

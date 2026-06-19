@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -26,13 +26,10 @@ import com.github.yumelira.yumebox.core.util.PollingTimerSpecs
 import com.github.yumelira.yumebox.core.util.PollingTimers
 import com.github.yumelira.yumebox.service.ServiceNetworkObserver
 import com.github.yumelira.yumebox.service.common.util.appContextOrSelf
-import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
-import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecutor
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeOwner
 import com.github.yumelira.yumebox.service.runtime.state.RuntimePhase
 import com.github.yumelira.yumebox.service.runtime.state.RuntimeSnapshot
 import java.util.TimeZone
-import java.util.UUID
 import kotlin.math.min
 import kotlinx.coroutines.*
 import kotlinx.serialization.builtins.serializer
@@ -234,25 +231,7 @@ class SessionRuntime(
     }
 
     fun patchSelector(group: String, name: String): Boolean {
-        val profileUuid = currentSnapshot.profileUuid?.let(UUID::fromString)
-        return Clash.patchSelector(group, name).also { patched ->
-            if (!patched) {
-                profileUuid?.let { SelectionDao.remove(it, group) }
-                return@also
-            }
-
-            if (
-                currentSnapshot.phase == RuntimePhase.Running ||
-                    currentSnapshot.phase == RuntimePhase.Starting
-            ) {
-                val refreshedGroup = refreshRuntimeProxyGroup(group)
-                if (refreshedGroup?.isSelectable == true) {
-                    profileUuid?.let { SelectionDao.upsertManualSelection(it, group, name) }
-                } else {
-                    profileUuid?.let { SelectionDao.remove(it, group) }
-                }
-            }
-        }
+        return Clash.patchSelector(group, name)
     }
 
     fun closeConnection(id: String): Boolean {
@@ -348,7 +327,6 @@ class SessionRuntime(
         transport.start(spec)
         awaitProxyGroupsReady(spec)
         ensureNotInterrupted(spec)
-        restoreSelections(spec)
         startLogStream()
         startupLog(spec, "snapshot refresh: begin")
         refreshRuntimeSnapshot()
@@ -388,7 +366,6 @@ class SessionRuntime(
         compileAndLoad(spec)
         awaitProxyGroupsReady(spec)
         ensureNotInterrupted(spec)
-        restoreSelections(spec)
         currentSpec = spec
         startupLog(spec, "snapshot refresh: begin")
         refreshRuntimeSnapshot()
@@ -535,23 +512,6 @@ class SessionRuntime(
                 startupLog(spec, "runtime verify: expected group inspect failed=${error.message}")
                 emptyList()
             }
-    }
-
-    private fun restoreSelections(spec: RuntimeSpec) {
-        val profileUuid = UUID.fromString(spec.profileUuid)
-        val restoreSelections = SelectionDao.queryRestorableSelections(profileUuid)
-        if (restoreSelections.isEmpty()) {
-            return
-        }
-        val runtimeGroups =
-            runCatching { resolveRuntimeProxyGroups(excludeNotSelectable = false) }
-                .getOrDefault(emptyList())
-        SelectionRestoreExecutor.restore(
-            profileUuid = profileUuid,
-            selections = restoreSelections,
-            runtimeGroups = runtimeGroups,
-            tag = spec.owner.name,
-        )
     }
 
     private fun startObservers() {

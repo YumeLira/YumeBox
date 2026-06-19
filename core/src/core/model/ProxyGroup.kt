@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -93,7 +93,7 @@ data class ProxyGroup(
 }
 
 val ProxyGroup.isSelectable: Boolean
-    get() = type == Proxy.Type.Selector
+    get() = type.isManuallySelectable
 
 val ProxyGroup.isProxyGroup: Boolean
     get() = type.group || now.isNotBlank() || proxies.isNotEmpty()

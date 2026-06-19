@@ -24,6 +24,8 @@ Feature = {
         Section = "Panel Selection"
         SelectPanel = "Select Panel"
         Unknown = "Unknown Panel"
+        CreateShortcut = "Create desktop shortcut"
+        CreateShortcutSummary = "Add the current panel to the home screen with the site icon"
     }
 
     SubStore = {

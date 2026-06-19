@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -255,6 +255,7 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:${gropify.dep.version.okhttp}")
     implementation("androidx.biometric:biometric:${gropify.dep.version.biometric}")
+    implementation("androidx.core:core-ktx:${gropify.dep.version.coreKtx}")
 }
 
 ksp {

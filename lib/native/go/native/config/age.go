@@ -10,21 +10,15 @@ import (
 const unsupportedHybridAgeSecretKeyPrefix = "AGE-SECRET-KEY-PQ-1"
 
 func SetGlobalSecretKeys(secretKeys ...string) {
-	identities := make([]age.Identity, 0, len(secretKeys))
+	trimmed := make([]string, 0, len(secretKeys))
 	for _, secretKey := range secretKeys {
 		key := strings.TrimSpace(secretKey)
 		if key == "" {
 			continue
 		}
-
-		parsed, err := age.ParseIdentities(key)
-		if err != nil {
-			continue
-		}
-		identities = append(identities, parsed...)
+		trimmed = append(trimmed, key)
 	}
-
-	age.SetGlobalIdentities(identities)
+	age.SetGlobalSecretKeys(trimmed...)
 }
 
 func GenX25519KeyPair() (secretKey string, publicKey string, err error) {
@@ -32,30 +26,15 @@ func GenX25519KeyPair() (secretKey string, publicKey string, err error) {
 }
 
 func ToPublicKeys(secretKeys ...string) (publicKeys []string, err error) {
+	trimmed := make([]string, 0, len(secretKeys))
 	for _, secretKey := range secretKeys {
 		key := strings.TrimSpace(secretKey)
 		if err := rejectUnsupportedAgeSecretKeys(key); err != nil {
 			return nil, err
 		}
-		identities, err := age.ParseIdentities(key)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, identity := range identities {
-			recipient, err := age.ConvertToRecipient(identity)
-			if err != nil {
-				return nil, err
-			}
-			publicKey, ok := recipient.(fmt.Stringer)
-			if !ok {
-				return nil, fmt.Errorf("unexpected recipient type: %T", recipient)
-			}
-			publicKeys = append(publicKeys, publicKey.String())
-		}
+		trimmed = append(trimmed, key)
 	}
-
-	return publicKeys, nil
+	return age.ToPublicKeys(trimmed...)
 }
 
 func VerifySecretKeys(secretKeys ...string) error {
@@ -64,12 +43,20 @@ func VerifySecretKeys(secretKeys ...string) error {
 		if err := rejectUnsupportedAgeSecretKeys(key); err != nil {
 			return err
 		}
-		if _, err := age.ParseIdentities(key); err != nil {
-			return err
-		}
 	}
+	trimmed := make([]string, 0, len(secretKeys))
+	for _, secretKey := range secretKeys {
+		trimmed = append(trimmed, strings.TrimSpace(secretKey))
+	}
+	return age.VeritySecretKeys(trimmed...)
+}
 
-	return nil
+func VerifyPublicKeys(publicKeys ...string) error {
+	trimmed := make([]string, 0, len(publicKeys))
+	for _, publicKey := range publicKeys {
+		trimmed = append(trimmed, strings.TrimSpace(publicKey))
+	}
+	return age.VerityPublicKeys(trimmed...)
 }
 
 func rejectUnsupportedAgeSecretKeys(secretKeys string) error {
@@ -82,15 +69,5 @@ func rejectUnsupportedAgeSecretKeys(secretKeys string) error {
 			return fmt.Errorf("hybrid age secret keys are not supported by the Rust override decryptor yet")
 		}
 	}
-	return nil
-}
-
-func VerifyPublicKeys(publicKeys ...string) error {
-	for _, publicKey := range publicKeys {
-		if _, err := age.ParseRecipients(strings.TrimSpace(publicKey)); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

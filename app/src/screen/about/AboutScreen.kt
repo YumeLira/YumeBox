@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -113,7 +113,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                 Card {
                     AboutLinkItem(
                         title = "YumeBox",
-                        url = "https://github.com/YumeRiMoe/YumeBox",
+                        url = "https://github.com/YumeYucca/YumeBox",
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
                     )

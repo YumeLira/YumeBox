@@ -2,7 +2,7 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
             android:enabled="true"
-            android:icon="@drawable/ic_shortcut_launcher"
+            android:icon="@drawable/play"
             android:shortcutId="start_clash"
             android:shortcutLongLabel="@string/shortcut_start_clash_long"
             android:shortcutShortLabel="@string/shortcut_start_clash_short">
@@ -12,7 +12,7 @@
 
     <shortcut
             android:enabled="true"
-            android:icon="@drawable/ic_shortcut_launcher"
+            android:icon="@drawable/circle_pause"
             android:shortcutId="stop_clash"
             android:shortcutLongLabel="@string/shortcut_stop_clash_long"
             android:shortcutShortLabel="@string/shortcut_stop_clash_short">

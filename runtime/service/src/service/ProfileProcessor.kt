@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -29,7 +29,6 @@ import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 import com.github.yumelira.yumebox.service.runtime.entity.Imported
 import com.github.yumelira.yumebox.service.runtime.entity.Profile
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
-import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
 import com.github.yumelira.yumebox.service.runtime.util.importedDir
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileChanged
 import java.io.File
@@ -177,7 +176,6 @@ object ProfileProcessor {
                                 ImportedDao.exists(snapshot.imported.uuid)
                         ) {
                             ImportedDao.remove(snapshot.imported.uuid)
-                            SelectionDao.clear(snapshot.imported.uuid)
                             targetDir.deleteRecursively()
                             context.sendProfileChanged(snapshot.imported.uuid)
                         }
@@ -203,7 +201,6 @@ object ProfileProcessor {
         withContext(Dispatchers.IO + NonCancellable) {
             profileLock.withLock {
                 ImportedDao.remove(uuid)
-                SelectionDao.clear(uuid)
 
                 val imported = context.importedDir.resolve(uuid.toString())
                 imported.deleteRecursively()

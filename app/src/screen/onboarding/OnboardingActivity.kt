@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -71,7 +71,7 @@ internal class OnboardingActivity : OnboardingBaseActivity() {
                     }
                     finishOnboarding()
                 },
-                onGithubClick = { openUrl(this, "https://github.com/YumeRiMoe/YumeBox") },
+                onGithubClick = { openUrl(this, "https://github.com/YumeYucca/YumeBox") },
                 onCommunityClick = { openUrl(this, "https://t.me/YumeLira") },
             )
         }

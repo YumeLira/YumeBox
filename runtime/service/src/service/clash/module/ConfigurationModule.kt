@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -25,10 +25,7 @@ import com.github.yumelira.yumebox.service.StatusProvider
 import com.github.yumelira.yumebox.service.common.constants.Intents
 import com.github.yumelira.yumebox.service.runtime.config.ServiceStore
 import com.github.yumelira.yumebox.service.runtime.records.ImportedDao
-import com.github.yumelira.yumebox.service.runtime.records.SelectionDao
-import com.github.yumelira.yumebox.service.runtime.records.SelectionRestoreExecutor
 import com.github.yumelira.yumebox.service.runtime.session.CompiledConfigPipeline
-import com.github.yumelira.yumebox.service.runtime.session.RuntimeProxyGroupResolver
 import com.github.yumelira.yumebox.service.runtime.session.SessionRuntimeSpecFactory
 import com.github.yumelira.yumebox.service.runtime.util.sendProfileLoaded
 import java.util.*
@@ -40,7 +37,6 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
 
     private val store = ServiceStore()
     private val compiledConfigPipeline = CompiledConfigPipeline(service)
-    private val proxyGroupResolver = RuntimeProxyGroupResolver(compiledConfigPipeline)
     private val runtimeSpecFactory = SessionRuntimeSpecFactory(service)
     private val reload = Channel<Unit>(Channel.CONFLATED)
 
@@ -78,25 +74,6 @@ class ConfigurationModule(service: Service) : Module<ConfigurationModule.LoadExc
 
                 val spec = runtimeSpecFactory.createHttpSpec()
                 compiledConfigPipeline.compileAndLoad(spec, logger = null)
-
-                val restoreSelections = SelectionDao.queryRestorableSelections(active.uuid)
-                val runtimeGroups = proxyGroupResolver.resolvedGroups(spec, false)
-                // Gate restore on proxy-groups readiness, mirroring SessionRuntime's
-                // awaitProxyGroupsReady. If groups aren't resolved yet (core not fully exposed
-                // / providers loading), skip restore this cycle rather than restoring against an
-                // empty set. SelectionRestoreExecutor is also non-destructive, so a transient
-                // empty fetch can never wipe the user's node memory.
-                if (runtimeGroups.isEmpty()) {
-                    StatusProvider.currentProfile = active.name
-                    service.sendProfileLoaded(current)
-                    continue
-                }
-                SelectionRestoreExecutor.restore(
-                    profileUuid = active.uuid,
-                    selections = restoreSelections,
-                    runtimeGroups = runtimeGroups,
-                    tag = "LOCAL",
-                )
 
                 StatusProvider.currentProfile = active.name
 

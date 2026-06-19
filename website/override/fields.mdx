@@ -1,208 +1,143 @@
 ---
-title: "覆写字段清单"
-sidebarTitle: "字段清单"
-description: "所有支持覆写的字段清单"
-icon: "list"
+title: "覆写语法参考"
+sidebarTitle: "语法参考"
+description: "YAML 和 JavaScript 覆写的语义、脚本 API 与故障行为。"
+icon: "braces"
 ---
 
-## 使用说明
+本页是覆写系统的语义参考。入门说明见 [覆写](/override/index)。
 
-本页面列出所有支持覆写的字段。
+## 文件类型
 
-<Warning>
-<strong>简化说明：</strong>当前版本仅支持基础键值配置覆写，已移除对代理组、代理节点、规则列表、提供者等复杂功能的支持。
-</Warning>
+| 后缀 | 处理方式 |
+|------|----------|
+| `.yaml` / `.yml` | 解析为补丁文档，并按覆写语义合并到当前配置 |
+| `.js` | 执行 `main(profile)`，使用返回对象作为下一版配置 |
 
-### 修饰符说明
+空文件会被跳过并记录 warning。未知后缀会中断编译。
 
-| 修饰符 | 说明 | 适用类型 |
-|--------|------|----------|
-| `-start` | 添加到列表开头 | List |
-| `-end` | 添加到列表末尾 | List |
-| `-merge` | 合并键值对 | Map |
-| `-force` | 强制替换整个对象 | Object |
-| 无 | 简单值直接赋值，对象递归合并 | - |
+## YAML 补丁语义
 
-### 字段书写格式
+| 写法 | 行为 |
+|------|------|
+| `key: value` | 标量覆盖；对象递归合并；列表替换 |
+| `key-start: [...]` | 插入到列表开头 |
+| `key-end: [...]` | 追加到列表末尾 |
+| `key-merge: {...}` | 合并 Map |
+| `key-force: value` | 强制替换整个字段 |
+| `<key-end>: value` | 将带修饰符样式的字段名按普通字段处理 |
 
-覆写配置使用 **JSON 格式**，字段名与下方表格中的字段名一致：
+### 对象合并
 
-```json
-{
-  "mode": "rule",
-  "mixed-port": 7890,
-  "dns": {
-    "enable": true,
-    "nameserver": ["8.8.8.8"]
-  },
-  "hosts-merge": {
-    "test.local": "192.168.1.1"
-  }
+```yaml
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+```
+
+对象默认递归合并。未写出的子字段会保留。
+
+### 列表处理
+
+```yaml
+rules-end:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+```
+
+不带修饰符的列表会替换原列表。需要保留原列表时使用 `-start` 或 `-end`。
+
+对 `proxies`、`proxy-groups` 这类带 `name` 的列表，合并后会按 `name` 去重，后出现的同名项生效。
+
+### Map 合并
+
+```yaml
+hosts-merge:
+  router.local: 192.168.1.1
+  nas.local: 192.168.1.100
+```
+
+`-merge` 会保留已有键，并写入或覆盖指定键。
+
+### 强制替换
+
+```yaml
+dns-force:
+  enable: true
+  nameserver:
+    - https://doh.pub/dns-query
+```
+
+`-force` 会替换整个字段。未写出的子字段不会保留。
+
+## JavaScript 覆写
+
+JS 覆写必须定义 `main(profile)`。函数可以同步返回，也可以返回 Promise。
+
+```js
+function main(profile) {
+  profile.mode = "rule";
+
+  return deepMerge(profile, {
+    "rules-end": ["DOMAIN-SUFFIX,example.com,DIRECT"],
+  }, true);
 }
 ```
 
----
+返回值必须是对象。返回字符串、数字、数组或 `undefined` 都会被视为脚本失败。
 
-## 全局配置
+### 可用 API
 
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `mode` | - | 运行模式（`rule`/`global`/`direct`） |
-| `log-level` | - | 日志级别（`silent`/`error`/`warning`/`info`/`debug`） |
-| `ipv6` | - | 启用 IPv6 |
-| `allow-lan` | - | 允许局域网访问 |
-| `bind-address` | - | 绑定地址（`allow-lan: true` 时使用） |
-| `external-controller` | - | 外部控制器监听地址 |
-| `external-controller-tls` | - | 外部控制器 TLS 监听地址 |
-| `external-doh-server` | - | 外部 DoH 服务器地址 |
-| `secret` | - | API 访问密钥 |
-| `authentication` | `-start` `-end` | HTTP/SOCKS 认证用户列表 |
-| `skip-auth-prefixes` | `-start` `-end` | 跳过认证的 IP 前缀 |
-| `lan-allowed-ips` | `-start` `-end` | 允许访问的 LAN IP 段 |
-| `lan-disallowed-ips` | `-start` `-end` | 禁止访问的 LAN IP 段 |
-| `external-controller-cors` | `-force` | 外部控制器 CORS 配置 |
-| `geox-url` | - | GeoX 数据库下载地址 |
-| `geox-url-force` | `-force` | GeoX 数据库下载地址（强制覆盖） |
+| API | 说明 |
+|-----|------|
+| `yaml.parse(text)` | YAML 字符串转对象 |
+| `yaml.stringify(value)` | 对象转 YAML 字符串 |
+| `deepMerge(target, patch, true)` | 使用 JS helper 的覆写语义合并对象 |
+| `fetch(url, init?)` | HTTP 请求，仅支持 `http://` |
+| `response.text()` | 读取响应文本 |
+| `response.json()` | 读取 JSON 响应 |
+| `response.yaml()` | 读取 YAML 响应 |
+| `console.log/info/warn/error/debug` | 写入同名 `.log` 文件 |
+| `Buffer.from(...)` | 支持 `utf8` 与 `base64` |
+| `b64e(value)` / `b64d(value)` | Base64 编码与解码 |
 
----
+<Warning>
+嵌入式 `fetch` 只支持 `http://`，不支持 `https://`。
+</Warning>
 
-## DNS 配置
+### JS helper 的列表写法
 
-嵌套对象，直接写字段表示递归合并，使用 `-force` 表示强制覆盖整个对象。
+JS 内置 `deepMerge` 使用 `+key` 和 `key+` 处理列表：
 
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `dns.enable` | - | 启用 DNS 功能 |
-| `dns.listen` | - | DNS 监听地址 |
-| `dns.ipv6` | - | 启用 IPv6 |
-| `dns.use-hosts` | - | 使用 Hosts 映射 |
-| `dns.use-system-hosts` | - | 使用系统 Hosts |
-| `dns.respect-rules` | - | 遵循路由规则 |
-| `dns.enhanced-mode` | - | 增强模式（`fake-ip`/`redir-host`/`normal`） |
-| `dns.fake-ip-range` | - | Fake-IP 地址段 |
-| `dns.fake-ip-range6` | - | Fake-IP IPv6 地址段 |
-| `dns.fake-ip-filter-mode` | - | Fake-IP 过滤模式（`blacklist`/`whitelist`/`rule`） |
-| `dns.fake-ip-ttl` | - | Fake-IP TTL 值 |
-| `dns.ipv6-timeout` | - | IPv6 超时时间（毫秒） |
-| `dns.cache-algorithm` | - | 缓存算法 |
-| `dns.cache-max-size` | - | 缓存最大大小 |
-| `dns.prefer-h3` | - | 优先使用 HTTP/3 |
-| `dns.direct-nameserver-follow-policy` | - | 直连 DNS 跟随策略 |
-| `dns.nameserver` | `-start` `-end` | 主 DNS 服务器列表 |
-| `dns.fallback` | `-start` `-end` | 回退 DNS 服务器列表 |
-| `dns.default-nameserver` | `-start` `-end` | 默认 DNS 服务器列表 |
-| `dns.fake-ip-filter` | `-start` `-end` | Fake-IP 过滤规则 |
-| `dns.proxy-server-nameserver` | `-start` `-end` | 代理服务器 DNS 服务器列表 |
-| `dns.direct-nameserver` | `-start` `-end` | 直连 DNS 服务器列表 |
-| `dns.nameserver-policy` | `-merge` | DNS 服务器策略映射 |
-| `dns.proxy-server-nameserver-policy` | `-merge` | 代理服务器 DNS 策略映射 |
-| `dns.fallback-filter` | - | 回退过滤器配置（递归合并） |
-| `dns.fallback-filter-force` | `-force` | 回退过滤器配置（强制覆盖） |
-| `dns-force` | `-force` | 整个 DNS 配置块强制覆盖 |
+```js
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,first.example,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,last.example,DIRECT"],
+  }, true);
+}
+```
 
-### dns.fallback-filter 子字段
+这和 YAML 的 `rules-start` / `rules-end` 作用相同。
 
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `dns.fallback-filter.geoip` | - | 启用 GeoIP 判断 |
-| `dns.fallback-filter.geoip-code` | - | GeoIP 国家代码 |
-| `dns.fallback-filter.ipcidr` | `-start` `-end` | IP 段列表 |
-| `dns.fallback-filter.geosite` | `-start` `-end` | GeoSite 域名列表 |
-| `dns.fallback-filter.domain` | `-start` `-end` | 域名列表 |
+## 日志与失败行为
 
----
+| 场景 | 行为 |
+|------|------|
+| JS 执行成功 | 写入开始、日志输出和成功记录 |
+| JS 执行失败 | 跳过当前 JS 覆写，保留执行前配置，并记录 warning |
+| 空覆写文件 | 跳过并记录 warning |
+| age 加密订阅 | warning 与 JS 日志隐藏敏感配置内容 |
 
-## 域名嗅探（Sniffer）
+JS 日志路径与脚本同名，例如 `example.js` 对应 `example.log`。
 
-嵌套对象，直接写字段表示递归合并，使用 `-force` 表示强制覆盖整个对象。
+## 编译后补丁
 
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `sniffer.enable` | - | 启用域名嗅探 |
-| `sniffer.force-dns-mapping` | - | 强制 DNS 映射 |
-| `sniffer.parse-pure-ip` | - | 解析纯 IP |
-| `sniffer.override-destination` | - | 覆盖目标地址 |
-| `sniffer.force-domain` | `-start` `-end` | 强制嗅探的域名列表 |
-| `sniffer.skip-domain` | `-start` `-end` | 跳过嗅探的域名列表 |
-| `sniffer.skip-src-address` | `-start` `-end` | 跳过嗅探的源地址段 |
-| `sniffer.skip-dst-address` | `-start` `-end` | 跳过嗅探的目标地址段 |
-| `sniffer.sniff.HTTP.ports` | `-start` `-end` | HTTP 协议嗅探端口 |
-| `sniffer.sniff.TLS.ports` | `-start` `-end` | TLS 协议嗅探端口 |
-| `sniffer.sniff.QUIC.ports` | `-start` `-end` | QUIC 协议嗅探端口 |
-| `sniffer-force` | `-force` | 整个嗅探配置块强制覆盖 |
+覆写完成后，native 编译器还会应用运行时补丁：
 
----
+- 清空 `interface-name`，设置 `routing-mark`。
+- 补齐 `profile.store-selected` 与 `profile.store-fake-ip`。
+- 在需要时补齐 DNS 默认配置。
+- 清理不适用于 Android 运行态的 listener。
+- 规范化 `proxy-providers` 与 `rule-providers` 的 `path`。
 
-## 入站配置
-
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `port` | - | HTTP 代理端口 |
-| `socks-port` | - | SOCKS5 代理端口 |
-| `mixed-port` | - | 混合代理端口 |
-| `redir-port` | - | 透明代理端口（Redir） |
-| `tproxy-port` | - | TProxy 端口 |
-| `authentication` | `-start` `-end` | 认证用户列表 |
-| `skip-auth-prefixes` | `-start` `-end` | 跳过认证的 IP 前缀 |
-| `lan-allowed-ips` | `-start` `-end` | 允许访问的 LAN IP 段 |
-| `lan-disallowed-ips` | `-start` `-end` | 禁止访问的 LAN IP 段 |
-
----
-
-## TUN 配置
-
-嵌套对象，直接写字段表示递归合并。
-
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `tun.enable` | - | 启用 TUN 模式 |
-| `tun.stack` | - | 协议栈（`system`/`gvisor`/`mixed`） |
-| `tun.auto-route` | - | 自动设置全局路由 |
-| `tun.auto-detect-interface` | - | 自动检测网络接口 |
-| `tun.auto-redirect` | - | 自动重定向 |
-| `tun.mtu` | - | 最大传输单元（默认 1500） |
-| `tun.gso` | - | 启用分段卸载（GSO） |
-| `tun.gso-max-size` | - | GSO 最大大小 |
-| `tun.strict-route` | - | 严格路由模式 |
-| `tun.disable-icmp-forwarding` | - | 禁用 ICMP 转发 |
-| `tun.endpoint-independent-nat` | - | 端点独立 NAT |
-| `tun.dns-hijack` | `-start` `-end` | DNS 劫持地址列表 |
-| `tun.route-address` | `-start` `-end` | TUN 路由地址列表 |
-| `tun.route-exclude-address` | `-start` `-end` | TUN 路由排除地址列表 |
-| `tun.include-package` | `-start` `-end` | 强制走 TUN 的应用包名（Android） |
-| `tun.exclude-package` | `-start` `-end` | 排除 TUN 的应用包名（Android） |
-
----
-
-## 其他配置
-
-| 字段 | 修饰符 | 说明 |
-|------|--------|------|
-| `unified-delay` | - | 统一延迟测试 |
-| `geodata-mode` | - | GeoData 模式 |
-| `tcp-concurrent` | - | TCP 并发 |
-| `find-process-mode` | - | 查找进程模式（`off`/`strict`/`always`） |
-| `keep-alive-interval` | - | 保活间隔（秒） |
-| `keep-alive-idle` | - | 保活空闲时间（秒） |
-| `interface-name` | - | 网络接口名称 |
-| `routing-mark` | - | 路由标记 |
-| `geosite-matcher` | - | GeoSite 匹配器类型 |
-| `global-client-fingerprint` | - | 全局客户端指纹 |
-| `geo-auto-update` | - | Geo 数据自动更新 |
-| `geo-update-interval` | - | Geo 数据更新间隔（分钟） |
-| `profile.store-selected` | - | 存储选择的代理组 |
-| `profile.store-fake-ip` | - | 存储 Fake-IP 映射 |
-
----
-
-## 已移除的字段
-
-以下字段在当前版本中已不再支持覆写：
-
-| 分类 | 已移除字段 |
-|------|-----------|
-| 出站 | `proxies`、`proxies-start`、`proxies-end` |
-| 策略组 | `proxy-groups`、`proxy-groups-start`、`proxy-groups-end` |
-| 规则 | `rules`、`rules-start`、`rules-end` |
-| 子规则 | `sub-rules`、`sub-rules-merge` |
-| 提供者 | `proxy-providers`、`proxy-providers-merge`、`rule-providers`、`rule-providers-merge` |
+这些补丁属于 YumeBox 运行时约束，不需要在用户覆写中重复声明。

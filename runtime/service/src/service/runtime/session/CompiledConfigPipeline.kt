@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -39,7 +39,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
 class CompiledConfigPipeline(private val context: Context) {
-    private val overrideEnabled = !context.packageName.endsWith(".lite")
 
     fun resolveOverrideSpecs(profileUuid: String): List<OverrideSpec> {
         return resolveOverrideBundle(profileUuid, logger = null).overrides
@@ -57,18 +56,6 @@ class CompiledConfigPipeline(private val context: Context) {
         profileUuid: String,
         logger: ((String) -> Unit)?,
     ): ResolvedOverrideBundle {
-        if (!overrideEnabled) {
-            logger?.invoke(
-                "override resolve skipped for lite package=${context.packageName} profile=$profileUuid"
-            )
-            return ResolvedOverrideBundle(
-                profileUuid = profileUuid,
-                userOverrides = emptyList(),
-                runtimeInternalOverride = null,
-                overrides = emptyList(),
-            )
-        }
-
         val overridesDir = context.filesDir.resolve("overrides")
         val metadataFile = overridesDir.resolve("metadata.yaml")
         val metadata = loadMetadataIndex(overridesDir, metadataFile, logger)

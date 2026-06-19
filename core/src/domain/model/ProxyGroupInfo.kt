@@ -14,13 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
 package com.github.yumelira.yumebox.domain.model
 
 import com.github.yumelira.yumebox.core.model.Proxy
+import com.github.yumelira.yumebox.core.model.isManuallySelectable
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -34,7 +35,7 @@ data class ProxyGroupInfo(
 )
 
 val ProxyGroupInfo.isSelectable: Boolean
-    get() = type == Proxy.Type.Selector
+    get() = type.isManuallySelectable
 
 val ProxyGroupInfo.isProxyGroup: Boolean
     get() = type.group || now.isNotBlank() || proxies.isNotEmpty()

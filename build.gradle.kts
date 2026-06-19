@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -47,7 +47,7 @@ plugins {
   kotlin("plugin.compose") version "2.3.10" apply false
   id("org.jetbrains.compose") version "1.11.1" apply false
   id("com.google.devtools.ksp") version "2.3.2" apply false
-  id("com.mikepenz.aboutlibraries.plugin.android") version "15.0.0-b03" apply false
+  id("com.mikepenz.aboutlibraries.plugin.android") version "15.0.0-rc01" apply false
 }
 
 val androidCompileSdk = providers.gradleProperty("android.compileSdk").map(String::toInt).get()

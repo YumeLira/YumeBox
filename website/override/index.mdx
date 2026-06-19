@@ -1,285 +1,129 @@
 ---
 title: "覆写"
 sidebarTitle: "覆写"
-icon: "sliders-horizontal"
-description: "了解覆写配置的工作原理及使用方法。"
+icon: "file-code"
+description: "YumeBox 运行时覆写系统的使用方式与编译链路。"
 ---
 
-覆写（Override）允许你在不修改原始订阅配置的前提下，自定义配置项。订阅更新时，你的自定义配置仍然保留，不会被覆盖。
+覆写（Override）位于订阅配置与 mihomo 加载之间，用于在启动时合并本机配置、运行时补丁和脚本化处理。
 
-<Tip>大多数情况下推荐使用 app 内的可视化编辑</Tip>
+订阅文件不会被改写。每次启动或重载时，YumeBox 会读取当前订阅，按绑定顺序应用覆写，再把结果加载到 mihomo。
 
-## 修饰符规则
+## 适用场景
 
-覆写配置使用 JSON 格式，通过修饰符控制合并行为。
+- 固定本机端口、DNS、日志级别等运行参数。
+- 在订阅规则前后追加本机规则。
+- 调整 TUN、provider path、外部控制器等运行时字段。
+- 用 JavaScript 根据条件生成配置片段或读取本地 HTTP 数据。
 
-| 修饰符 | 语法 | 用途 |
-|--------|------|------|
-| 无 | `"key": value` | 简单值直接覆盖，对象递归合并 |
-| `-start` | `"key-start": [...]` | 将数组元素插入到原数组前面 |
-| `-end` | `"key-end": [...]` | 将数组元素追加到原数组末尾 |
-| `-merge` | `"key-merge": {...}` | 合并 Map 类型的键值对 |
-| `-force` | `"key-force": {...}` | 强制覆盖整个对象，不递归合并 |
+## 覆写格式
+
+| 格式 | 定位 | 适合场景 |
+|------|------|----------|
+| YAML | 声明式补丁 | 固定配置、规则追加、DNS/TUN 调整 |
+| JavaScript | 脚本化转换 | 条件逻辑、远程片段、批量处理、调试输出 |
 
 <Warning>
-<strong>简化说明：</strong>当前版本仅支持基础键值配置覆写，已移除对代理组、代理节点、规则列表等复杂功能的支持。
+当前覆写文件只按 `.yaml`、`.yml`、`.js` 处理。旧版 JSON-only 写法不再对应当前实现。
 </Warning>
 
-## 配置示例
+## 快速示例
 
-### 基础示例
+```yaml
+mode: rule
+log-level: info
 
-```json
-{
-  "mode": "rule",
-  "mixed-port": 7890,
-  "dns": {
-    "enable": true,
-    "nameserver": ["8.8.8.8"]
-  },
-  "hosts-merge": {
-    "test.local": "192.168.1.1"
-  }
-}
+dns:
+  enable: true
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+
+rules-end:
+  - DOMAIN-SUFFIX,example.com,DIRECT
 ```
 
-### 完整示例
+这段 YAML 会递归合并 `dns` 对象，并把规则追加到原 `rules` 末尾。更多语义见 [语法参考](/override/fields)。
 
-```json
-{
-  "mode": "rule",
-  "log-level": "info",
-  "allow-lan": true,
-  "dns": {
-    "nameserver": ["192.168.1.1", "8.8.8.8"]
-  },
-  "hosts-merge": {
-    "router.local": "192.168.1.1",
-    "nas.local": "192.168.1.100"
-  },
-  "tun": {
-    "enable": true,
-    "stack": "gvisor",
-    "mtu": 9000
-  }
-}
+## 绑定与执行顺序
+
+<Steps>
+  <Step title="创建覆写">
+    在覆写页面创建 YAML 或 JS 配置。
+  </Step>
+  <Step title="绑定订阅">
+    将一个或多个覆写绑定到目标订阅。
+  </Step>
+  <Step title="启动或重载">
+    YumeBox 解析绑定链，构建 `RuntimeSpec`，再进入 native 编译。
+  </Step>
+  <Step title="加载内核">
+    编译结果以内存形式加载到 mihomo，随后启动 HTTP、TUN 或 Root TUN。
+  </Step>
+</Steps>
+
+多个覆写按绑定顺序执行。后面的覆写会基于前一个覆写的结果继续处理。
+
+## 编译链路
+
+```mermaid
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "htmlLabels": true, "nodeSpacing": 42, "rankSpacing": 52}, "themeVariables": {"primaryColor": "#ecfdf5", "primaryBorderColor": "#16a34a", "primaryTextColor": "#052e16", "lineColor": "#64748b", "tertiaryColor": "#f8fafc", "fontFamily": "Inter, ui-sans-serif, system-ui"}}}%%
+flowchart TB
+    subgraph Inputs["配置输入"]
+        direction LR
+        Profile["订阅<br/><code>config.yaml</code>"]
+        Binding["绑定索引<br/><code>metadata.yaml</code>"]
+        OverrideFiles["覆写文件<br/><code>.yaml</code> / <code>.js</code>"]
+    end
+
+    subgraph Runtime["运行时编排"]
+        direction TB
+        Resolve["解析覆写链"]
+        Spec["生成<br/><code>RuntimeSpec</code>"]
+        Session["启动 / 重载 / 回滚"]
+    end
+
+    subgraph Compiler["Native 编译器"]
+        direction TB
+        Source["读取源配置<br/>必要时解密"]
+        Apply{"应用覆写"}
+        YAML["YAML 补丁<br/>merge / append / force"]
+        JS["JS 脚本<br/><code>main(profile)</code>"]
+        Patch["运行时补丁<br/>DNS / profile / provider path"]
+    end
+
+    subgraph Core["mihomo 运行态"]
+        direction TB
+        Load["内存加载<br/>raw config"]
+        Transport["HTTP / TUN / Root TUN"]
+        Ready["运行快照<br/>代理组与选择恢复"]
+    end
+
+    Profile --> Resolve
+    Binding --> Resolve
+    OverrideFiles --> Resolve
+    Resolve --> Spec --> Session
+    Session --> Source --> Apply
+    Apply -->|".yaml / .yml"| YAML --> Patch
+    Apply -->|".js"| JS --> Patch
+    Patch --> Load --> Transport --> Ready
+
+    classDef app fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    classDef runtime fill:#ecfdf5,stroke:#16a34a,color:#052e16
+    classDef compiler fill:#eff6ff,stroke:#2563eb,color:#172554
+    classDef decision fill:#fff7ed,stroke:#f97316,color:#7c2d12
+    classDef core fill:#f0fdf4,stroke:#22c55e,color:#052e16
+
+    class Profile,Binding,OverrideFiles app
+    class Resolve,Spec,Session runtime
+    class Source,YAML,JS,Patch compiler
+    class Apply decision
+    class Load,Transport,Ready core
 ```
 
-## 工作原理
+## 运行时约束
 
-### 简单值
-
-简单值类型直接覆盖。
-
-```json
-{
-  "mode": "direct"
-}
-```
-
-### 嵌套对象
-
-嵌套对象默认递归合并，只覆盖指定的子字段。
-
-<Tabs>
-  <Tab title="原配置">
-    ```yaml
-    dns:
-      enable: true
-      listen: 0.0.0.0:53
-      nameserver:
-        - 223.5.5.5
-    ```
-  </Tab>
-  <Tab title="覆写">
-    ```json
-    {
-      "dns": {
-        "enable": false
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="最终">
-    ```yaml
-    dns:
-      enable: false
-      listen: 0.0.0.0:53
-      nameserver:
-        - 223.5.5.5
-    ```
-  </Tab>
-</Tabs>
-
-使用 `-force` 强制覆盖整个对象，未指定的子字段会丢失。
-
-<Tabs>
-  <Tab title="覆写">
-    ```json
-    {
-      "dns-force": {
-        "enable": false
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="最终">
-    ```yaml
-    dns:
-      enable: false
-      # listen 和 nameserver 丢失
-    ```
-  </Tab>
-</Tabs>
-
-<Tip>
-<strong>建议：</strong>如需修改嵌套对象的多个子字段，建议直接写出所有需要的字段，而不是使用 <code>-force</code>。
-</Tip>
-
-### 数组类型
-
-数组类型使用修饰符控制行为。
-
-| 写法 | 行为 |
-|------|------|
-| `"rules": [...]` | 覆盖整个数组（已移除） |
-| `"rules-start": [...]` | 插入到数组开头（已移除） |
-| `"rules-end": [...]` | 追加到数组末尾（已移除） |
-| `"dns.nameserver": [...]` | 覆盖 DNS 服务器列表 |
-| `"dns.nameserver-start": [...]` | 插入到 DNS 服务器列表开头 |
-| `"dns.nameserver-end": [...]` | 追加到 DNS 服务器列表末尾 |
-
-<Tabs>
-  <Tab title="原配置">
-    ```yaml
-    dns:
-      nameserver:
-        - 223.5.5.5
-    ```
-  </Tab>
-  <Tab title="覆写">
-    ```json
-    {
-      "dns": {
-        "nameserver-start": ["119.29.29.29"],
-        "nameserver-end": ["8.8.8.8"]
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="最终">
-    ```yaml
-    dns:
-      nameserver:
-        - 119.29.29.29
-        - 223.5.5.5
-        - 8.8.8.8
-    ```
-  </Tab>
-</Tabs>
-
-### Map 类型
-
-Map 类型使用 `-merge` 合并键值对。
-
-<Tabs>
-  <Tab title="原配置">
-    ```yaml
-    hosts:
-      localhost: 127.0.0.1
-    ```
-  </Tab>
-  <Tab title="覆写">
-    ```json
-    {
-      "hosts-merge": {
-        "test.local": "192.168.1.1",
-        "dev.local": "192.168.1.2"
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="最终">
-    ```yaml
-    hosts:
-      localhost: 127.0.0.1
-      test.local: 192.168.1.1
-      dev.local: 192.168.1.2
-    ```
-  </Tab>
-</Tabs>
-
-## 运行示例
-
-<Tabs>
-  <Tab title="原配置">
-    ```yaml
-    mixed-port: 7890
-
-    dns:
-      enable: true
-      nameserver: [https://dns.alidns.com/dns-query]
-
-    rules:
-      - GEOIP,CN,DIRECT
-      - MATCH,home
-    ```
-  </Tab>
-  <Tab title="覆写配置">
-    ```json
-    {
-      "mixed-port": 7891,
-      "dns": {
-        "nameserver": ["https://doh.pub/dns-query"]
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="最终配置">
-    ```yaml
-    mixed-port: 7891
-
-    dns:
-      enable: true
-      nameserver:
-        - https://dns.alidns.com/dns-query
-        - https://doh.pub/dns-query
-
-    rules:
-      - GEOIP,CN,DIRECT
-      - MATCH,home
-    ```
-  </Tab>
-</Tabs>
-
-## 注意事项
-
-<Warning>
-<strong>字段路径：</strong>覆写字段名必须与配置文件中的路径一致。例如使用 <code>dns</code> 而非 <code>dns-config</code>。
-</Warning>
-
-<Warning>
-<strong>数组类型：</strong>使用 <code>-start</code> 或 <code>-end</code> 时，值必须是数组。
-</Warning>
-
-<Warning>
-<strong>强制覆盖：</strong>使用 <code>-force</code> 时，未指定的子字段会丢失。
-</Warning>
-
-<Warning>
-<strong>已移除功能：</strong>当前版本不支持 <code>proxies</code>、<code>proxy-groups</code>、<code>rules</code>、<code>rule-providers</code>、<code>proxy-providers</code> 等字段的覆写。
-</Warning>
-
-## 支持覆写的字段
-
-完整字段清单见：[字段清单](/override/fields)
-
-常见可覆写字段：
-
-| 分类 | 字段 |
-|------|------|
-| 全局 | `mode`、`log-level`、`ipv6`、`allow-lan` |
-| DNS | `dns.enable`、`dns.nameserver`、`dns.fake-ip-filter` |
-| 入站 | `port`、`socks-port`、`mixed-port` |
-| TUN | `tun.enable`、`tun.stack`、`tun.mtu` |
-| 其他 | `hosts`、`sniffer`、`geox-url` |
+- 正常启动使用 native in-memory compile-and-load，不写出明文 `runtime.yaml`。
+- 历史版本遗留的 `runtime.yaml` 会在启动前清理。
+- age 加密订阅会在 native 编译层解密，JS 日志会隐藏敏感内容。
+- JS 覆写失败时只跳过当前脚本，并保留执行脚本前的配置。

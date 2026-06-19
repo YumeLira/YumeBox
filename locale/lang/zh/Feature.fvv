@@ -24,6 +24,8 @@ Feature = {
         Section = "面板选择"
         SelectPanel = "选择面板"
         Unknown = "未知面板"
+        CreateShortcut = "在桌面创建快捷方式"
+        CreateShortcutSummary = "将当前面板添加到桌面，使用网站图标，点击直接打开"
     }
 
     SubStore = {

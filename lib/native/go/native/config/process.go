@@ -44,7 +44,7 @@ func patchGeneral(cfg *config.RawConfig, profileDir string) error {
 }
 
 func patchProfile(cfg *config.RawConfig, _ string) error {
-	cfg.Profile.StoreSelected = false
+	cfg.Profile.StoreSelected = true
 	cfg.Profile.StoreFakeIP = true
 
 	return nil

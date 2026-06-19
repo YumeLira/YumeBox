@@ -12,7 +12,7 @@
   },
   "favicon": "/logo/logo.webp",
   "banner": {
-    "content": "0.5.0 版本现已上线！查看[更新日志](/update/history)了解详情",
+    "content": "0.5.2 版本现已上线！查看[更新日志](/update/history)了解详情",
     "dismissible": true
   },
   "navigation": {
@@ -21,8 +21,7 @@
         "language": "cn",
         "groups": [
           {
-            "group": "文档",
-            "icon": "book-open",
+            "group": "开始",
             "pages": [
               "/index",
               "/update/history"
@@ -30,7 +29,6 @@
           },
           {
             "group": "覆写",
-            "icon": "sliders-horizontal",
             "pages": [
               "/override/index",
               "/override/fields"

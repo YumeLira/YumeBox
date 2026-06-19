@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -29,11 +29,15 @@ import java.security.MessageDigest
 /**
  * Resolves the proxy-group list shown in the UI.
  *
- * Single source of truth for group **order + membership + hidden** is the compiled rawConfig's
- * `proxy-groups:` declaration order (see [canonicalGroups]). The live core query is only used to
- * overlay dynamic fields (`now` / `proxies` / `type`) when a session is running; it never decides
- * ordering and never drops a card. This keeps the running view identical to the compiled-config
- * preview the user authored, instead of diverging to the core/GLOBAL-provider order.
+ * When a session is running the live core itself is the single source of truth for group
+ * **order + membership + live state**: the mihomo fork preserves the `proxy-groups:` declaration
+ * order (`config/config.go`), and native `QueryProxyGroupNames` walks the GLOBAL provider in that
+ * exact declaration order. Since the rust override path now loads the rawConfig correctly, the
+ * running core already yields the correct order with real-time `now` / `proxies`, so a canonical
+ * recompile is redundant while running.
+ *
+ * [canonicalGroups] (compiled rawConfig, `proxy-groups:` declaration order) is kept only as the
+ * preview source and as the fallback for the transient window before the core has loaded.
  */
 class RuntimeProxyGroupResolver(
     private val compiledConfigPipeline: CompiledConfigPipeline,
@@ -117,62 +121,48 @@ class RuntimeProxyGroupResolver(
         spec: RuntimeSpec?,
         excludeNotSelectable: Boolean,
     ): List<String> {
-        val canonical = spec?.let { canonicalGroups(it, excludeNotSelectable) }.orEmpty()
-        if (canonical.isNotEmpty()) {
-            return canonical.map(ProxyGroup::name).filter(String::isNotBlank)
+        // Running core is the source of truth: GLOBAL provider order == proxy-groups declaration order.
+        val coreNames = runtimeGroupNames(excludeNotSelectable).filter(String::isNotBlank)
+        if (coreNames.isNotEmpty()) {
+            return coreNames
         }
-        // Canonical unavailable (transient empty compile): fall back to the core's live names so the
-        // caller still has something to query. Order is the core/GLOBAL order in this rare window.
-        return runtimeGroupNames(excludeNotSelectable)
+        // Core not loaded yet (preview / transient start window): fall back to the compiled rawConfig.
+        return spec?.let { canonicalGroups(it, excludeNotSelectable) }.orEmpty()
+            .map(ProxyGroup::name)
+            .filter(String::isNotBlank)
     }
 
     /**
      * The ordered, complete group list.
      *
-     * @param enrichLive when true (running session) each canonical group is overlaid with the live
-     *   core's `now` / `proxies` / `type`; when the live query fails the canonical group is kept as
-     *   is (the card is never dropped). When false (preview / not running) the canonical groups are
-     *   returned verbatim.
+     * @param enrichLive when true (running session) the list is taken straight from the live core
+     *   ([coreGroups]): it already carries the `proxy-groups:` declaration order plus real-time
+     *   `now` / `proxies`, so no canonical recompile is needed. When the core is not loaded yet
+     *   (transient start window) or when [enrichLive] is false (preview / not running), the compiled
+     *   rawConfig ([canonicalGroups]) is used instead.
      */
     suspend fun resolvedGroups(
         spec: RuntimeSpec?,
         excludeNotSelectable: Boolean,
         enrichLive: Boolean = true,
     ): List<ProxyGroup> {
-        val canonical = spec?.let { canonicalGroups(it, excludeNotSelectable) }.orEmpty()
-        if (canonical.isEmpty()) {
-            // Canonical unavailable (transient empty compile). When running, surface the live core
-            // groups so the page is not blank; otherwise there is nothing meaningful to show.
-            return if (enrichLive) liveFallbackGroups(excludeNotSelectable) else emptyList()
+        if (enrichLive) {
+            val coreGroups = coreGroups(excludeNotSelectable)
+            if (coreGroups.isNotEmpty()) {
+                return coreGroups
+            }
         }
-        if (!enrichLive) {
-            return canonical
-        }
-        val coreNamesByTrimmed = buildCoreNamesByTrimmed(excludeNotSelectable)
-        return canonical.map { group -> enrichWithLive(group, coreNamesByTrimmed) }
+        // Preview / core not loaded yet: use the compiled rawConfig (no running core to read from).
+        return spec?.let { canonicalGroups(it, excludeNotSelectable) }.orEmpty()
     }
 
     /**
-     * Overlay the live core state onto a canonical group. Order, name, type, hidden and icon stay
-     * authoritative from the canonical (compiled-config) group; only the dynamic `now` and live
-     * `proxies` (real delays / current membership) are taken from the live core. `type` is kept
-     * from canonical because a live group can still be [isUsable] with `type == Unknown` (e.g. it
-     * only has proxies), which would otherwise clobber the authoritative Selector/URLTest type.
-     * If the group cannot be resolved live, the canonical group is returned unchanged so the card
-     * is never dropped.
+     * Groups straight from the live core, in GLOBAL-provider order (== `proxy-groups:` declaration
+     * order in the mihomo fork). Each name is resolved to a usable live group; names that cannot be
+     * resolved are skipped (they are not part of the live runtime). Returns empty when no core is
+     * loaded, which signals the caller to fall back to [canonicalGroups].
      */
-    private fun enrichWithLive(
-        canonical: ProxyGroup,
-        coreNamesByTrimmed: Map<String, String>,
-    ): ProxyGroup {
-        val live = queryUsableGroup(canonical.name, coreNamesByTrimmed) ?: return canonical
-        return canonical.copy(
-            now = live.now,
-            proxies = live.proxies,
-        )
-    }
-
-    private fun liveFallbackGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
+    private fun coreGroups(excludeNotSelectable: Boolean): List<ProxyGroup> {
         val coreNamesByTrimmed = buildCoreNamesByTrimmed(excludeNotSelectable)
         return runtimeGroupNames(excludeNotSelectable)
             .mapNotNull { name -> queryUsableGroup(name, coreNamesByTrimmed) }

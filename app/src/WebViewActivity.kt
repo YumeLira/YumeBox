@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -42,18 +42,18 @@ class WebViewActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_INITIAL_URL = "initial_url"
 
+        fun intent(context: Context, initialUrl: String): Intent =
+            Intent(context, WebViewActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                putExtra(EXTRA_INITIAL_URL, initialUrl)
+                if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
         fun start(
             context: Context,
             initialUrl: String = "file://${context.filesDir}/frontend/index.html",
         ) {
-            val intent =
-                Intent(context, WebViewActivity::class.java).apply {
-                    putExtra(EXTRA_INITIAL_URL, initialUrl)
-                }
-            if (context !is Activity) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
+            context.startActivity(intent(context, initialUrl))
         }
     }
 

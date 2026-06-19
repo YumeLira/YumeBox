@@ -132,18 +132,6 @@ jobs:
       raw_apk_artifact_name: apk-raw-pre-app
     secrets: inherit
 
-  build-apk-pre-lite:
-    needs: bundle-native-pre
-    uses: ./.github/workflows/reusable-build-apk-only.yml
-    with:
-      channel: pre
-      module: lite
-      artifact_prefix: yumebox-lite-alpha
-      release_tag: Pre-release
-      meta_asset_name: yumebox-lite-alpha-meta.json
-      raw_apk_artifact_name: apk-raw-pre-lite
-    secrets: inherit
-
   build-apk-smart-app:
     needs: bundle-native-smart
     uses: ./.github/workflows/reusable-build-apk-only.yml
@@ -169,19 +157,6 @@ jobs:
       publish_artifact_name: publish-pre-app
     secrets: inherit
 
-  prepare-publish-pre-lite:
-    needs: build-apk-pre-lite
-    uses: ./.github/workflows/reusable-prepare-publish.yml
-    with:
-      channel: pre
-      module: lite
-      artifact_prefix: yumebox-lite-alpha
-      release_tag: Pre-release
-      meta_asset_name: yumebox-lite-alpha-meta.json
-      raw_apk_artifact_name: apk-raw-pre-lite
-      publish_artifact_name: publish-pre-lite
-    secrets: inherit
-
   prepare-publish-smart-app:
     needs: build-apk-smart-app
     uses: ./.github/workflows/reusable-prepare-publish.yml
@@ -198,14 +173,13 @@ jobs:
   publish-release-pre:
     needs:
       - prepare-publish-pre-app
-      - prepare-publish-pre-lite
     uses: ./.github/workflows/reusable-publish-release.yml
     with:
       channel: pre
       release_tag: Pre-release
       release_name: Pre-release
       prerelease: true
-      publish_artifacts: publish-pre-app,publish-pre-lite
+      publish_artifacts: publish-pre-app
       cleanup_assets: true
     secrets: inherit
 

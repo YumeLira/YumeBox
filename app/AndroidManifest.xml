@@ -87,7 +87,7 @@
         <activity
             android:name=".WebViewActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:exported="false"
+            android:exported="true"
             android:hardwareAccelerated="true"/>
 
         <activity-alias

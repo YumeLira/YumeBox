@@ -15,7 +15,7 @@
   ~ You should have received a copy of the GNU Affero General Public License
   ~ along with this program. If not, see <https://www.gnu.org/licenses/>.
   ~
-  ~ Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+  ~ Copyright (c)  YumeYucca 2025 - Present
   ~
   -->
 
@@ -82,7 +82,7 @@
         <service
             android:name="com.github.yumelira.yumebox.service.ProxyTileService"
             android:exported="true"
-            android:icon="@drawable/yume"
+            android:icon="@drawable/ic_logo_service"
             android:label="@string/tile_proxy_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

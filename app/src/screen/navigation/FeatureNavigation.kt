@@ -14,13 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
 package com.github.yumelira.yumebox.screen.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.github.yumelira.yumebox.WebViewActivity
 import com.github.yumelira.yumebox.common.util.openUrl
@@ -28,13 +29,21 @@ import com.github.yumelira.yumebox.presentation.screen.FeatureContent
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.launch
 
 @Composable
 @Destination<RootGraph>
 fun FeatureScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     FeatureContent(
         onOpenExternalUrl = { url -> openUrl(context, url) },
         onOpenInAppUrl = { url -> WebViewActivity.start(context, url) },
+        onCreatePanelShortcut = { url, label ->
+            scope.launch {
+                com.github.yumelira.yumebox.common.util.DashboardShortcutHelper
+                    .createPanelShortcut(context, url, label)
+            }
+        },
     )
 }

@@ -738,8 +738,17 @@ static override_symbols resolve_override_symbols() {
     static std::once_flag resolve_once;
 
     std::call_once(resolve_once, []() {
-        symbols.compile_raw = (override_compile_raw_fn)dlsym(RTLD_DEFAULT, "override_compile_raw");
-        symbols.free_string = (override_free_string_fn)dlsym(RTLD_DEFAULT, "override_free_string");
+        // liboverride.so is loaded via System.loadLibrary with LOCAL symbol visibility, so its
+        // exports are NOT in libbridge's RTLD_DEFAULT scope (it is not a DT_NEEDED dependency).
+        // Resolve against an explicit handle to the already-loaded library; dlsym(handle) is
+        // unaffected by RTLD_LOCAL. Fall back to RTLD_DEFAULT if the handle cannot be obtained.
+        void* handle = dlopen("liboverride.so", RTLD_NOW | RTLD_NOLOAD);
+        if (handle == nullptr) {
+            handle = dlopen("liboverride.so", RTLD_NOW);
+        }
+        void* scope = handle != nullptr ? handle : RTLD_DEFAULT;
+        symbols.compile_raw = (override_compile_raw_fn)dlsym(scope, "override_compile_raw");
+        symbols.free_string = (override_free_string_fn)dlsym(scope, "override_free_string");
     });
 
     return symbols;

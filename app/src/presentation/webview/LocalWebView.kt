@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Copyright (c)  YumeLira & YumeRiMoe 2025 - Present
+ * Copyright (c)  YumeYucca 2025 - Present
  *
  */
 
@@ -151,7 +151,7 @@ private fun createWebView(
 
             cacheMode = WebSettings.LOAD_DEFAULT
 
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
         webViewClient =
