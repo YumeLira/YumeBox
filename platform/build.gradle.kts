@@ -33,13 +33,13 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.core:core-ktx:${gropify.dep.version.coreKtx}")
-    implementation("com.android.tools.build:apksig:${gropify.dep.version.apksig}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.apksig)
+    implementation(libs.timber)
 }
 
 

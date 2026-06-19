@@ -33,11 +33,11 @@ android {
 }
 
 dependencies {
-    implementation("androidx.lifecycle:lifecycle-viewmodel:${gropify.dep.version.lifecycle}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
-    implementation("com.github.bmoliveira:snake-yaml:v1.18-android")
-    implementation("androidx.annotation:annotation-jvm:${gropify.dep.version.annotationJvm}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.snake.yaml)
+    implementation(libs.androidx.annotation.jvm)
+    implementation(libs.timber)
 }

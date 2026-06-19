@@ -35,19 +35,19 @@ dependencies {
     implementation(project(":locale"))
     implementation(project(":runtime:api"))
 
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
-    implementation("com.github.bmoliveira:snake-yaml:v1.18-android")
-    implementation("io.ktor:ktor-client-core:${gropify.dep.version.ktor}")
-    implementation("io.ktor:ktor-client-android:${gropify.dep.version.ktor}")
-    implementation("io.ktor:ktor-client-content-negotiation:${gropify.dep.version.ktor}")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:${gropify.dep.version.ktor}")
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("io.insert-koin:koin-core:${gropify.dep.version.koin}")
+    api(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.snake.yaml)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.timber)
+    implementation(libs.koin.core)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     implementation("com.tencent:mmkv:$mmkvVersion")

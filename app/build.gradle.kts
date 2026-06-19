@@ -178,7 +178,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:${gropify.dep.version.desugarJdkLibs}")
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     implementation(project(":core"))
     implementation(project(":platform"))
@@ -194,68 +194,68 @@ dependencies {
     implementation(project(":feature:editor"))
     implementation(project(":feature:meta"))
 
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
-    implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.activity:activity-compose:${gropify.dep.version.activityCompose}")
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.activity.compose)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
-    implementation("top.yukonga.miuix.kmp:miuix-ui:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-preference:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-icons:${gropify.dep.version.miuix}")
-    implementation("top.yukonga.miuix.kmp:miuix-blur-android:${gropify.dep.version.miuix}")
-    implementation("dev.chrisbanes.haze:haze:${gropify.dep.version.haze}")
-    implementation("androidx.navigationevent:navigationevent-compose:${gropify.dep.version.navigationevent}")
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
+    implementation(libs.miuix.blur.android)
+    implementation(libs.haze)
+    implementation(libs.androidx.navigationevent.compose)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     //noinspection NewerVersionAvailable
     implementation("com.tencent:mmkv:$mmkvVersion")
 
-    implementation("io.insert-koin:koin-core:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-android:${gropify.dep.version.koin}")
-    implementation("io.insert-koin:koin-androidx-compose:${gropify.dep.version.koin}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
-    implementation("io.github.raamcosta.compose-destinations:core:${gropify.dep.version.composeDestinations}")
-    ksp("io.github.raamcosta.compose-destinations:ksp:${gropify.dep.version.composeDestinations}")
+    implementation(libs.compose.destinations.core)
+    ksp(libs.compose.destinations.ksp)
 
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("org.tukaani:xz:1.12")
+    implementation(libs.timber)
+    implementation(libs.xz)
 
-    implementation("com.google.mlkit:barcode-scanning:${gropify.dep.version.mlkitBarcodeScanning}")
+    implementation(libs.mlkit.barcode.scanning)
 
-    implementation("androidx.camera:camera-camera2:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-lifecycle:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-view:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-core:${gropify.dep.version.camera}")
-    implementation("androidx.camera:camera-video:${gropify.dep.version.camera}")
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.video)
 
-    implementation("io.github.panpf.sketch4:sketch-compose:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-http:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-animated-gif:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-animated-heif:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-animated-webp:${gropify.dep.version.sketch4}")
-    implementation("io.github.panpf.sketch4:sketch-animated-gif-koral:${gropify.dep.version.sketch4}")
+    implementation(libs.sketch.compose)
+    implementation(libs.sketch.http)
+    implementation(libs.sketch.animated.gif)
+    implementation(libs.sketch.animated.heif)
+    implementation(libs.sketch.animated.webp)
+    implementation(libs.sketch.animated.gif.koral)
 
-    implementation("sh.calvin.reorderable:reorderable:${gropify.dep.version.reorderable}")
-    implementation("com.mikepenz:aboutlibraries-core:${gropify.dep.version.aboutLibraries}")
-    implementation("com.mikepenz:aboutlibraries-compose:${gropify.dep.version.aboutLibraries}")
+    implementation(libs.reorderable)
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${gropify.dep.version.lifecycle}")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:${gropify.dep.version.lifecycle}")
-    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:${gropify.dep.version.hiddenApiBypass}")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.hiddenapibypass)
 
-    implementation("com.squareup.okhttp3:okhttp:${gropify.dep.version.okhttp}")
-    implementation("androidx.biometric:biometric:${gropify.dep.version.biometric}")
-    implementation("androidx.core:core-ktx:${gropify.dep.version.coreKtx}")
+    implementation(libs.okhttp)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.core.ktx)
 }
 
 ksp {

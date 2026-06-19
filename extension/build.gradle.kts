@@ -27,7 +27,7 @@ plugins {
 }
 
 dependencies {
-    implementation("com.caoccao.javet:javet-node-android:${gropify.dep.version.javetNodeAndroid}")
+    implementation(libs.javet.node.android)
 }
 
 android {

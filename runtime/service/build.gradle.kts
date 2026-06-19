@@ -37,17 +37,17 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":runtime:api"))
 
-    implementation("androidx.core:core-ktx:${gropify.dep.version.coreKtx}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${gropify.dep.version.coroutines}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${gropify.dep.version.serializationJson}")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
-    val mmkv64 = gropify.dep.version.mmkv64
-    val mmkv32 = gropify.dep.version.mmkv32
+    val mmkv64 = libs.versions.mmkv64.get()
+    val mmkv32 = libs.versions.mmkv32.get()
     val injectedAbi = findProperty("android.injected.build.abi") as? String
     val mmkvVersion = if (injectedAbi in listOf("arm64-v8a", "x86_64")) mmkv64 else mmkv32
     implementation("com.tencent:mmkv:$mmkvVersion")
 
-    implementation("com.jakewharton.timber:timber:${gropify.dep.version.timber}")
-    implementation("com.github.topjohnwu.libsu:core:6.0.0")
-    implementation("com.github.topjohnwu.libsu:service:6.0.0")
+    implementation(libs.timber)
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
 }

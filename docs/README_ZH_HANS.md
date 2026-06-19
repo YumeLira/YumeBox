@@ -6,8 +6,7 @@
 
 ## YumeBox
 
-[![Latest release](https://img.shields.io/github/v/release/YumeRiMoe/YumeBox?label=Release&logo=github)](https://github.com/YumeRiMoe/YumeBox/releases/latest)[![GitHub License](https://img.shields.io/github/license/YumeRiMoe/YumeBox?logo=gnu)](/LICENSE)![Downloads](https://img.shields.io/github/downloads/YumeRiMoe/YumeBox/total)[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d4e3ab7c51254da9959598e34f639e0d)](https://app.codacy.com/gh/YumeRiMoe/YumeBox/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-
+[![Latest release](https://img.shields.io/github/v/release/YumeYucca/YumeBox?style=flat-square&label=Release&logo=github)](https://github.com/YumeYucca/YumeBox/releases/latest) [![GitHub License](https://img.shields.io/github/license/YumeYucca/YumeBox?style=flat-square&logo=gnu)](/LICENSE) ![Downloads](https://img.shields.io/github/downloads/YumeYucca/YumeBox/total?style=flat-square) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d4e3ab7c51254da9959598e34f639e0d?style=flat-square)](https://app.codacy.com/gh/YumeYucca/YumeBox/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 **一个基于 [mihomo](https://github.com/MetaCubeX/mihomo) 内核的开源 Android 客户端**
 
 </div>
@@ -16,13 +15,13 @@
 
 YumeBox 目前仅支持 **Android 8.0（API 26）及以上系统**。
 
-请前往 Release 页面下载对应架构的安装包：[Release](https://github.com/YumeRiMoe/YumeBox/releases)更多内容请访问官网：[YumeBox](https://yumebox.oom-wg.dev)
+请前往 Release 页面下载对应架构的安装包：[Release](https://github.com/YumeYucca/YumeBox/releases)更多内容请访问官网：[YumeBox](https://yumebox.oom-wg.dev)
 覆写配置语法参考：[override 文档](https://yumebox.oom-wg.dev/override?utm_source=chatgpt.com)如果这个项目对你有帮助，请点下 Star ，这是持续更新的动力
 
 ### 反馈与建议
 
 如果遇到 Bug，请在 Issues 页面提交：
-[Issues](https://github.com/YumeRiMoe/YumeBox/issues)
+[Issues](https://github.com/YumeYucca/YumeBox/issues)
 
 有想法或改进建议也可以在这里提出
 更多讨论与反馈可加入群组：[@OOM_WG](https://t.me/OOM_Group)

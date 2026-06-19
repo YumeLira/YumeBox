@@ -49,7 +49,7 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:${gropify.dep.version.composeBom}")
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.runtime:runtime")
+    implementation(libs.androidx.compose.runtime)
 }
