@@ -1,6 +1,6 @@
 module cfa
 
-go 1.20
+go 1.26.0
 
 require (
 	github.com/dlclark/regexp2 v1.12.0
