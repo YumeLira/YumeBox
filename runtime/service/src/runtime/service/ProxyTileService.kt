@@ -28,6 +28,7 @@ import android.net.VpnService
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import com.github.yumelira.yumebox.core.util.AutoStartSessionGate
 import com.github.yumelira.yumebox.core.util.PollingTimerSpecs
 import com.github.yumelira.yumebox.core.util.PollingTimers
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -77,7 +78,7 @@ class ProxyTileService : TileService() {
         updateJob?.cancel()
         updateJob = scope.launch {
             PollingTimers.ticks(PollingTimerSpecs.ProxyTileRefresh).collect {
-                updateTileState(currentSnapshot().running)
+                updateTileState(currentSnapshot().phase.isActiveOrStopping)
             }
         }
     }
@@ -98,19 +99,22 @@ class ProxyTileService : TileService() {
                 return@launch
             }
             val snapshot = currentSnapshot()
-            val isRunning = snapshot.running
+            val isActive = snapshot.phase.isActiveOrStopping
             val currentMode = effectiveMode(snapshot)
 
+            // If the tile visual state is stale vs the actual runtime state, sync it
+            // immediately but still perform the user's requested action — the user's tap
+            // is their intent to toggle, not just to reconcile state.
             val tileState = qsTile?.state
-            val tileStaleInactive = isRunning && tileState == Tile.STATE_INACTIVE
-            val tileStaleActive = !isRunning && tileState == Tile.STATE_ACTIVE
+            val tileStaleInactive = isActive && tileState == Tile.STATE_INACTIVE
+            val tileStaleActive = !isActive && tileState == Tile.STATE_ACTIVE
             if (tileStaleInactive || tileStaleActive) {
-                updateTileState(isRunning)
-                return@launch
+                updateTileState(isActive)
             }
 
             try {
-                if (isRunning) {
+                if (isActive) {
+                    AutoStartSessionGate.markManualPaused()
                     updateTilePendingState(isStarting = false)
                     withContext(Dispatchers.IO) {
                         if (
@@ -186,7 +190,7 @@ class ProxyTileService : TileService() {
                         initialDelayMillis = 300L,
                     )
                 )
-                updateTileState(currentSnapshot().running)
+                updateTileState(currentSnapshot().phase.isActiveOrStopping)
             }
         }
     }
@@ -240,13 +244,13 @@ class ProxyTileService : TileService() {
     private fun stopLocalRuntime() {
         runCatching { sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
         runCatching {
-            stopService(Intent(this, TunService::class.java))
-            stopService(Intent(this, ClashService::class.java))
+            applicationContext.stopService(Intent(applicationContext, TunService::class.java))
+            applicationContext.stopService(Intent(applicationContext, ClashService::class.java))
         }
     }
 
     private fun effectiveMode(snapshot: RuntimeSnapshot): ProxyMode =
-        if (snapshot.running) {
+        if (snapshot.phase.isActiveOrStopping) {
             modeForOwner(snapshot.owner) ?: snapshot.targetMode
         } else {
             snapshot.targetMode
