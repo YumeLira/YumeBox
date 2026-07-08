@@ -28,6 +28,7 @@ import android.net.VpnService
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import com.github.yumelira.yumebox.core.Clash
 import com.github.yumelira.yumebox.core.util.AutoStartSessionGate
 import com.github.yumelira.yumebox.core.util.PollingTimerSpecs
 import com.github.yumelira.yumebox.core.util.PollingTimers
@@ -239,10 +240,15 @@ class ProxyTileService : TileService() {
             RuntimeOwner.None -> null
         }
 
-    // Stop via the runtime-events broadcast (RuntimeForegroundController stops the session)
-    // plus stopService as belt and braces; core teardown happens in SessionRuntime.destroy.
+    // Mirrors the home-screen stop path: ask the runtime service to stop, then apply the same
+    // local core/service fallback used by LocalClashManager/ProxyRuntimeControl.
     private fun stopLocalRuntime() {
         runCatching { sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
+        runCatching {
+            Clash.stopHttp()
+            Clash.stopTun()
+            Clash.reset()
+        }
         runCatching {
             applicationContext.stopService(Intent(applicationContext, TunService::class.java))
             applicationContext.stopService(Intent(applicationContext, ClashService::class.java))

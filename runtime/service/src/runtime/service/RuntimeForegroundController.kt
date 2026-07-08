@@ -25,6 +25,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.github.yumelira.yumebox.core.model.LogMessage
 import com.github.yumelira.yumebox.data.model.ProxyMode
@@ -78,6 +79,7 @@ class RuntimeForegroundController(
     private var notificationJob: Job? = null
     private var runtime: SessionRuntime? = null
     private var reloadJob: Job? = null
+    private var stopRequested = false
 
     private val runtimeEventsReceiver =
         object : BroadcastReceiver() {
@@ -87,12 +89,26 @@ class RuntimeForegroundController(
                     Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
 
                     Intents.ACTION_CLASH_REQUEST_STOP -> {
+                        if (stopRequested) return
                         reason = intent.getStringExtra(Intents.EXTRA_STOP_REASON)
+                        stopRequested = true
                         reloadJob?.cancel()
                         reloadJob = null
                         StatusProvider.markRuntimeStopping(mode)
-                        runtime?.requestStop(reason)
-                        service.stopSelf()
+                        notificationJob?.cancel()
+                        notificationJob = null
+                        thread(name = "session-runtime-stop") {
+                            val stopResult = runtime?.stop(reason)
+                            if (stopResult?.success == false) {
+                                val error = stopResult.error ?: "${label.lowercase()} runtime stop failed"
+                                this@RuntimeForegroundController.reason = error
+                                StatusProvider.markRuntimeFailed(mode)
+                                service.sendClashStopped(error)
+                                Timber.e("$label runtime stop failed: $error")
+                            }
+                            stopForegroundService()
+                            service.stopSelf()
+                        }
                     }
                 }
             }
@@ -205,12 +221,17 @@ class RuntimeForegroundController(
         reloadJob = null
         notificationJob?.cancel()
         notificationJob = null
+        stopForegroundService()
 
         runtime?.let { rt ->
-            rt.requestStop(reason)
-            // Teardown contends with an in-flight native compile on the session lock;
-            // waiting for it here would block the main thread past the ANR window.
-            thread(name = "session-runtime-destroy") { rt.destroy() }
+            if (stopRequested) {
+                rt.requestStop(reason)
+            } else {
+                rt.requestStop(reason)
+                // Teardown contends with an in-flight native compile on the session lock;
+                // waiting for it here would block the main thread past the ANR window.
+                thread(name = "session-runtime-destroy") { rt.destroy() }
+            }
         }
 
         // Guarded: the launcher may already have marked the phase Starting for the
@@ -221,6 +242,10 @@ class RuntimeForegroundController(
         service.sendClashStopped(reason)
         startupLogStore.append("$tag destroy")
         Timber.i("${service.javaClass.simpleName} destroyed: ${reason ?: "successfully"}")
+    }
+
+    private fun stopForegroundService() {
+        ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_REMOVE)
     }
 
     fun onTrimMemory() {
