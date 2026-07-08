@@ -85,13 +85,7 @@
 # ========================================
 # Javet / Native JS
 # ========================================
--keep class com.caoccao.javet.interop.V8Host { *; }
--keep class com.caoccao.javet.interop.V8Runtime { *; }
--keep class com.caoccao.javet.interop.NodeRuntime { *; }
--keep class com.caoccao.javet.interop.engine.** { *; }
--keep class com.caoccao.javet.interop.callback.** { *; }
--keep class com.caoccao.javet.interop.converters.** { *; }
--keep class com.caoccao.javet.interfaces.IJavetDirectCallable { *; }
+-keep class com.caoccao.javet.** { *; }
 -keepclassmembers class * {
     @com.caoccao.javet.annotations.V8Function <methods>;
     @com.caoccao.javet.annotations.V8Property <methods>;
