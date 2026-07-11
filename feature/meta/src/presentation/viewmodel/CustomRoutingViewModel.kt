@@ -31,6 +31,7 @@ import com.github.yumelira.yumebox.feature.meta.presentation.util.OverridePreset
 import com.github.yumelira.yumebox.feature.meta.presentation.util.analyzePresetTemplateContent
 import com.github.yumelira.yumebox.feature.meta.presentation.util.buildPresetTemplateYaml
 import com.github.yumelira.yumebox.feature.meta.presentation.util.defaultOverridePresetTemplateSelection
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +54,7 @@ class CustomRoutingViewModel(
     val templateRoundTripSafe: StateFlow<Boolean> = templateRoundTripSafeState.asStateFlow()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             runCatching { reloadStateFromStoredContent() }
                 .onFailure {
                     Timber.e(it, "Failed to reload custom routing state from stored content")

@@ -37,6 +37,7 @@ import com.github.yumelira.yumebox.substore.engine.NativeLibraryManager
 import com.github.yumelira.yumebox.substore.model.AutoCloseMode
 import com.github.yumelira.yumebox.substore.util.SubStoreDownloadClient
 import dev.oom_wg.purejoy.mlang.MLang
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,6 +46,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class FeatureViewModel(
     store: FeatureStore,
@@ -71,6 +74,7 @@ class FeatureViewModel(
             )
 
     private var autoCloseJob: Job? = null
+    private val statusInitializationMutex = Mutex()
 
     private val _isDownloadingSubStoreFrontend = MutableStateFlow(false)
     val isDownloadingSubStoreFrontend: StateFlow<Boolean> =
@@ -155,11 +159,7 @@ class FeatureViewModel(
     }
 
     fun initializeSubStoreStatus() {
-        viewModelScope.launch {
-            _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
-            _isExtensionInstalled.value = checkExtensionInstalled()
-            initializeJavetStatus()
-        }
+        viewModelScope.launch(Dispatchers.IO) { refreshSubStoreStatus() }
     }
 
     private fun checkExtensionInstalled(): Boolean =
@@ -184,7 +184,12 @@ class FeatureViewModel(
     }
 
     fun refreshExtensionStatus() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) { refreshSubStoreStatus() }
+    }
+
+    private suspend fun refreshSubStoreStatus() {
+        statusInitializationMutex.withLock {
+            _isSubStoreInitialized.value = SubStorePaths.isResourcesReady()
             _isExtensionInstalled.value = checkExtensionInstalled()
             initializeJavetStatus()
         }
