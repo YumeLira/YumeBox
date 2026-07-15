@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 age = { version = "0.12.1", features = ["armor"] }
 boa_engine = { version = "0.21.1", features = ["jsvalue-enum"] }
-jni = "0.22"
+jni = "0.21"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
