@@ -53,7 +53,7 @@ class TunService : VpnService(), CoroutineScope by CoroutineScope(Dispatchers.De
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        controller.onStartCommand()
+        controller.onStartCommand(startId)
 
     override fun onDestroy() {
         controller.onDestroy()

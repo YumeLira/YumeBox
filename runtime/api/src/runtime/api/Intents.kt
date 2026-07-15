@@ -72,5 +72,7 @@ object Intents {
         get() = actionOverrideChanged(packageName)
 
     const val EXTRA_STOP_REASON = "stop_reason"
+    const val EXTRA_RESTART = "restart"
+    const val EXTRA_RUNTIME_MODE = "runtime_mode"
     const val EXTRA_UUID = "uuid"
 }

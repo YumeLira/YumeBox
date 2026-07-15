@@ -139,10 +139,18 @@ internal class LocalClashManager(context: Context) : IClashManager {
             appContext.stopService(Intent(appContext, ClashService::class.java))
         }
 
-        runCatching {
-            Clash.stopHttp()
-            Clash.stopTun()
-            Clash.reset()
+        // Fallback for an orphaned core only. With a live service the session owns the core
+        // teardown (owner-token guarded); resetting the core here would yank it out from
+        // under the stop already in flight.
+        if (
+            !StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Tun) &&
+                !StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Http)
+        ) {
+            runCatching {
+                Clash.stopHttp()
+                Clash.stopTun()
+                Clash.reset()
+            }
         }
     }
 

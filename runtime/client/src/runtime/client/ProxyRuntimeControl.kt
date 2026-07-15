@@ -22,16 +22,19 @@ package com.github.yumelira.yumebox.runtime.client
 
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.runtime.api.RuntimeOwner
 import com.github.yumelira.yumebox.runtime.api.appContextOrSelf
 import com.github.yumelira.yumebox.runtime.client.manager.ServiceClient
 import com.github.yumelira.yumebox.runtime.client.root.RootTunController
 import com.github.yumelira.yumebox.runtime.service.ClashService
+import com.github.yumelira.yumebox.runtime.service.StatusProvider
 import com.github.yumelira.yumebox.runtime.service.TunService
 import com.github.yumelira.yumebox.runtime.service.root.RootAccessSupport
 import com.github.yumelira.yumebox.runtime.service.session.RuntimeServiceLauncher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 internal class ProxyRuntimeControl(
@@ -93,6 +96,27 @@ internal class ProxyRuntimeControl(
                 }
             appContext.stopService(Intent(appContext, TunService::class.java))
             appContext.stopService(Intent(appContext, ClashService::class.java))
+            // stopService is async. A start issued while the old instance is still dying gets
+            // its command delivered to that instance (onCreate never re-runs) and is swallowed,
+            // and the dying instance's late stopSelf can put the replacement down; serialize
+            // the handover by waiting until the service is really gone.
+            awaitLocalServicesStopped()
         }
+    }
+
+    private suspend fun awaitLocalServicesStopped() {
+        val deadline = SystemClock.elapsedRealtime() + STOP_HANDOVER_TIMEOUT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            val alive =
+                StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Tun) ||
+                    StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Http)
+            if (!alive) return
+            delay(STOP_HANDOVER_POLL_MS)
+        }
+    }
+
+    private companion object {
+        const val STOP_HANDOVER_TIMEOUT_MS = 5_000L
+        const val STOP_HANDOVER_POLL_MS = 100L
     }
 }

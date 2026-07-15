@@ -430,10 +430,12 @@ class SessionRuntime(
         teardownTransportAndCore()
         currentSpec = null
         queryCache.clear()
+        // A stop that carries a reason (user request, VPN revoke) is still a stop, not a
+        // failure; only the rollback path publishes Failed.
         publishSnapshot(
             RuntimeSnapshot(
                 owner = RuntimeOwner.None,
-                phase = if (reason.isNullOrBlank()) RuntimePhase.Idle else RuntimePhase.Failed,
+                phase = RuntimePhase.Idle,
                 targetMode = host.mode,
                 lastError = reason,
             )

@@ -5,13 +5,7 @@
 
 version: "1.0"
 
-# Android Gradle / Kotlin multi-module project (minSdk 26, compileSdk 37, JVM 24).
-# NOTE: the project uses AGP 9.2.1, which Qodana 2026.1's Android linter
-# (jetbrains/qodana-jvm-android) rejects — it supports AGP <= 9.0.0. Until a Qodana release
-# supports AGP 9.2.x, use the JVM Community linter, which has no Android Studio plugin and so
-# skips the AGP compatibility check. Trade-off: JVM/Kotlin analysis only (no Android resource /
-# R / Compose-preview awareness). Switch back to qodana-jvm-android once it supports AGP 9.2.
-linter: jetbrains/qodana-jvm-community:2026.1
+linter: jetbrains/qodana-jvm-android:latest
 
 # Built-in inspection profile. Use qodana.starter for a lighter, lower-noise first run.
 profile:

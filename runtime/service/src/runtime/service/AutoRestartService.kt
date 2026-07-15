@@ -253,6 +253,7 @@ class AutoRestartService : Service() {
                 ProxyMode.Http ->
                     RuntimeActivationState(
                         phase = StatusProvider.queryRuntimePhase(mode),
+                        error = StatusProvider.queryRuntimeLastError(mode),
                     )
             }
         }

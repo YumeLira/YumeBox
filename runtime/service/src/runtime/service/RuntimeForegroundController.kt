@@ -81,6 +81,21 @@ class RuntimeForegroundController(
     private var reloadJob: Job? = null
     @Volatile private var stopRequested = false
 
+    /** Write token for the persisted phase slot; stale writers are dropped by StatusProvider. */
+    private var sessionToken: String = ""
+
+    /** Most recent startId delivered to onStartCommand; pins stopSelf to what we've seen. */
+    @Volatile private var lastStartId = -1
+
+    /** startId observed when the stop was requested; a later command means a raced start. */
+    @Volatile private var stopCommandStartId = -1
+
+    /** A stale session asks this instance to recreate itself only after onDestroy releases it. */
+    @Volatile private var restartAfterStop = false
+
+    /** Once destroyed, async stop work must not touch the (possibly replacement) service. */
+    @Volatile private var destroyed = false
+
     private val runtimeEventsReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -89,7 +104,13 @@ class RuntimeForegroundController(
                     Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
 
                     Intents.ACTION_CLASH_REQUEST_STOP -> {
-                        requestStop(intent.getStringExtra(Intents.EXTRA_STOP_REASON))
+                        val targetMode = intent.getStringExtra(Intents.EXTRA_RUNTIME_MODE)
+                        if (targetMode == null || targetMode == mode.name) {
+                            requestStop(
+                                stopReason = intent.getStringExtra(Intents.EXTRA_STOP_REASON),
+                                restart = intent.getBooleanExtra(Intents.EXTRA_RESTART, false),
+                            )
+                        }
                     }
                 }
             }
@@ -107,7 +128,7 @@ class RuntimeForegroundController(
                 startupLogStore.append("$tag service: startForeground done")
 
                 StatusProvider.clearLegacyStateFiles()
-                StatusProvider.markRuntimeStarting(mode)
+                sessionToken = StatusProvider.adoptOrBeginRuntimeSession(mode)
                 CoreRuntimeConfig.applyCustomUserAgentIfPresent(service)
 
                 runtime =
@@ -120,13 +141,19 @@ class RuntimeForegroundController(
                                 override fun onStarting(spec: RuntimeSpec) = Unit
 
                                 override fun onStarted(spec: RuntimeSpec) {
-                                    StatusProvider.markRuntimeRunning(this@RuntimeForegroundController.mode)
+                                    StatusProvider.markRuntimeRunning(
+                                        this@RuntimeForegroundController.mode,
+                                        sessionToken,
+                                    )
                                     service.sendClashStarted()
                                 }
 
                                 override fun onStopped(reason: String?) {
                                     this@RuntimeForegroundController.reason = reason
-                                    StatusProvider.markRuntimeIdle(this@RuntimeForegroundController.mode)
+                                    StatusProvider.markRuntimeIdle(
+                                        this@RuntimeForegroundController.mode,
+                                        sessionToken,
+                                    )
                                     service.sendClashStopped(reason)
                                 }
 
@@ -143,7 +170,7 @@ class RuntimeForegroundController(
                                 override fun reportFailure(error: String) {
                                     reason = error
                                     startupLogStore.append("$tag failed=$error")
-                                    StatusProvider.markRuntimeFailed(this@RuntimeForegroundController.mode)
+                                    markFailed(error)
                                     service.sendClashStopped(error)
                                     Timber.e("$label runtime failed: $error")
                                     service.stopSelf()
@@ -166,24 +193,36 @@ class RuntimeForegroundController(
                             check(result.success) { result.error ?: "${label.lowercase()} runtime start failed" }
                         }
                         .onFailure { error ->
-                            reason = error.message ?: "${label.lowercase()} runtime start failed"
-                            startupLogStore.append("$tag failed=$reason")
-                            StatusProvider.markRuntimeFailed(mode)
-                            service.sendClashStopped(reason)
-                            service.stopSelf()
+                            failStartup(error.message ?: "${label.lowercase()} runtime start failed")
                         }
                 }
             }
             .onFailure { error ->
-                reason = error.message ?: "${label.lowercase()} runtime start failed"
-                startupLogStore.append("$tag failed=$reason")
-                StatusProvider.markRuntimeFailed(mode)
-                service.sendClashStopped(reason)
-                service.stopSelf()
+                failStartup(error.message ?: "${label.lowercase()} runtime start failed")
             }
     }
 
-    fun onStartCommand(): Int {
+    private fun failStartup(message: String) {
+        reason = message
+        startupLogStore.append("$tag failed=$message")
+        markFailed(message)
+        service.sendClashStopped(message)
+        service.stopSelf()
+    }
+
+    private fun markFailed(message: String) {
+        // The token is empty only when onCreate failed before the session was claimed; the
+        // slot then still holds the launcher's Starting record, which the force write clears
+        // (a lingering Starting would read as "killed while starting" and confuse recovery).
+        if (sessionToken.isNotEmpty()) {
+            StatusProvider.markRuntimeFailed(mode, sessionToken, message)
+        } else {
+            StatusProvider.markRuntimeFailed(mode, message)
+        }
+    }
+
+    fun onStartCommand(startId: Int): Int {
+        lastStartId = startId
         if (notificationJob?.isActive != true) {
             notificationJob = notificationManager.startTrafficUpdate(scope)
         }
@@ -191,9 +230,11 @@ class RuntimeForegroundController(
         // re-entrant command against an already-running session this is the only place
         // that can flip the persisted phase back, otherwise it is stuck at Starting.
         if (runtime?.snapshot()?.running == true) {
-            StatusProvider.markRuntimeRunning(mode)
+            StatusProvider.markRuntimeRunning(mode, sessionToken)
         }
-        return Service.START_STICKY
+        // Let Android recreate a killed started service with its original command instead of
+        // relying on an app-managed polling alarm.
+        return Service.START_REDELIVER_INTENT
     }
 
     fun onVpnRevoked() {
@@ -201,6 +242,7 @@ class RuntimeForegroundController(
     }
 
     fun onDestroy() {
+        destroyed = true
         runCatching { service.unregisterReceiver(runtimeEventsReceiver) }
         reloadJob?.cancel()
         reloadJob = null
@@ -209,24 +251,31 @@ class RuntimeForegroundController(
         stopForegroundService()
 
         runtime?.let { rt ->
-            if (stopRequested) {
-                rt.requestStop(reason)
-            } else {
-                rt.requestStop(reason)
+            rt.requestStop(reason)
+            if (!stopRequested) {
                 // Teardown contends with an in-flight native compile on the session lock;
                 // waiting for it here would block the main thread past the ANR window.
                 thread(name = "session-runtime-destroy") { rt.destroy() }
             }
         }
 
-        // Guarded: the launcher may already have marked the phase Starting for the
-        // replacement runtime; the phase store holds a single mode slot.
-        if (StatusProvider.queryRuntimePhase(mode).isNotIdle) {
-            StatusProvider.markRuntimeIdle(mode)
-        }
+        // Token-guarded: a no-op when the launcher already claimed the slot for a
+        // replacement session, and when this session recorded a Failed phase (the failure
+        // must stay readable after the service is gone).
+        StatusProvider.markRuntimeIdle(mode, sessionToken)
         service.sendClashStopped(reason)
         startupLogStore.append("$tag destroy")
         Timber.i("${service.javaClass.simpleName} destroyed: ${reason ?: "successfully"}")
+
+        // A start command can land on a dying instance, and a stale session may explicitly
+        // request a handoff. Both cases must wait until this instance releases its token.
+        if (restartAfterStop || (stopRequested && lastStartId != stopCommandStartId)) {
+            startupLogStore.append("$tag service: relaunching after stop")
+            runCatching { service.startForegroundService(Intent(service, service.javaClass)) }
+                .onFailure { error ->
+                    startupLogStore.append("$tag service: relaunch failed=${error.message}")
+                }
+        }
     }
 
     private fun stopForegroundService() {
@@ -237,13 +286,15 @@ class RuntimeForegroundController(
         com.github.yumelira.yumebox.core.Clash.forceGc()
     }
 
-    private fun requestStop(stopReason: String?) {
+    private fun requestStop(stopReason: String?, restart: Boolean = false) {
         if (stopRequested) return
         stopRequested = true
+        restartAfterStop = restart
+        stopCommandStartId = lastStartId
         reason = stopReason
         reloadJob?.cancel()
         reloadJob = null
-        StatusProvider.markRuntimeStopping(mode)
+        StatusProvider.markRuntimeStopping(mode, sessionToken)
         notificationJob?.cancel()
         notificationJob = null
         thread(name = "session-runtime-stop") {
@@ -251,12 +302,25 @@ class RuntimeForegroundController(
             if (stopResult?.success == false) {
                 val error = stopResult.error ?: "${label.lowercase()} runtime stop failed"
                 this@RuntimeForegroundController.reason = error
-                StatusProvider.markRuntimeFailed(mode)
+                markFailed(error)
                 service.sendClashStopped(error)
                 Timber.e("$label runtime stop failed: $error")
             }
-            stopForegroundService()
-            service.stopSelf()
+            // Once destroyed, stopSelf/stopForeground resolve through the service token and
+            // can put down a relaunched replacement instance instead of this dead one.
+            // stopSelf is pinned to a startId (never the unconditional overload) so AMS
+            // refuses the stop when a start command raced past the pinned id; retrying with
+            // the newer id still stops this instance, and onDestroy then relaunches a fresh
+            // one for the raced command instead of silently swallowing it.
+            if (!destroyed) {
+                stopForegroundService()
+                var pinnedStartId = lastStartId
+                service.stopSelf(pinnedStartId)
+                while (!destroyed && pinnedStartId != lastStartId) {
+                    pinnedStartId = lastStartId
+                    service.stopSelf(pinnedStartId)
+                }
+            }
         }
     }
 

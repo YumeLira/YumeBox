@@ -384,7 +384,14 @@ class ProxyFacade(
             if (owner == RuntimeOwner.None) {
                 stopTrafficPolling()
                 clearRuntimeState(resetGroups = false)
-                publishRuntimeSnapshot(RuntimeStateMapper.idleSnapshot(configuredMode))
+                // Surface the retained failure record; otherwise the next reconcile wipes the
+                // stop reason the service broadcast a moment ago and the failure goes silent.
+                publishRuntimeSnapshot(
+                    RuntimeStateMapper.idleSnapshot(
+                        configuredMode,
+                        lastError = StatusProvider.queryRuntimeLastError(configuredMode),
+                    )
+                )
                 if (shouldBootstrapRootTun) {
                     rootTunBootstrap.schedule()
                 } else {
@@ -915,7 +922,12 @@ class ProxyFacade(
 
         if (owner == RuntimeOwner.None) {
             clearRuntimeState(resetGroups = false)
-            publishRuntimeSnapshot(RuntimeStateMapper.idleSnapshot(configuredMode))
+            publishRuntimeSnapshot(
+                RuntimeStateMapper.idleSnapshot(
+                    configuredMode,
+                    lastError = StatusProvider.queryRuntimeLastError(configuredMode),
+                )
+            )
             if (shouldBootstrapRootTun) {
                 rootTunBootstrap.schedule()
             } else {

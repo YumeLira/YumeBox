@@ -307,6 +307,13 @@ private val countryNameRegex: Regex = run {
     Regex("(?:$pattern)", RegexOption.IGNORE_CASE)
 }
 
+private val countryCodes = countryNameToCode.values.toSet()
+
+private val wrappedCountryCodeRegex =
+    Regex("^(?:\\[([A-Z]{2})\\]|\\(([A-Z]{2})\\))")
+
+private val delimitedCountryCodeRegex = Regex("^([A-Z]{2})(?=\\s*[-|·•—:])")
+
 private fun extractCountryCodeFromName(name: String): Pair<String?, String> {
     val match = countryNameRegex.find(name)
     match ?: return null to name
@@ -335,6 +342,16 @@ private fun extractCountryCodeFromName(name: String): Pair<String?, String> {
                     it == ':'
             }
 
+    return countryCode to displayName.ifEmpty { name }
+}
+
+private fun extractCountryCodeAbbreviation(name: String): Pair<String, String>? {
+    val match =
+        wrappedCountryCodeRegex.find(name) ?: delimitedCountryCodeRegex.find(name) ?: return null
+    val countryCode = match.groupValues.drop(1).firstOrNull { it.isNotEmpty() } ?: return null
+    if (countryCode !in countryCodes) return null
+
+    val displayName = name.substring(match.range.last + 1).trim { it.isNameSeparator() }
     return countryCode to displayName.ifEmpty { name }
 }
 
@@ -385,6 +402,10 @@ fun extractFlaggedName(rawName: String): FlaggedName {
     val (codeFromName, displayName) = extractCountryCodeFromName(trimmed)
     if (codeFromName != null) {
         return FlaggedName(countryCode = codeFromName, displayName = displayName)
+    }
+
+    extractCountryCodeAbbreviation(trimmed)?.let { (countryCode, displayName) ->
+        return FlaggedName(countryCode = countryCode, displayName = displayName)
     }
 
     return FlaggedName(countryCode = null, displayName = trimmed)

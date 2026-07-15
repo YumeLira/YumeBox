@@ -245,13 +245,19 @@ class ProxyTileService : TileService() {
     private fun stopLocalRuntime() {
         runCatching { sendBroadcastSelf(Intent(Intents.ACTION_CLASH_REQUEST_STOP)) }
         runCatching {
-            Clash.stopHttp()
-            Clash.stopTun()
-            Clash.reset()
-        }
-        runCatching {
             applicationContext.stopService(Intent(applicationContext, TunService::class.java))
             applicationContext.stopService(Intent(applicationContext, ClashService::class.java))
+        }
+        // Fallback for an orphaned core only; a live service owns its own core teardown.
+        if (
+            !StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Tun) &&
+                !StatusProvider.isLocalRuntimeServiceAlive(ProxyMode.Http)
+        ) {
+            runCatching {
+                Clash.stopHttp()
+                Clash.stopTun()
+                Clash.reset()
+            }
         }
     }
 

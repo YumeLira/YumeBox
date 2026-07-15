@@ -67,11 +67,24 @@ class ServiceNotificationManager(
         )
     }
 
-    fun createInitialNotification(): Notification = buildRunningNotification()
+    // The initial notification backs startForeground() inside onCreate: any throw before that
+    // call crashes the app with a foreground-service contract violation, so this path must
+    // stay free of MMKV/DAO reads. The enriched content follows via the traffic updater.
+    fun createInitialNotification(): Notification =
+        buildNotification(
+            NotificationPresentationFactory.createStatus(
+                profileName =
+                    service.applicationInfo.loadLabel(service.packageManager).toString(),
+                status = MLang.Service.Notification.Running,
+            )
+        )
 
     fun startTrafficUpdate(scope: CoroutineScope): Job =
         scope.launch(Dispatchers.Default) {
             PollingTimers.ticks(PollingTimerSpecs.ServiceTrafficNotification).collect {
+                // Without POST_NOTIFICATIONS the notify() below is silently dropped anyway;
+                // skip the per-tick core queries and notification builds.
+                if (!notificationManager.areNotificationsEnabled()) return@collect
                 val notification = buildRunningNotification()
                 val fingerprint =
                     "${notification.extras.getCharSequence(Notification.EXTRA_TITLE)}|" +

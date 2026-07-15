@@ -24,6 +24,7 @@ import android.content.Context
 import android.content.Intent
 import com.github.yumelira.yumebox.data.model.ProxyMode
 import com.github.yumelira.yumebox.data.store.RemoteControllerStore
+import com.github.yumelira.yumebox.runtime.api.Intents
 import com.github.yumelira.yumebox.runtime.api.RuntimePhase
 import com.github.yumelira.yumebox.runtime.api.appContextOrSelf
 import com.github.yumelira.yumebox.runtime.service.ClashService
@@ -40,6 +41,7 @@ object RuntimeServiceLauncher {
     const val SOURCE_AUTO_RESTART_REPLACED = "auto_restart_replaced"
     const val SOURCE_UNKNOWN = "unknown"
 
+    @Synchronized
     fun start(context: Context, mode: ProxyMode, source: String = SOURCE_UNKNOWN) {
         require(mode != ProxyMode.RootTun) { "RuntimeServiceLauncher does not start RootTun" }
 
@@ -58,13 +60,31 @@ object RuntimeServiceLauncher {
 
         // A redundant start against an already-running service would re-mark the persisted
         // phase as Starting with nothing to flip it back to Running afterwards.
-        if (StatusProvider.queryRuntimePhase(mode) == RuntimePhase.Running) {
+        val currentPhase = StatusProvider.queryRuntimePhase(mode)
+        if (currentPhase == RuntimePhase.Running) {
             startupLogStore.append("${logScope.tag} launcher: skipped, already running")
             return
         }
 
-        if (mode == ProxyMode.Tun && StatusProvider.isTunStarting()) {
-            startupLogStore.append("LOCAL_TUN launcher: skipped, already starting")
+        if (StatusProvider.isRuntimeStartingWithinGrace(mode)) {
+            startupLogStore.append("${logScope.tag} launcher: skipped, already starting")
+            return
+        }
+
+        // A Starting phase past the grace window with a live-but-stuck instance would swallow
+        // a new command (onCreate never re-runs on an existing instance). Ask it to recreate
+        // itself after releasing its old session instead of sending a new token to that instance.
+        if (
+            StatusProvider.queryRuntimePhase(mode) == RuntimePhase.Starting &&
+                StatusProvider.isLocalRuntimeServiceAlive(mode)
+        ) {
+            startupLogStore.append("${logScope.tag} launcher: stopping stale ${mode.name} runtime")
+            appContext.sendBroadcast(
+                Intent(Intents.ACTION_CLASH_REQUEST_STOP)
+                    .setPackage(appContext.packageName)
+                    .putExtra(Intents.EXTRA_RESTART, true)
+                    .putExtra(Intents.EXTRA_RUNTIME_MODE, mode.name)
+            )
             return
         }
 
@@ -79,33 +99,25 @@ object RuntimeServiceLauncher {
             runCatching { appContext.stopService(Intent(appContext, serviceClassFor(otherMode))) }
         }
 
-        if (mode == ProxyMode.Tun) {
-            StatusProvider.markTunStarting()
-        }
-        StatusProvider.markRuntimeStarting(mode)
+        val sessionToken = StatusProvider.beginRuntimeSession(mode)
 
         val intent =
             Intent(appContext, serviceClassFor(mode)).putExtra(EXTRA_REQUEST_SOURCE, source)
 
         runCatching { appContext.startForegroundService(intent) }
             .onFailure { error ->
-                if (mode == ProxyMode.Tun) {
-                    StatusProvider.clearTunStarting()
-                }
-                StatusProvider.markRuntimeIdle(mode)
+                StatusProvider.markRuntimeIdle(mode, sessionToken)
                 startupLogStore.append("${logScope.tag} launcher: failed=${error.message}")
                 throw error
             }
     }
 
+    @Synchronized
     fun stop(context: Context, mode: ProxyMode) {
         require(mode != ProxyMode.RootTun) { "RuntimeServiceLauncher does not stop RootTun" }
 
         val appContext = context.appContextOrSelf
         runCatching { appContext.stopService(Intent(appContext, serviceClassFor(mode))) }
-        if (mode == ProxyMode.Tun) {
-            StatusProvider.clearTunStarting()
-        }
         StatusProvider.markRuntimeIdle(mode)
     }
 

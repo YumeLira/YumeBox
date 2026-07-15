@@ -48,7 +48,7 @@ class ClashService : BaseService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
-        controller.onStartCommand()
+        controller.onStartCommand(startId)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
