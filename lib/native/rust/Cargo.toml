@@ -12,13 +12,13 @@ name = "override"
 path = "src/main.rs"
 
 [dependencies]
-age = { version = "0.11.3", features = ["armor"] }
+age = { version = "0.12.1", features = ["armor"] }
 boa_engine = { version = "0.21.1", features = ["jsvalue-enum"] }
-jni = "0.21"
+jni = "0.22"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-sha2 = "0.10"
+sha2 = "0.11"
 
 [profile.release]
 # This compiler spends its time parsing and rewriting large YAML trees. Optimize for startup
