@@ -213,7 +213,7 @@ pub fn patch_providers(object: &mut JsonMap<String, JsonValue>, profile_dir: &Pa
             };
             let mut hasher = Sha256::new();
             hasher.update(url.as_bytes());
-            let hash = format!("{:x}", hasher.finalize());
+            let hash: String = hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect();
             provider_object.insert(
                 "path".to_string(),
                 JsonValue::String(profile_provider_path(

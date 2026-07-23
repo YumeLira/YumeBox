@@ -40,7 +40,7 @@ pub fn compile_request(
         let mut hasher = Sha256::new();
         hasher.update(request.profile_uuid.as_bytes());
         hasher.update(final_yaml.as_bytes());
-        format!("{:x}", hasher.finalize())
+        hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect()
     };
 
     if write_output {
@@ -200,7 +200,7 @@ fn fingerprint_for(profile_uuid: &[u8], payload: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(profile_uuid);
     hasher.update(payload);
-    format!("{:x}", hasher.finalize())
+    hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn validate_root_config(object: &JsonMap<String, JsonValue>) -> Result<(), String> {
@@ -232,12 +232,12 @@ use std::ffi::{c_char, CStr, CString};
 /// Caller must pass a valid null-terminated UTF-8 JSON string.
 /// Returns a CompileRawResult JSON string as a Rust-allocated CString that must
 /// be freed with override_free_string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn override_compile_raw(request_json: *const c_char) -> *mut c_char {
     if request_json.is_null() {
         return compile_raw_error_result("read raw compile request: null pointer").into_raw();
     }
-    let json_str = match CStr::from_ptr(request_json).to_str() {
+    let json_str = match unsafe { CStr::from_ptr(request_json) }.to_str() {
         Ok(s) => s,
         Err(err) => {
             return compile_raw_error_result(format!("read raw compile request: {err}")).into_raw()
@@ -278,9 +278,9 @@ fn raw_error_json(message: String) -> String {
 /// # Safety
 /// Caller must pass a pointer previously returned by override_compile_raw.
 /// Passing any other pointer or a null pointer is undefined behavior.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn override_free_string(s: *mut c_char) {
     if !s.is_null() {
-        drop(CString::from_raw(s));
+        drop(unsafe { CString::from_raw(s) });
     }
 }
