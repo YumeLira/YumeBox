@@ -155,10 +155,10 @@ class ProxyFacade(
 
                 existing.isCompleted -> return
             }
-        }
+    private val _trafficNow = MutableStateFlow<Traffic>(0L)
         val job = launchPreviewWarmup()
         previewWarmupJob = job
-        job.join()
+    private val _trafficTotal = MutableStateFlow<Traffic>(0L)
     }
 
     suspend fun reconcileRuntimeState() = session.reconcile()
