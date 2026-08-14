@@ -51,11 +51,7 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
         _uiState
             .map { state ->
                 val query = state.searchQuery.trim()
-                if (query.isEmpty()) {
-                    state.rules
-                } else {
-                    state.rules.filter { it.matches(query) }
-                }
+                state.rules.takeIf { query.isEmpty() } ?: state.rules.filter { it.matches(query) }
             }
             .stateIn(
                 scope = viewModelScope,
@@ -107,7 +103,8 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
                     state.copy(
                         rules =
                             state.rules.map { rule ->
-                                if (rule.index == index) rule.copy(disabled = disabled) else rule
+                                rule.takeUnless { it.index == index }
+                                    ?: rule.copy(disabled = disabled)
                             },
                         togglingIndexes = state.togglingIndexes + index,
                         toggleError = null,
@@ -132,7 +129,7 @@ class RulesViewModel(private val appContext: Context) : ViewModel() {
                             state.copy(
                                 rules =
                                     state.rules.map { rule ->
-                                        if (rule.index == index) originalRule else rule
+                                        rule.takeIf { it.index != index } ?: originalRule
                                     },
                                 togglingIndexes = state.togglingIndexes - index,
                                 toggleError = error.message ?: error.javaClass.simpleName,

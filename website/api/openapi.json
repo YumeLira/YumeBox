@@ -1,2173 +1,2067 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Mihomo 外部控制器 API",
-    "version": "1.1.0",
-    "description": "Mihomo（clash.meta）内核通过外部控制器（external-controller）暴露的 RESTful API，可用于查询状态、切换节点、测试延迟、管理连接与 provider 等。TCP / TLS 外部控制器在配置了 secret 时需要携带 Authorization: Bearer ${secret}；Unix socket / Windows named pipe 访问不会校验 secret。鉴权与路径以 MetaCubeX mihomo hub/route 实现为准；可在右侧 Try it 面板中修改 host/port（示例 external-controller: 0.0.0.0:9093）。"
-  },
-  "servers": [
-    {
-      "url": "http://{host}:{port}",
-      "variables": {
-        "host": {
-          "default": "127.0.0.1",
-          "description": "外部控制器监听地址 / mihomo 后端的局域网 IP。"
-        },
-        "port": {
-          "default": "9093",
-          "description": "外部控制器监听端口；默认值对齐 mihomo 示例配置 external-controller: 0.0.0.0:9093。"
-        }
-      }
-    }
-  ],
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
-  "tags": [
-    {
-      "name": "日志",
-      "description": "实时日志流。"
-    },
-    {
-      "name": "流量信息",
-      "description": "实时上下行流量统计。"
-    },
-    {
-      "name": "内存信息",
-      "description": "实时内存占用统计。"
-    },
-    {
-      "name": "版本信息",
-      "description": "内核版本信息。"
-    },
-    {
-      "name": "缓存",
-      "description": "FakeIP / DNS 缓存清理。"
-    },
-    {
-      "name": "运行配置",
-      "description": "运行配置的读取、重载与修改。"
-    },
-    {
-      "name": "更新",
-      "description": "内核、面板与 GEO 数据库的更新。"
-    },
-    {
-      "name": "策略组",
-      "description": "策略组的查询与延迟测试。"
-    },
-    {
-      "name": "代理",
-      "description": "代理节点的查询、选择与延迟测试。"
-    },
-    {
-      "name": "代理集合",
-      "description": "代理集合（proxy provider）的查询、更新与健康检查。"
-    },
-    {
-      "name": "规则",
-      "description": "规则的查询与临时禁用。"
-    },
-    {
-      "name": "规则集合",
-      "description": "规则集合（rule provider）的查询与更新。"
-    },
-    {
-      "name": "连接",
-      "description": "连接信息的查询与关闭。"
-    },
-    {
-      "name": "域名查询",
-      "description": "通过内核 DNS 进行域名解析。"
-    },
-    {
-      "name": "存储",
-      "description": "内核键值存储的读写。"
-    },
-    {
-      "name": "DEBUG",
-      "description": "调试相关端点（需内核日志级别为 debug）。"
-    }
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "在请求头中携带 Authorization: Bearer ${secret}，其中 secret 对应配置中的 secret 字段。若未设置 secret 可省略，但强烈建议设置。"
-      }
-    },
-    "schemas": {
-      "PathPayloadBody": {
-        "type": "object",
-        "description": "路径 / 内容载荷。path 指定配置文件路径，payload 直接传入配置内容；二者均可留空以使用当前配置。",
-        "properties": {
-          "path": {
-            "type": "string",
-            "example": ""
-          },
-          "payload": {
-            "type": "string",
-            "example": ""
-          }
-        }
-      },
-      "Proxy": {
-        "type": "object",
-        "description": "代理节点或策略组的信息。普通代理仅含公共字段；策略组另含 now/all 等字段。",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "默认"
-          },
-          "type": {
-            "type": "string",
-            "description": "如 Shadowsocks、VMess、DIRECT、Selector、URLTest、Fallback、LoadBalance 等。",
-            "example": "Selector"
-          },
-          "udp": {
-            "type": "boolean",
-            "description": "是否支持 UDP。",
-            "example": true
-          },
-          "uot": {
-            "type": "boolean",
-            "description": "是否支持 UDP over TCP。"
-          },
-          "xudp": {
-            "type": "boolean",
-            "description": "是否支持 XUDP。"
-          },
-          "tfo": {
-            "type": "boolean",
-            "description": "是否启用 TCP Fast Open。"
-          },
-          "mptcp": {
-            "type": "boolean",
-            "description": "是否启用 MPTCP。"
-          },
-          "smux": {
-            "type": "boolean",
-            "description": "是否启用多路复用。"
-          },
-          "alive": {
-            "type": "boolean",
-            "description": "当前是否存活。",
-            "example": true
-          },
-          "history": {
-            "type": "array",
-            "description": "延迟历史。",
-            "items": {
-              "$ref": "#/components/schemas/DelayHistory"
-            }
-          },
-          "extra": {
-            "type": "object",
-            "description": "额外延迟历史（按测试 URL 分组）。",
-            "additionalProperties": true
-          },
-          "interface": {
-            "type": "string",
-            "description": "绑定的网卡名称。"
-          },
-          "routing-mark": {
-            "type": "integer",
-            "description": "路由标记。"
-          },
-          "provider-name": {
-            "type": "string",
-            "description": "所属代理集合名称。"
-          },
-          "dialer-proxy": {
-            "type": "string",
-            "description": "底层拨号代理名称。"
-          },
-          "now": {
-            "type": "string",
-            "description": "当前选中的节点（策略组；LoadBalance 无此字段）。",
-            "example": "日本"
-          },
-          "all": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "组内全部成员名称（策略组）。",
-            "example": [
-              "默认",
-              "香港"
-            ]
-          },
-          "testUrl": {
-            "type": "string",
-            "description": "健康检查 URL（策略组）。"
-          },
-          "hidden": {
-            "type": "boolean",
-            "description": "是否在面板中隐藏。",
-            "example": false
-          },
-          "icon": {
-            "type": "string",
-            "description": "图标 URL。",
-            "example": ""
-          },
-          "emptyFallback": {
-            "type": "string",
-            "description": "成员全部不可用时的兜底节点名称。"
-          },
-          "expectedStatus": {
-            "type": "string",
-            "description": "期望的 HTTP 响应状态码（Selector 无此字段）。"
-          },
-          "fixed": {
-            "type": "string",
-            "description": "当前固定选中的节点名称（仅 URLTest、Fallback）。"
-          }
-        }
-      },
-      "DelayHistory": {
-        "type": "object",
-        "properties": {
-          "time": {
-            "type": "string",
-            "example": "2026-06-22T10:00:00.000Z"
-          },
-          "delay": {
-            "type": "integer",
-            "example": 109
-          }
-        }
-      },
-      "DelayMap": {
-        "type": "object",
-        "description": "节点名 → 延迟(ms) 的映射。",
-        "additionalProperties": {
-          "type": "integer"
-        },
-        "example": {
-          "示例节点 A": 66,
-          "示例节点 B": 86
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        }
-      },
-      "ProxyProvider": {
-        "type": "object",
-        "description": "代理集合（proxy provider）元信息。",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "示例订阅"
-          },
-          "type": {
-            "type": "string",
-            "example": "Proxy"
-          },
-          "vehicleType": {
-            "type": "string",
-            "description": "File / HTTP / Compatible / Inline。",
-            "example": "HTTP"
-          },
-          "proxies": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Proxy"
-            }
-          },
-          "testUrl": {
-            "type": "string",
-            "example": "http://www.gstatic.com/generate_204"
-          },
-          "expectedStatus": {
-            "type": "string",
-            "example": "*"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-06-22T06:57:33Z"
-          },
-          "subscriptionInfo": {
-            "type": "object",
-            "properties": {
-              "Upload": {
-                "type": "integer"
-              },
-              "Download": {
-                "type": "integer"
-              },
-              "Total": {
-                "type": "integer"
-              },
-              "Expire": {
-                "type": "integer"
-              }
-            }
-          }
-        }
-      },
-      "RuleProvider": {
-        "type": "object",
-        "description": "规则集合（rule provider）元信息。",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "example_ruleset"
-          },
-          "type": {
-            "type": "string",
-            "example": "Rule"
-          },
-          "vehicleType": {
-            "type": "string",
-            "example": "HTTP"
-          },
-          "behavior": {
-            "type": "string",
-            "example": "Domain"
-          },
-          "ruleCount": {
-            "type": "integer",
-            "example": 5
-          },
-          "format": {
-            "type": "string",
-            "example": "MrsRule"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-06-22T06:57:33Z"
-          },
-          "payload": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "可选，部分实现会附带规则 payload。"
-          }
-        }
-      },
-      "Rule": {
-        "type": "object",
-        "description": "运行时规则条目。",
-        "properties": {
-          "index": {
-            "type": "integer",
-            "example": 0
-          },
-          "type": {
-            "type": "string",
-            "description": "如 DOMAIN、IP-CIDR、GEOIP、RuleSet 等。",
-            "example": "RuleSet"
-          },
-          "payload": {
-            "type": "string",
-            "example": "private_ip"
-          },
-          "proxy": {
-            "type": "string",
-            "example": "直连"
-          },
-          "size": {
-            "type": "integer",
-            "description": "规则条目数量；仅 GEOIP/GEOSITE 有效，其他为 -1。",
-            "example": -1
-          },
-          "extra": {
-            "type": "object",
-            "description": "可选统计字段（存在时）。",
-            "properties": {
-              "disabled": {
-                "type": "boolean"
-              },
-              "hitCount": {
-                "type": "integer"
-              },
-              "hitAt": {
-                "type": "string"
-              },
-              "missCount": {
-                "type": "integer"
-              },
-              "missAt": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      },
-      "ConnectionInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "源/目标地址、协议、进程名称等。"
-          },
-          "upload": {
-            "type": "integer",
-            "description": "该连接已上传字节数。"
-          },
-          "download": {
-            "type": "integer",
-            "description": "该连接已下载字节数。"
-          },
-          "start": {
-            "type": "string",
-            "description": "连接建立时间。"
-          },
-          "chains": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "代理链路。"
-          },
-          "providerChains": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "provider 代理链路。"
-          },
-          "rule": {
-            "type": "string",
-            "description": "命中规则类型。"
-          },
-          "rulePayload": {
-            "type": "string",
-            "description": "命中规则内容。"
-          }
-        }
-      },
-      "ConnectionSnapshot": {
-        "type": "object",
-        "properties": {
-          "downloadTotal": {
-            "type": "integer"
-          },
-          "uploadTotal": {
-            "type": "integer"
-          },
-          "memory": {
-            "type": "integer",
-            "description": "当前内存使用量（字节）。"
-          },
-          "connections": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConnectionInfo"
-            }
-          }
-        }
-      }
-    }
-  },
-  "paths": {
-    "/": {
-      "get": {
-        "tags": [
-          "版本信息"
-        ],
-        "operationId": "hello",
-        "responses": {
-          "200": {
-            "description": "连通性检查成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "hello": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "hello": "mihomo"
-                }
-              }
-            }
-          }
-        },
-        "summary": "连通性检查"
-      }
-    },
-    "/logs": {
-      "get": {
-        "tags": [
-          "日志"
-        ],
-        "operationId": "getLogs",
-        "parameters": [
-          {
-            "name": "level",
-            "in": "query",
-            "required": false,
-            "description": "日志级别过滤。可选值：info、warning、error、debug。",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "info",
-                "warning",
-                "error",
-                "debug"
-              ]
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "description": "传入 structured 获取结构化日志（time/level/message/fields）。",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "structured"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "流式日志，每条一行 JSON。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "example": "info"
-                        },
-                        "payload": {
-                          "type": "string",
-                          "example": "..."
-                        }
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "time": {
-                          "type": "string",
-                          "example": "13:19:22"
-                        },
-                        "level": {
-                          "type": "string",
-                          "example": "info"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "fields": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "key": {
-                                "type": "string"
-                              },
-                              "value": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                },
-                "example": {
-                  "type": "info",
-                  "payload": "RESTful API listening at: 127.0.0.1:9093"
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取实时日志",
-        "description": "获取实时日志。标准模式每行推送一个 JSON（type/payload）；format=structured 时为 time/level/message/fields。"
-      }
-    },
-    "/traffic": {
-      "get": {
-        "tags": [
-          "流量信息"
-        ],
-        "operationId": "getTraffic",
-        "responses": {
-          "200": {
-            "description": "流式 JSON，每秒一行。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "up": {
-                      "type": "integer",
-                      "description": "当前上传速率（字节/秒）。"
-                    },
-                    "down": {
-                      "type": "integer",
-                      "description": "当前下载速率（字节/秒）。"
-                    },
-                    "upTotal": {
-                      "type": "integer",
-                      "description": "累计上传字节数。"
-                    },
-                    "downTotal": {
-                      "type": "integer",
-                      "description": "累计下载字节数。"
-                    }
-                  }
-                },
-                "example": {
-                  "up": 58527,
-                  "down": 154391,
-                  "upTotal": 1747227807,
-                  "downTotal": 1106864138
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取实时流量",
-        "description": "获取实时流量。GET/WS，每秒推送一次。"
-      }
-    },
-    "/memory": {
-      "get": {
-        "tags": [
-          "内存信息"
-        ],
-        "operationId": "getMemory",
-        "responses": {
-          "200": {
-            "description": "流式 JSON，每秒一行。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "inuse": {
-                      "type": "integer",
-                      "description": "当前内存使用量（字节）。"
-                    },
-                    "oslimit": {
-                      "type": "integer",
-                      "description": "系统内存限制（字节，固定为 0）。"
-                    }
-                  }
-                },
-                "example": {
-                  "inuse": 0,
-                  "oslimit": 0
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取实时内存占用",
-        "description": "获取实时内存占用。GET/WS，每秒推送一次。"
-      }
-    },
-    "/version": {
-      "get": {
-        "tags": [
-          "版本信息"
-        ],
-        "operationId": "getVersion",
-        "responses": {
-          "200": {
-            "description": "版本信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "meta": {
-                      "type": "boolean"
-                    },
-                    "version": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "meta": true,
-                  "version": "alpha-a52a27ed"
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取版本信息"
-      }
-    },
-    "/cache/fakeip/flush": {
-      "post": {
-        "tags": [
-          "缓存"
-        ],
-        "operationId": "flushFakeipCache",
-        "responses": {
-          "204": {
-            "description": "清除成功，无返回内容。"
-          }
-        },
-        "summary": "清除 FakeIP 缓存"
-      }
-    },
-    "/cache/dns/flush": {
-      "post": {
-        "tags": [
-          "缓存"
-        ],
-        "operationId": "flushDnsCache",
-        "responses": {
-          "204": {
-            "description": "清除成功，无返回内容。"
-          }
-        },
-        "summary": "清除 DNS 缓存"
-      }
-    },
-    "/configs": {
-      "get": {
-        "tags": [
-          "运行配置"
-        ],
-        "operationId": "getConfigs",
-        "responses": {
-          "200": {
-            "description": "当前运行配置。",
-            "content": {
-              "application/json": {
-                "example": {
-                  "mixed-port": 7890,
-                  "mode": "rule",
-                  "log-level": "info",
-                  "allow-lan": true,
-                  "ipv6": false,
-                  "tun": {
-                    "enable": false
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取基本配置",
-        "description": "获取基本配置。返回当前运行配置 JSON，包含 port、socks-port、mixed-port、mode、log-level、allow-lan、ipv6、tun 等字段。"
-      },
-      "put": {
-        "tags": [
-          "运行配置"
-        ],
-        "operationId": "reloadConfigs",
-        "parameters": [
-          {
-            "name": "force",
-            "in": "query",
-            "required": false,
-            "description": "是否强制重载。",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PathPayloadBody"
-              },
-              "example": {
-                "path": "",
-                "payload": ""
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "重载成功，无返回内容。"
-          }
-        },
-        "summary": "重新加载基本配置",
-        "description": "重新加载基本配置。可选 ?force=true。"
-      },
-      "patch": {
-        "tags": [
-          "运行配置"
-        ],
-        "operationId": "patchConfigs",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              },
-              "examples": {
-                "切换模式": {
-                  "value": {
-                    "mode": "rule"
-                  }
-                },
-                "修改端口": {
-                  "value": {
-                    "mixed-port": 7890
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "更新成功，无返回内容。"
-          }
-        },
-        "summary": "更新基本配置",
-        "description": "更新基本配置。示例：{\"mixed-port\": 7890}。"
-      }
-    },
-    "/configs/geo": {
-      "post": {
-        "tags": [
-          "运行配置"
-        ],
-        "operationId": "updateGeoDatabase",
-        "responses": {
-          "204": {
-            "description": "更新成功，无返回内容。"
-          }
-        },
-        "summary": "更新 GEO 数据库",
-        "description": "更新 GEO 数据库。",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PathPayloadBody"
-              },
-              "example": {
-                "path": "",
-                "payload": ""
-              }
-            }
-          }
-        }
-      }
-    },
-    "/restart": {
-      "post": {
-        "tags": [
-          "运行配置"
-        ],
-        "operationId": "restartCore",
-        "responses": {
-          "200": {
-            "description": "已接受重启请求。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "status": "ok"
-                }
-              }
-            }
-          }
-        },
-        "summary": "重启内核",
-        "description": "重启内核。",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PathPayloadBody"
-              },
-              "example": {
-                "path": "",
-                "payload": ""
-              }
-            }
-          }
-        }
-      }
-    },
-    "/upgrade": {
-      "post": {
-        "tags": [
-          "更新"
-        ],
-        "operationId": "upgradeCore",
-        "parameters": [
-          {
-            "name": "channel",
-            "in": "query",
-            "required": false,
-            "description": "更新通道。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "force",
-            "in": "query",
-            "required": false,
-            "description": "是否强制更新。",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "status": "ok"
-                }
-              }
-            }
-          }
-        },
-        "summary": "更新内核",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PathPayloadBody"
-              },
-              "example": {
-                "path": "",
-                "payload": ""
-              }
-            }
-          }
-        },
-        "description": "更新内核。可选 ?channel=xxx、?force=true。"
-      }
-    },
-    "/upgrade/ui": {
-      "post": {
-        "tags": [
-          "更新"
-        ],
-        "operationId": "upgradeUi",
-        "responses": {
-          "200": {
-            "description": "更新成功。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "example": {
-                  "status": "ok"
-                }
-              }
-            }
-          }
-        },
-        "summary": "更新面板",
-        "description": "更新面板（须设置 external-ui）。"
-      }
-    },
-    "/upgrade/geo": {
-      "post": {
-        "tags": [
-          "更新"
-        ],
-        "operationId": "upgradeGeo",
-        "responses": {
-          "204": {
-            "description": "更新成功，无返回内容。"
-          }
-        },
-        "summary": "更新 GEO 数据库",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PathPayloadBody"
-              },
-              "example": {
-                "path": "",
-                "payload": ""
-              }
-            }
-          }
-        },
-        "description": "更新 GEO 数据库。"
-      }
-    },
-    "/group": {
-      "get": {
-        "tags": [
-          "策略组"
-        ],
-        "operationId": "getGroups",
-        "responses": {
-          "200": {
-            "description": "策略组列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "proxies": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Proxy"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "proxies": [
-                    {
-                      "name": "默认",
-                      "type": "Selector",
-                      "now": "日本",
-                      "all": [
-                        "默认",
-                        "香港"
-                      ],
-                      "hidden": false,
-                      "icon": ""
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取所有策略组"
-      }
-    },
-    "/group/{name}": {
-      "get": {
-        "tags": [
-          "策略组"
-        ],
-        "operationId": "getGroupByName",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "策略组名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "策略组信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Proxy"
-                },
-                "example": {
-                  "name": "默认",
-                  "type": "Selector",
-                  "now": "日本",
-                  "all": [
-                    "默认",
-                    "香港",
-                    "台湾",
-                    "日本",
-                    "美国",
-                    "新加坡"
-                  ],
-                  "hidden": false,
-                  "icon": "",
-                  "history": []
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取指定策略组"
-      }
-    },
-    "/group/{name}/delay": {
-      "get": {
-        "tags": [
-          "策略组"
-        ],
-        "operationId": "getGroupDelay",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "策略组名称。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "url",
-            "in": "query",
-            "required": true,
-            "description": "延迟测试目标 URL。",
-            "schema": {
-              "type": "string",
-              "example": "https://www.gstatic.com/generate_204"
-            }
-          },
-          {
-            "name": "timeout",
-            "in": "query",
-            "required": true,
-            "description": "超时时间（毫秒）。源码中该参数缺失或非整数会返回 400。",
-            "schema": {
-              "type": "integer",
-              "example": 5000
-            }
-          },
-          {
-            "name": "expected",
-            "in": "query",
-            "required": false,
-            "description": "期望的 HTTP 状态码，支持范围如 200-299。",
-            "schema": {
-              "type": "string",
-              "example": "200-299"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "节点名 → 延迟(ms) 的映射。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DelayMap"
-                },
-                "example": {
-                  "示例节点 A": 66,
-                  "示例节点 B": 86,
-                  "示例节点 C": 83
-                }
-              }
-            }
-          }
-        },
-        "summary": "测试策略组内节点延迟",
-        "description": "对指定策略组内的节点/策略组进行测试，返回新的延迟信息，并清除自动策略组的 fixed 选择。必填 query：url、timeout；可选 expected（如 200-299）。"
-      }
-    },
-    "/proxies": {
-      "get": {
-        "tags": [
-          "代理"
-        ],
-        "operationId": "getProxies",
-        "responses": {
-          "200": {
-            "description": "代理列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "proxies": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "$ref": "#/components/schemas/Proxy"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "proxies": {
-                    "GLOBAL": {
-                      "type": "Selector",
-                      "now": "DIRECT",
-                      "all": []
-                    },
-                    "示例节点 D": {
-                      "type": "Shadowsocks",
-                      "history": [
-                        {
-                          "time": "...",
-                          "delay": 109
-                        }
-                      ],
-                      "udp": true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取所有代理",
-        "description": "获取代理信息。返回 { proxies: { name: Proxy } }。策略组额外含 now/all/testUrl/hidden/icon/emptyFallback/expectedStatus/fixed 等字段。"
-      }
-    },
-    "/proxies/{name}": {
-      "get": {
-        "tags": [
-          "代理"
-        ],
-        "operationId": "getProxyByName",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "代理信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Proxy"
-                },
-                "example": {
-                  "name": "示例节点 A",
-                  "type": "Shadowsocks",
-                  "now": "",
-                  "all": [],
-                  "history": [
-                    {
-                      "time": "2026-06-22T13:19:22Z",
-                      "delay": 108
-                    }
-                  ],
-                  "udp": true,
-                  "alive": true
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取指定代理"
-      },
-      "put": {
-        "tags": [
-          "代理"
-        ],
-        "operationId": "selectProxy",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "策略组名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              },
-              "example": {
-                "name": "日本"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "选择成功，无返回内容。"
-          }
-        },
-        "summary": "选择代理节点"
-      },
-      "delete": {
-        "tags": [
-          "代理"
-        ],
-        "operationId": "clearFixedProxy",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "策略组名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "清除成功，无返回内容。"
-          }
-        },
-        "summary": "清除固定选择"
-      }
-    },
-    "/proxies/{name}/delay": {
-      "get": {
-        "tags": [
-          "代理"
-        ],
-        "operationId": "getProxyDelay",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理名称。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "url",
-            "in": "query",
-            "required": true,
-            "description": "延迟测试目标 URL。",
-            "schema": {
-              "type": "string",
-              "example": "https://www.gstatic.com/generate_204"
-            }
-          },
-          {
-            "name": "timeout",
-            "in": "query",
-            "required": true,
-            "description": "超时时间（毫秒）。源码中该参数缺失或非整数会返回 400。",
-            "schema": {
-              "type": "integer",
-              "example": 5000
-            }
-          },
-          {
-            "name": "expected",
-            "in": "query",
-            "required": false,
-            "description": "期望的 HTTP 状态码，支持范围如 200-299。",
-            "schema": {
-              "type": "string",
-              "example": "200-299"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "延迟（毫秒）。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "delay": {
-                      "type": "integer"
-                    }
-                  }
-                },
-                "example": {
-                  "delay": 123
-                }
-              }
-            }
-          }
-        },
-        "summary": "测试代理延迟",
-        "description": "对指定代理进行测试并返回延迟。必填 query：url、timeout；可选 expected。"
-      }
-    },
-    "/providers/proxies": {
-      "get": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "getProxyProviders",
-        "responses": {
-          "200": {
-            "description": "代理集合列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "providers": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "$ref": "#/components/schemas/ProxyProvider"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "providers": {
-                    "示例订阅": {
-                      "name": "示例订阅",
-                      "type": "Proxy",
-                      "vehicleType": "HTTP",
-                      "proxies": [
-                        {
-                          "name": "示例节点 A",
-                          "type": "Shadowsocks"
-                        }
-                      ],
-                      "testUrl": "http://www.gstatic.com/generate_204",
-                      "expectedStatus": "*",
-                      "updatedAt": "2026-06-22T06:57:33Z",
-                      "subscriptionInfo": {
-                        "Upload": 0,
-                        "Download": 0,
-                        "Total": 0,
-                        "Expire": 0
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取所有代理集合",
-        "description": "获取所有代理集合的所有信息。"
-      }
-    },
-    "/providers/proxies/{name}": {
-      "get": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "getProxyProviderByName",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "代理集合信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProxyProvider"
-                },
-                "example": {
-                  "name": "示例订阅",
-                  "type": "Proxy",
-                  "vehicleType": "HTTP",
-                  "proxies": [],
-                  "testUrl": "http://www.gstatic.com/generate_204",
-                  "expectedStatus": "*",
-                  "updatedAt": "2026-06-22T06:57:33Z"
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取指定代理集合",
-        "description": "获取特定代理集合的信息。"
-      },
-      "put": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "updateProxyProvider",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "更新成功，无返回内容。"
-          }
-        },
-        "summary": "更新代理集合",
-        "description": "更新代理集合。成功返回 HTTP 204。"
-      }
-    },
-    "/providers/proxies/{name}/healthcheck": {
-      "get": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "healthcheckProxyProvider",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "健康检查已触发，无返回内容。"
-          }
-        },
-        "summary": "代理集合健康检查",
-        "description": "触发特定代理集合的健康检查。成功返回 HTTP 204。"
-      }
-    },
-    "/providers/proxies/{providerName}/{name}": {
-      "get": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "getProxyProviderProxyByName",
-        "parameters": [
-          {
-            "name": "providerName",
-            "in": "path",
-            "required": true,
-            "description": "代理集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "代理信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Proxy"
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取代理集合内指定代理",
-        "description": "获取代理集合内指定代理的信息。路径形如 /providers/proxies/{providerName}/{name}。"
-      }
-    },
-    "/providers/proxies/{providerName}/{name}/healthcheck": {
-      "get": {
-        "tags": [
-          "代理集合"
-        ],
-        "operationId": "healthcheckProxyProviderProxy",
-        "parameters": [
-          {
-            "name": "providerName",
-            "in": "path",
-            "required": true,
-            "description": "代理集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "代理名称。",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "url",
-            "in": "query",
-            "required": true,
-            "description": "延迟测试目标 URL。",
-            "schema": {
-              "type": "string",
-              "example": "https://www.gstatic.com/generate_204"
-            }
-          },
-          {
-            "name": "timeout",
-            "in": "query",
-            "required": true,
-            "description": "超时时间（毫秒）。源码中该参数缺失或非整数会返回 400。",
-            "schema": {
-              "type": "integer",
-              "example": 5000
-            }
-          },
-          {
-            "name": "expected",
-            "in": "query",
-            "required": false,
-            "description": "期望的 HTTP 状态码，支持范围如 200-299。",
-            "schema": {
-              "type": "string",
-              "example": "200-299"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "延迟（毫秒）。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "delay": {
-                      "type": "integer"
-                    }
-                  }
-                },
-                "example": {
-                  "delay": 123
-                }
-              }
-            }
-          }
-        },
-        "summary": "测试代理集合内指定代理延迟",
-        "description": "对代理集合内指定代理进行延迟测试。必填 query：url、timeout。"
-      }
-    },
-    "/rules": {
-      "get": {
-        "tags": [
-          "规则"
-        ],
-        "operationId": "getRules",
-        "responses": {
-          "200": {
-            "description": "规则列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "rules": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Rule"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "rules": [
-                    {
-                      "index": 0,
-                      "type": "RuleSet",
-                      "payload": "private_ip",
-                      "proxy": "直连",
-                      "size": -1
-                    },
-                    {
-                      "index": 1,
-                      "type": "RuleSet",
-                      "payload": "github_domain",
-                      "proxy": "Github",
-                      "size": -1
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取所有规则",
-        "description": "获取规则信息。"
-      }
-    },
-    "/rules/disable": {
-      "patch": {
-        "tags": [
-          "规则"
-        ],
-        "operationId": "disableRules",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "boolean"
-                }
-              },
-              "example": {
-                "0": false,
-                "1": true
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "操作成功，无返回内容。"
-          }
-        },
-        "summary": "临时禁用规则",
-        "description": "临时禁用规则：key 为规则索引，value 为是否禁用；重启后失效。"
-      }
-    },
-    "/providers/rules": {
-      "get": {
-        "tags": [
-          "规则集合"
-        ],
-        "operationId": "getRuleProviders",
-        "responses": {
-          "200": {
-            "description": "规则集合列表。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "providers": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "$ref": "#/components/schemas/RuleProvider"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "providers": {
-                    "example_ruleset": {
-                      "name": "example_ruleset",
-                      "type": "Rule",
-                      "vehicleType": "HTTP",
-                      "behavior": "Domain",
-                      "ruleCount": 5,
-                      "format": "MrsRule",
-                      "updatedAt": "2026-06-22T06:57:33Z"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取所有规则集合",
-        "description": "获取所有规则集合的所有信息。"
-      }
-    },
-    "/providers/rules/{name}": {
-      "put": {
-        "tags": [
-          "规则集合"
-        ],
-        "operationId": "updateRuleProvider",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "path",
-            "required": true,
-            "description": "规则集合名称。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "更新成功，无返回内容。"
-          }
-        },
-        "summary": "更新规则集合",
-        "description": "更新规则集合。成功返回 HTTP 204。"
-      }
-    },
-    "/connections": {
-      "get": {
-        "tags": [
-          "连接"
-        ],
-        "operationId": "getConnections",
-        "parameters": [
-          {
-            "name": "interval",
-            "in": "query",
-            "required": false,
-            "description": "GET / WebSocket 推送间隔（毫秒），默认 1000。",
-            "schema": {
-              "type": "integer",
-              "example": 1000
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "连接信息。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConnectionSnapshot"
-                },
-                "example": {
-                  "downloadTotal": 0,
-                  "uploadTotal": 0,
-                  "memory": 0,
-                  "connections": [
-                    {
-                      "id": "",
-                      "metadata": {},
-                      "upload": 0,
-                      "download": 0,
-                      "start": "",
-                      "chains": [],
-                      "providerChains": [],
-                      "rule": "",
-                      "rulePayload": ""
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取连接信息",
-        "description": "获取连接信息。GET / WebSocket 均按 interval（毫秒，默认 1000）持续推送连接快照。"
-      },
-      "delete": {
-        "tags": [
-          "连接"
-        ],
-        "operationId": "closeAllConnections",
-        "responses": {
-          "204": {
-            "description": "关闭成功，无返回内容。"
-          }
-        },
-        "summary": "关闭所有连接",
-        "description": "关闭所有连接。成功返回 HTTP 204。"
-      }
-    },
-    "/connections/{id}": {
-      "delete": {
-        "tags": [
-          "连接"
-        ],
-        "operationId": "closeConnectionById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "连接 ID。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "关闭成功，无返回内容。"
-          }
-        },
-        "summary": "关闭指定连接",
-        "description": "关闭特定连接。成功返回 HTTP 204。"
-      }
-    },
-    "/dns/query": {
-      "get": {
-        "tags": [
-          "域名查询"
-        ],
-        "operationId": "dnsQuery",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "required": true,
-            "description": "要查询的域名。",
-            "schema": {
-              "type": "string",
-              "example": "example.com"
-            }
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "required": false,
-            "description": "记录类型，如 A、AAAA、TXT 等。",
-            "schema": {
-              "type": "string",
-              "example": "A"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "DNS 查询结果。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                },
-                "example": {
-                  "Status": 0,
-                  "Question": [
-                    {
-                      "Name": "example.com.",
-                      "Qtype": 1,
-                      "Qclass": 1
-                    }
-                  ],
-                  "Answer": [
-                    {
-                      "TTL": 274,
-                      "data": "104.20.23.154",
-                      "name": "example.com.",
-                      "type": 1
-                    }
-                  ],
-                  "RA": true,
-                  "RD": true,
-                  "AD": false,
-                  "CD": false,
-                  "TC": false
-                }
-              }
-            }
-          }
-        },
-        "summary": "DNS 查询",
-        "description": "获取指定名称和类型的 DNS 查询数据。必填 query：name、type（如 A）。"
-      }
-    },
-    "/storage/{key}": {
-      "get": {
-        "tags": [
-          "存储"
-        ],
-        "operationId": "getStorageValue",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "description": "存储键名。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "存储值（不存在时返回 null）。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "任意合法 JSON 值；键不存在时为 null。"
-                },
-                "example": {
-                  "foo": "bar"
-                }
-              }
-            }
-          }
-        },
-        "summary": "获取存储值",
-        "description": "获取指定 key 的存储值，不存在时返回 null。"
-      },
-      "put": {
-        "tags": [
-          "存储"
-        ],
-        "operationId": "putStorageValue",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "description": "存储键名。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "description": "任意合法 JSON 值。"
-              },
-              "example": {
-                "foo": "bar"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "写入成功，无返回内容。"
-          }
-        },
-        "summary": "写入存储值",
-        "description": "写入指定 key 的存储值，数据须为合法 JSON，最大 1MB。"
-      },
-      "delete": {
-        "tags": [
-          "存储"
-        ],
-        "operationId": "deleteStorageValue",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "description": "存储键名。",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "删除成功，无返回内容。"
-          }
-        },
-        "summary": "删除存储值",
-        "description": "删除指定 key 的存储值。"
-      }
-    },
-    "/debug/gc": {
-      "put": {
-        "tags": [
-          "DEBUG"
-        ],
-        "operationId": "debugGc",
-        "responses": {
-          "204": {
-            "description": "GC 触发成功，无返回内容。"
-          }
-        },
-        "summary": "主动 GC",
-        "description": "进行主动 GC。需内核日志级别为 debug。"
-      }
-    },
-    "/debug/pprof": {
-      "get": {
-        "tags": [
-          "DEBUG"
-        ],
-        "operationId": "debugPprof",
-        "parameters": [
-          {
-            "name": "raw",
-            "in": "query",
-            "required": false,
-            "description": "设为 true 时返回原始 pprof 数据。",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "pprof 调试页面或原始分析数据。",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          }
-        },
-        "summary": "查看 pprof 调试信息",
-        "description": "查看 pprof 调试页面。需内核日志级别为 debug；具体 profile 可从页面进入。"
-      }
-    }
-  }
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Mihomo 外部控制器 API",
+		"version": "1.1.0",
+		"description": "Mihomo（clash.meta）内核通过外部控制器（external-controller）暴露的 RESTful API，可用于查询状态、切换节点、测试延迟、管理连接与 provider 等.TCP / TLS 外部控制器在配置了 secret 时需要携带 Authorization: Bearer ${secret}；Unix socket / Windows named pipe 访问不会校验 secret.鉴权与路径以 MetaCubeX mihomo hub/route 实现为准；可在右侧 Try it 面板中修改 host/port（示例 external-controller: 0.0.0.0:9093）."
+	},
+	"servers": [
+		{
+			"url": "http://{host}:{port}",
+			"variables": {
+				"host": {
+					"default": "127.0.0.1",
+					"description": "外部控制器监听地址 / mihomo 后端的局域网 IP."
+				},
+				"port": {
+					"default": "9093",
+					"description": "外部控制器监听端口；默认值对齐 mihomo 示例配置 external-controller: 0.0.0.0:9093."
+				}
+			}
+		}
+	],
+	"security": [
+		{
+			"bearerAuth": []
+		}
+	],
+	"tags": [
+		{
+			"name": "日志",
+			"description": "实时日志流."
+		},
+		{
+			"name": "流量信息",
+			"description": "实时上下行流量统计."
+		},
+		{
+			"name": "内存信息",
+			"description": "实时内存占用统计."
+		},
+		{
+			"name": "版本信息",
+			"description": "内核版本信息."
+		},
+		{
+			"name": "缓存",
+			"description": "FakeIP / DNS 缓存清理."
+		},
+		{
+			"name": "运行配置",
+			"description": "运行配置的读取、重载与修改."
+		},
+		{
+			"name": "更新",
+			"description": "内核、面板与 GEO 数据库的更新."
+		},
+		{
+			"name": "策略组",
+			"description": "策略组的查询与延迟测试."
+		},
+		{
+			"name": "代理",
+			"description": "代理节点的查询、选择与延迟测试."
+		},
+		{
+			"name": "代理集合",
+			"description": "代理集合（proxy provider）的查询、更新与健康检查."
+		},
+		{
+			"name": "规则",
+			"description": "规则的查询与临时禁用."
+		},
+		{
+			"name": "规则集合",
+			"description": "规则集合（rule provider）的查询与更新."
+		},
+		{
+			"name": "连接",
+			"description": "连接信息的查询与关闭."
+		},
+		{
+			"name": "域名查询",
+			"description": "通过内核 DNS 进行域名解析."
+		},
+		{
+			"name": "存储",
+			"description": "内核键值存储的读写."
+		},
+		{
+			"name": "DEBUG",
+			"description": "调试相关端点（需内核日志级别为 debug）."
+		}
+	],
+	"components": {
+		"securitySchemes": {
+			"bearerAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"description": "在请求头中携带 Authorization: Bearer ${secret}，其中 secret 对应配置中的 secret 字段.若未设置 secret 可省略，但强烈建议设置."
+			}
+		},
+		"schemas": {
+			"PathPayloadBody": {
+				"type": "object",
+				"description": "路径 / 内容载荷.path 指定配置文件路径，payload 直接传入配置内容；二者均可留空以使用当前配置.",
+				"properties": {
+					"path": {
+						"type": "string",
+						"example": ""
+					},
+					"payload": {
+						"type": "string",
+						"example": ""
+					}
+				}
+			},
+			"Proxy": {
+				"type": "object",
+				"description": "代理节点或策略组的信息.普通代理仅含公共字段；策略组另含 now/all 等字段.",
+				"properties": {
+					"name": {
+						"type": "string",
+						"example": "默认"
+					},
+					"type": {
+						"type": "string",
+						"description": "如 Shadowsocks、VMess、DIRECT、Selector、URLTest、Fallback、LoadBalance 等.",
+						"example": "Selector"
+					},
+					"udp": {
+						"type": "boolean",
+						"description": "是否支持 UDP.",
+						"example": true
+					},
+					"uot": {
+						"type": "boolean",
+						"description": "是否支持 UDP over TCP."
+					},
+					"xudp": {
+						"type": "boolean",
+						"description": "是否支持 XUDP."
+					},
+					"tfo": {
+						"type": "boolean",
+						"description": "是否启用 TCP Fast Open."
+					},
+					"mptcp": {
+						"type": "boolean",
+						"description": "是否启用 MPTCP."
+					},
+					"smux": {
+						"type": "boolean",
+						"description": "是否启用多路复用."
+					},
+					"alive": {
+						"type": "boolean",
+						"description": "当前是否存活.",
+						"example": true
+					},
+					"history": {
+						"type": "array",
+						"description": "延迟历史.",
+						"items": {
+							"$ref": "#/components/schemas/DelayHistory"
+						}
+					},
+					"extra": {
+						"type": "object",
+						"description": "额外延迟历史（按测试 URL 分组）.",
+						"additionalProperties": true
+					},
+					"interface": {
+						"type": "string",
+						"description": "绑定的网卡名称."
+					},
+					"routing-mark": {
+						"type": "integer",
+						"description": "路由标记."
+					},
+					"provider-name": {
+						"type": "string",
+						"description": "所属代理集合名称."
+					},
+					"dialer-proxy": {
+						"type": "string",
+						"description": "底层拨号代理名称."
+					},
+					"now": {
+						"type": "string",
+						"description": "当前选中的节点（策略组；LoadBalance 无此字段）.",
+						"example": "日本"
+					},
+					"all": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "组内全部成员名称（策略组）.",
+						"example": ["默认", "香港"]
+					},
+					"testUrl": {
+						"type": "string",
+						"description": "健康检查 URL（策略组）."
+					},
+					"hidden": {
+						"type": "boolean",
+						"description": "是否在面板中隐藏.",
+						"example": false
+					},
+					"icon": {
+						"type": "string",
+						"description": "图标 URL.",
+						"example": ""
+					},
+					"emptyFallback": {
+						"type": "string",
+						"description": "成员全部不可用时的兜底节点名称."
+					},
+					"expectedStatus": {
+						"type": "string",
+						"description": "期望的 HTTP 响应状态码（Selector 无此字段）."
+					},
+					"fixed": {
+						"type": "string",
+						"description": "当前固定选中的节点名称（仅 URLTest、Fallback）."
+					}
+				}
+			},
+			"DelayHistory": {
+				"type": "object",
+				"properties": {
+					"time": {
+						"type": "string",
+						"example": "2026-06-22T10:00:00.000Z"
+					},
+					"delay": {
+						"type": "integer",
+						"example": 109
+					}
+				}
+			},
+			"DelayMap": {
+				"type": "object",
+				"description": "节点名 → 延迟(ms) 的映射.",
+				"additionalProperties": {
+					"type": "integer"
+				},
+				"example": {
+					"示例节点 A": 66,
+					"示例节点 B": 86
+				}
+			},
+			"Error": {
+				"type": "object",
+				"properties": {
+					"message": {
+						"type": "string"
+					}
+				}
+			},
+			"ProxyProvider": {
+				"type": "object",
+				"description": "代理集合（proxy provider）元信息.",
+				"properties": {
+					"name": {
+						"type": "string",
+						"example": "示例订阅"
+					},
+					"type": {
+						"type": "string",
+						"example": "Proxy"
+					},
+					"vehicleType": {
+						"type": "string",
+						"description": "File / HTTP / Compatible / Inline.",
+						"example": "HTTP"
+					},
+					"proxies": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Proxy"
+						}
+					},
+					"testUrl": {
+						"type": "string",
+						"example": "http://www.gstatic.com/generate_204"
+					},
+					"expectedStatus": {
+						"type": "string",
+						"example": "*"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"example": "2026-06-22T06:57:33Z"
+					},
+					"subscriptionInfo": {
+						"type": "object",
+						"properties": {
+							"Upload": {
+								"type": "integer"
+							},
+							"Download": {
+								"type": "integer"
+							},
+							"Total": {
+								"type": "integer"
+							},
+							"Expire": {
+								"type": "integer"
+							}
+						}
+					}
+				}
+			},
+			"RuleProvider": {
+				"type": "object",
+				"description": "规则集合（rule provider）元信息.",
+				"properties": {
+					"name": {
+						"type": "string",
+						"example": "example_ruleset"
+					},
+					"type": {
+						"type": "string",
+						"example": "Rule"
+					},
+					"vehicleType": {
+						"type": "string",
+						"example": "HTTP"
+					},
+					"behavior": {
+						"type": "string",
+						"example": "Domain"
+					},
+					"ruleCount": {
+						"type": "integer",
+						"example": 5
+					},
+					"format": {
+						"type": "string",
+						"example": "MrsRule"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"example": "2026-06-22T06:57:33Z"
+					},
+					"payload": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "可选，部分实现会附带规则 payload."
+					}
+				}
+			},
+			"Rule": {
+				"type": "object",
+				"description": "运行时规则条目.",
+				"properties": {
+					"index": {
+						"type": "integer",
+						"example": 0
+					},
+					"type": {
+						"type": "string",
+						"description": "如 DOMAIN、IP-CIDR、GEOIP、RuleSet 等.",
+						"example": "RuleSet"
+					},
+					"payload": {
+						"type": "string",
+						"example": "private_ip"
+					},
+					"proxy": {
+						"type": "string",
+						"example": "直连"
+					},
+					"size": {
+						"type": "integer",
+						"description": "规则条目数量；仅 GEOIP/GEOSITE 有效，其他为 -1.",
+						"example": -1
+					},
+					"extra": {
+						"type": "object",
+						"description": "可选统计字段（存在时）.",
+						"properties": {
+							"disabled": {
+								"type": "boolean"
+							},
+							"hitCount": {
+								"type": "integer"
+							},
+							"hitAt": {
+								"type": "string"
+							},
+							"missCount": {
+								"type": "integer"
+							},
+							"missAt": {
+								"type": "string"
+							}
+						}
+					}
+				}
+			},
+			"ConnectionInfo": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"metadata": {
+						"type": "object",
+						"additionalProperties": true,
+						"description": "源/目标地址、协议、进程名称等."
+					},
+					"upload": {
+						"type": "integer",
+						"description": "该连接已上传字节数."
+					},
+					"download": {
+						"type": "integer",
+						"description": "该连接已下载字节数."
+					},
+					"start": {
+						"type": "string",
+						"description": "连接建立时间."
+					},
+					"chains": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "代理链路."
+					},
+					"providerChains": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "provider 代理链路."
+					},
+					"rule": {
+						"type": "string",
+						"description": "命中规则类型."
+					},
+					"rulePayload": {
+						"type": "string",
+						"description": "命中规则内容."
+					}
+				}
+			},
+			"ConnectionSnapshot": {
+				"type": "object",
+				"properties": {
+					"downloadTotal": {
+						"type": "integer"
+					},
+					"uploadTotal": {
+						"type": "integer"
+					},
+					"memory": {
+						"type": "integer",
+						"description": "当前内存使用量（字节）."
+					},
+					"connections": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ConnectionInfo"
+						}
+					}
+				}
+			}
+		}
+	},
+	"paths": {
+		"/": {
+			"get": {
+				"tags": ["版本信息"],
+				"operationId": "hello",
+				"responses": {
+					"200": {
+						"description": "连通性检查成功.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"hello": {
+											"type": "string"
+										}
+									}
+								},
+								"example": {
+									"hello": "mihomo"
+								}
+							}
+						}
+					}
+				},
+				"summary": "连通性检查"
+			}
+		},
+		"/logs": {
+			"get": {
+				"tags": ["日志"],
+				"operationId": "getLogs",
+				"parameters": [
+					{
+						"name": "level",
+						"in": "query",
+						"required": false,
+						"description": "日志级别过滤.可选值：info、warning、error、debug.",
+						"schema": {
+							"type": "string",
+							"enum": ["info", "warning", "error", "debug"]
+						}
+					},
+					{
+						"name": "format",
+						"in": "query",
+						"required": false,
+						"description": "传入 structured 获取结构化日志（time/level/message/fields）.",
+						"schema": {
+							"type": "string",
+							"enum": ["structured"]
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "流式日志，每条一行 JSON.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"oneOf": [
+										{
+											"type": "object",
+											"properties": {
+												"type": {
+													"type": "string",
+													"example": "info"
+												},
+												"payload": {
+													"type": "string",
+													"example": "..."
+												}
+											}
+										},
+										{
+											"type": "object",
+											"properties": {
+												"time": {
+													"type": "string",
+													"example": "13:19:22"
+												},
+												"level": {
+													"type": "string",
+													"example": "info"
+												},
+												"message": {
+													"type": "string"
+												},
+												"fields": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"key": {
+																"type": "string"
+															},
+															"value": {
+																"type": "string"
+															}
+														}
+													}
+												}
+											}
+										}
+									]
+								},
+								"example": {
+									"type": "info",
+									"payload": "RESTful API listening at: 127.0.0.1:9093"
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取实时日志",
+				"description": "获取实时日志.标准模式每行推送一个 JSON（type/payload）；format=structured 时为 time/level/message/fields."
+			}
+		},
+		"/traffic": {
+			"get": {
+				"tags": ["流量信息"],
+				"operationId": "getTraffic",
+				"responses": {
+					"200": {
+						"description": "流式 JSON，每秒一行.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"up": {
+											"type": "integer",
+											"description": "当前上传速率（字节/秒）."
+										},
+										"down": {
+											"type": "integer",
+											"description": "当前下载速率（字节/秒）."
+										},
+										"upTotal": {
+											"type": "integer",
+											"description": "累计上传字节数."
+										},
+										"downTotal": {
+											"type": "integer",
+											"description": "累计下载字节数."
+										}
+									}
+								},
+								"example": {
+									"up": 58527,
+									"down": 154391,
+									"upTotal": 1747227807,
+									"downTotal": 1106864138
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取实时流量",
+				"description": "获取实时流量.GET/WS，每秒推送一次."
+			}
+		},
+		"/memory": {
+			"get": {
+				"tags": ["内存信息"],
+				"operationId": "getMemory",
+				"responses": {
+					"200": {
+						"description": "流式 JSON，每秒一行.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"inuse": {
+											"type": "integer",
+											"description": "当前内存使用量（字节）."
+										},
+										"oslimit": {
+											"type": "integer",
+											"description": "系统内存限制（字节，固定为 0）."
+										}
+									}
+								},
+								"example": {
+									"inuse": 0,
+									"oslimit": 0
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取实时内存占用",
+				"description": "获取实时内存占用.GET/WS，每秒推送一次."
+			}
+		},
+		"/version": {
+			"get": {
+				"tags": ["版本信息"],
+				"operationId": "getVersion",
+				"responses": {
+					"200": {
+						"description": "版本信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"meta": {
+											"type": "boolean"
+										},
+										"version": {
+											"type": "string"
+										}
+									}
+								},
+								"example": {
+									"meta": true,
+									"version": "alpha-a52a27ed"
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取版本信息"
+			}
+		},
+		"/cache/fakeip/flush": {
+			"post": {
+				"tags": ["缓存"],
+				"operationId": "flushFakeipCache",
+				"responses": {
+					"204": {
+						"description": "清除成功，无返回内容."
+					}
+				},
+				"summary": "清除 FakeIP 缓存"
+			}
+		},
+		"/cache/dns/flush": {
+			"post": {
+				"tags": ["缓存"],
+				"operationId": "flushDnsCache",
+				"responses": {
+					"204": {
+						"description": "清除成功，无返回内容."
+					}
+				},
+				"summary": "清除 DNS 缓存"
+			}
+		},
+		"/configs": {
+			"get": {
+				"tags": ["运行配置"],
+				"operationId": "getConfigs",
+				"responses": {
+					"200": {
+						"description": "当前运行配置.",
+						"content": {
+							"application/json": {
+								"example": {
+									"mixed-port": 7890,
+									"mode": "rule",
+									"log-level": "info",
+									"allow-lan": true,
+									"ipv6": false,
+									"tun": {
+										"enable": false
+									}
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取基本配置",
+				"description": "获取基本配置.返回当前运行配置 JSON，包含 port、socks-port、mixed-port、mode、log-level、allow-lan、ipv6、tun 等字段."
+			},
+			"put": {
+				"tags": ["运行配置"],
+				"operationId": "reloadConfigs",
+				"parameters": [
+					{
+						"name": "force",
+						"in": "query",
+						"required": false,
+						"description": "是否强制重载.",
+						"schema": {
+							"type": "boolean"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PathPayloadBody"
+							},
+							"example": {
+								"path": "",
+								"payload": ""
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "重载成功，无返回内容."
+					}
+				},
+				"summary": "重新加载基本配置",
+				"description": "重新加载基本配置.可选 ?force=true."
+			},
+			"patch": {
+				"tags": ["运行配置"],
+				"operationId": "patchConfigs",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"additionalProperties": true
+							},
+							"examples": {
+								"切换模式": {
+									"value": {
+										"mode": "rule"
+									}
+								},
+								"修改端口": {
+									"value": {
+										"mixed-port": 7890
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "更新成功，无返回内容."
+					}
+				},
+				"summary": "更新基本配置",
+				"description": "更新基本配置.示例：{\"mixed-port\": 7890}."
+			}
+		},
+		"/configs/geo": {
+			"post": {
+				"tags": ["运行配置"],
+				"operationId": "updateGeoDatabase",
+				"responses": {
+					"204": {
+						"description": "更新成功，无返回内容."
+					}
+				},
+				"summary": "更新 GEO 数据库",
+				"description": "更新 GEO 数据库.",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PathPayloadBody"
+							},
+							"example": {
+								"path": "",
+								"payload": ""
+							}
+						}
+					}
+				}
+			}
+		},
+		"/restart": {
+			"post": {
+				"tags": ["运行配置"],
+				"operationId": "restartCore",
+				"responses": {
+					"200": {
+						"description": "已接受重启请求.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									}
+								},
+								"example": {
+									"status": "ok"
+								}
+							}
+						}
+					}
+				},
+				"summary": "重启内核",
+				"description": "重启内核.",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PathPayloadBody"
+							},
+							"example": {
+								"path": "",
+								"payload": ""
+							}
+						}
+					}
+				}
+			}
+		},
+		"/upgrade": {
+			"post": {
+				"tags": ["更新"],
+				"operationId": "upgradeCore",
+				"parameters": [
+					{
+						"name": "channel",
+						"in": "query",
+						"required": false,
+						"description": "更新通道.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "force",
+						"in": "query",
+						"required": false,
+						"description": "是否强制更新.",
+						"schema": {
+							"type": "boolean"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "更新成功.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									}
+								},
+								"example": {
+									"status": "ok"
+								}
+							}
+						}
+					}
+				},
+				"summary": "更新内核",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PathPayloadBody"
+							},
+							"example": {
+								"path": "",
+								"payload": ""
+							}
+						}
+					}
+				},
+				"description": "更新内核.可选 ?channel=xxx、?force=true."
+			}
+		},
+		"/upgrade/ui": {
+			"post": {
+				"tags": ["更新"],
+				"operationId": "upgradeUi",
+				"responses": {
+					"200": {
+						"description": "更新成功.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									}
+								},
+								"example": {
+									"status": "ok"
+								}
+							}
+						}
+					}
+				},
+				"summary": "更新面板",
+				"description": "更新面板（须设置 external-ui）."
+			}
+		},
+		"/upgrade/geo": {
+			"post": {
+				"tags": ["更新"],
+				"operationId": "upgradeGeo",
+				"responses": {
+					"204": {
+						"description": "更新成功，无返回内容."
+					}
+				},
+				"summary": "更新 GEO 数据库",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PathPayloadBody"
+							},
+							"example": {
+								"path": "",
+								"payload": ""
+							}
+						}
+					}
+				},
+				"description": "更新 GEO 数据库."
+			}
+		},
+		"/group": {
+			"get": {
+				"tags": ["策略组"],
+				"operationId": "getGroups",
+				"responses": {
+					"200": {
+						"description": "策略组列表.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"proxies": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Proxy"
+											}
+										}
+									}
+								},
+								"example": {
+									"proxies": [
+										{
+											"name": "默认",
+											"type": "Selector",
+											"now": "日本",
+											"all": ["默认", "香港"],
+											"hidden": false,
+											"icon": ""
+										}
+									]
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取所有策略组"
+			}
+		},
+		"/group/{name}": {
+			"get": {
+				"tags": ["策略组"],
+				"operationId": "getGroupByName",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "策略组名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "策略组信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Proxy"
+								},
+								"example": {
+									"name": "默认",
+									"type": "Selector",
+									"now": "日本",
+									"all": ["默认", "香港", "台湾", "日本", "美国", "新加坡"],
+									"hidden": false,
+									"icon": "",
+									"history": []
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取指定策略组"
+			}
+		},
+		"/group/{name}/delay": {
+			"get": {
+				"tags": ["策略组"],
+				"operationId": "getGroupDelay",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "策略组名称.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "url",
+						"in": "query",
+						"required": true,
+						"description": "延迟测试目标 URL.",
+						"schema": {
+							"type": "string",
+							"example": "https://www.gstatic.com/generate_204"
+						}
+					},
+					{
+						"name": "timeout",
+						"in": "query",
+						"required": true,
+						"description": "超时时间（毫秒）.源码中该参数缺失或非整数会返回 400.",
+						"schema": {
+							"type": "integer",
+							"example": 5000
+						}
+					},
+					{
+						"name": "expected",
+						"in": "query",
+						"required": false,
+						"description": "期望的 HTTP 状态码，支持范围如 200-299.",
+						"schema": {
+							"type": "string",
+							"example": "200-299"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "节点名 → 延迟(ms) 的映射.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DelayMap"
+								},
+								"example": {
+									"示例节点 A": 66,
+									"示例节点 B": 86,
+									"示例节点 C": 83
+								}
+							}
+						}
+					}
+				},
+				"summary": "测试策略组内节点延迟",
+				"description": "对指定策略组内的节点/策略组进行测试，返回新的延迟信息，并清除自动策略组的 fixed 选择.必填 query：url、timeout；可选 expected（如 200-299）."
+			}
+		},
+		"/proxies": {
+			"get": {
+				"tags": ["代理"],
+				"operationId": "getProxies",
+				"responses": {
+					"200": {
+						"description": "代理列表.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"proxies": {
+											"type": "object",
+											"additionalProperties": {
+												"$ref": "#/components/schemas/Proxy"
+											}
+										}
+									}
+								},
+								"example": {
+									"proxies": {
+										"GLOBAL": {
+											"type": "Selector",
+											"now": "DIRECT",
+											"all": []
+										},
+										"示例节点 D": {
+											"type": "Shadowsocks",
+											"history": [
+												{
+													"time": "...",
+													"delay": 109
+												}
+											],
+											"udp": true
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取所有代理",
+				"description": "获取代理信息.返回 { proxies: { name: Proxy } }.策略组额外含 now/all/testUrl/hidden/icon/emptyFallback/expectedStatus/fixed 等字段."
+			}
+		},
+		"/proxies/{name}": {
+			"get": {
+				"tags": ["代理"],
+				"operationId": "getProxyByName",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "代理信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Proxy"
+								},
+								"example": {
+									"name": "示例节点 A",
+									"type": "Shadowsocks",
+									"now": "",
+									"all": [],
+									"history": [
+										{
+											"time": "2026-06-22T13:19:22Z",
+											"delay": 108
+										}
+									],
+									"udp": true,
+									"alive": true
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取指定代理"
+			},
+			"put": {
+				"tags": ["代理"],
+				"operationId": "selectProxy",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "策略组名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string"
+									}
+								},
+								"required": ["name"]
+							},
+							"example": {
+								"name": "日本"
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "选择成功，无返回内容."
+					}
+				},
+				"summary": "选择代理节点"
+			},
+			"delete": {
+				"tags": ["代理"],
+				"operationId": "clearFixedProxy",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "策略组名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "清除成功，无返回内容."
+					}
+				},
+				"summary": "清除固定选择"
+			}
+		},
+		"/proxies/{name}/delay": {
+			"get": {
+				"tags": ["代理"],
+				"operationId": "getProxyDelay",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理名称.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "url",
+						"in": "query",
+						"required": true,
+						"description": "延迟测试目标 URL.",
+						"schema": {
+							"type": "string",
+							"example": "https://www.gstatic.com/generate_204"
+						}
+					},
+					{
+						"name": "timeout",
+						"in": "query",
+						"required": true,
+						"description": "超时时间（毫秒）.源码中该参数缺失或非整数会返回 400.",
+						"schema": {
+							"type": "integer",
+							"example": 5000
+						}
+					},
+					{
+						"name": "expected",
+						"in": "query",
+						"required": false,
+						"description": "期望的 HTTP 状态码，支持范围如 200-299.",
+						"schema": {
+							"type": "string",
+							"example": "200-299"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "延迟（毫秒）.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"delay": {
+											"type": "integer"
+										}
+									}
+								},
+								"example": {
+									"delay": 123
+								}
+							}
+						}
+					}
+				},
+				"summary": "测试代理延迟",
+				"description": "对指定代理进行测试并返回延迟.必填 query：url、timeout；可选 expected."
+			}
+		},
+		"/providers/proxies": {
+			"get": {
+				"tags": ["代理集合"],
+				"operationId": "getProxyProviders",
+				"responses": {
+					"200": {
+						"description": "代理集合列表.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"providers": {
+											"type": "object",
+											"additionalProperties": {
+												"$ref": "#/components/schemas/ProxyProvider"
+											}
+										}
+									}
+								},
+								"example": {
+									"providers": {
+										"示例订阅": {
+											"name": "示例订阅",
+											"type": "Proxy",
+											"vehicleType": "HTTP",
+											"proxies": [
+												{
+													"name": "示例节点 A",
+													"type": "Shadowsocks"
+												}
+											],
+											"testUrl": "http://www.gstatic.com/generate_204",
+											"expectedStatus": "*",
+											"updatedAt": "2026-06-22T06:57:33Z",
+											"subscriptionInfo": {
+												"Upload": 0,
+												"Download": 0,
+												"Total": 0,
+												"Expire": 0
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取所有代理集合",
+				"description": "获取所有代理集合的所有信息."
+			}
+		},
+		"/providers/proxies/{name}": {
+			"get": {
+				"tags": ["代理集合"],
+				"operationId": "getProxyProviderByName",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "代理集合信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProxyProvider"
+								},
+								"example": {
+									"name": "示例订阅",
+									"type": "Proxy",
+									"vehicleType": "HTTP",
+									"proxies": [],
+									"testUrl": "http://www.gstatic.com/generate_204",
+									"expectedStatus": "*",
+									"updatedAt": "2026-06-22T06:57:33Z"
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取指定代理集合",
+				"description": "获取特定代理集合的信息."
+			},
+			"put": {
+				"tags": ["代理集合"],
+				"operationId": "updateProxyProvider",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "更新成功，无返回内容."
+					}
+				},
+				"summary": "更新代理集合",
+				"description": "更新代理集合.成功返回 HTTP 204."
+			}
+		},
+		"/providers/proxies/{name}/healthcheck": {
+			"get": {
+				"tags": ["代理集合"],
+				"operationId": "healthcheckProxyProvider",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "健康检查已触发，无返回内容."
+					}
+				},
+				"summary": "代理集合健康检查",
+				"description": "触发特定代理集合的健康检查.成功返回 HTTP 204."
+			}
+		},
+		"/providers/proxies/{providerName}/{name}": {
+			"get": {
+				"tags": ["代理集合"],
+				"operationId": "getProxyProviderProxyByName",
+				"parameters": [
+					{
+						"name": "providerName",
+						"in": "path",
+						"required": true,
+						"description": "代理集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "代理信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Proxy"
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取代理集合内指定代理",
+				"description": "获取代理集合内指定代理的信息.路径形如 /providers/proxies/{providerName}/{name}."
+			}
+		},
+		"/providers/proxies/{providerName}/{name}/healthcheck": {
+			"get": {
+				"tags": ["代理集合"],
+				"operationId": "healthcheckProxyProviderProxy",
+				"parameters": [
+					{
+						"name": "providerName",
+						"in": "path",
+						"required": true,
+						"description": "代理集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "代理名称.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "url",
+						"in": "query",
+						"required": true,
+						"description": "延迟测试目标 URL.",
+						"schema": {
+							"type": "string",
+							"example": "https://www.gstatic.com/generate_204"
+						}
+					},
+					{
+						"name": "timeout",
+						"in": "query",
+						"required": true,
+						"description": "超时时间（毫秒）.源码中该参数缺失或非整数会返回 400.",
+						"schema": {
+							"type": "integer",
+							"example": 5000
+						}
+					},
+					{
+						"name": "expected",
+						"in": "query",
+						"required": false,
+						"description": "期望的 HTTP 状态码，支持范围如 200-299.",
+						"schema": {
+							"type": "string",
+							"example": "200-299"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "延迟（毫秒）.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"delay": {
+											"type": "integer"
+										}
+									}
+								},
+								"example": {
+									"delay": 123
+								}
+							}
+						}
+					}
+				},
+				"summary": "测试代理集合内指定代理延迟",
+				"description": "对代理集合内指定代理进行延迟测试.必填 query：url、timeout."
+			}
+		},
+		"/rules": {
+			"get": {
+				"tags": ["规则"],
+				"operationId": "getRules",
+				"responses": {
+					"200": {
+						"description": "规则列表.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"rules": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Rule"
+											}
+										}
+									}
+								},
+								"example": {
+									"rules": [
+										{
+											"index": 0,
+											"type": "RuleSet",
+											"payload": "private_ip",
+											"proxy": "直连",
+											"size": -1
+										},
+										{
+											"index": 1,
+											"type": "RuleSet",
+											"payload": "github_domain",
+											"proxy": "Github",
+											"size": -1
+										}
+									]
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取所有规则",
+				"description": "获取规则信息."
+			}
+		},
+		"/rules/disable": {
+			"patch": {
+				"tags": ["规则"],
+				"operationId": "disableRules",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"additionalProperties": {
+									"type": "boolean"
+								}
+							},
+							"example": {
+								"0": false,
+								"1": true
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "操作成功，无返回内容."
+					}
+				},
+				"summary": "临时禁用规则",
+				"description": "临时禁用规则：key 为规则索引，value 为是否禁用；重启后失效."
+			}
+		},
+		"/providers/rules": {
+			"get": {
+				"tags": ["规则集合"],
+				"operationId": "getRuleProviders",
+				"responses": {
+					"200": {
+						"description": "规则集合列表.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"providers": {
+											"type": "object",
+											"additionalProperties": {
+												"$ref": "#/components/schemas/RuleProvider"
+											}
+										}
+									}
+								},
+								"example": {
+									"providers": {
+										"example_ruleset": {
+											"name": "example_ruleset",
+											"type": "Rule",
+											"vehicleType": "HTTP",
+											"behavior": "Domain",
+											"ruleCount": 5,
+											"format": "MrsRule",
+											"updatedAt": "2026-06-22T06:57:33Z"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取所有规则集合",
+				"description": "获取所有规则集合的所有信息."
+			}
+		},
+		"/providers/rules/{name}": {
+			"put": {
+				"tags": ["规则集合"],
+				"operationId": "updateRuleProvider",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "path",
+						"required": true,
+						"description": "规则集合名称.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "更新成功，无返回内容."
+					}
+				},
+				"summary": "更新规则集合",
+				"description": "更新规则集合.成功返回 HTTP 204."
+			}
+		},
+		"/connections": {
+			"get": {
+				"tags": ["连接"],
+				"operationId": "getConnections",
+				"parameters": [
+					{
+						"name": "interval",
+						"in": "query",
+						"required": false,
+						"description": "GET / WebSocket 推送间隔（毫秒），默认 1000.",
+						"schema": {
+							"type": "integer",
+							"example": 1000
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "连接信息.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ConnectionSnapshot"
+								},
+								"example": {
+									"downloadTotal": 0,
+									"uploadTotal": 0,
+									"memory": 0,
+									"connections": [
+										{
+											"id": "",
+											"metadata": {},
+											"upload": 0,
+											"download": 0,
+											"start": "",
+											"chains": [],
+											"providerChains": [],
+											"rule": "",
+											"rulePayload": ""
+										}
+									]
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取连接信息",
+				"description": "获取连接信息.GET / WebSocket 均按 interval（毫秒，默认 1000）持续推送连接快照."
+			},
+			"delete": {
+				"tags": ["连接"],
+				"operationId": "closeAllConnections",
+				"responses": {
+					"204": {
+						"description": "关闭成功，无返回内容."
+					}
+				},
+				"summary": "关闭所有连接",
+				"description": "关闭所有连接.成功返回 HTTP 204."
+			}
+		},
+		"/connections/{id}": {
+			"delete": {
+				"tags": ["连接"],
+				"operationId": "closeConnectionById",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"description": "连接 ID.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "关闭成功，无返回内容."
+					}
+				},
+				"summary": "关闭指定连接",
+				"description": "关闭特定连接.成功返回 HTTP 204."
+			}
+		},
+		"/dns/query": {
+			"get": {
+				"tags": ["域名查询"],
+				"operationId": "dnsQuery",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"description": "要查询的域名.",
+						"schema": {
+							"type": "string",
+							"example": "example.com"
+						}
+					},
+					{
+						"name": "type",
+						"in": "query",
+						"required": false,
+						"description": "记录类型，如 A、AAAA、TXT 等.",
+						"schema": {
+							"type": "string",
+							"example": "A"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "DNS 查询结果.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"additionalProperties": true
+								},
+								"example": {
+									"Status": 0,
+									"Question": [
+										{
+											"Name": "example.com.",
+											"Qtype": 1,
+											"Qclass": 1
+										}
+									],
+									"Answer": [
+										{
+											"TTL": 274,
+											"data": "104.20.23.154",
+											"name": "example.com.",
+											"type": 1
+										}
+									],
+									"RA": true,
+									"RD": true,
+									"AD": false,
+									"CD": false,
+									"TC": false
+								}
+							}
+						}
+					}
+				},
+				"summary": "DNS 查询",
+				"description": "获取指定名称和类型的 DNS 查询数据.必填 query：name、type（如 A）."
+			}
+		},
+		"/storage/{key}": {
+			"get": {
+				"tags": ["存储"],
+				"operationId": "getStorageValue",
+				"parameters": [
+					{
+						"name": "key",
+						"in": "path",
+						"required": true,
+						"description": "存储键名.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "存储值（不存在时返回 null）.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "任意合法 JSON 值；键不存在时为 null."
+								},
+								"example": {
+									"foo": "bar"
+								}
+							}
+						}
+					}
+				},
+				"summary": "获取存储值",
+				"description": "获取指定 key 的存储值，不存在时返回 null."
+			},
+			"put": {
+				"tags": ["存储"],
+				"operationId": "putStorageValue",
+				"parameters": [
+					{
+						"name": "key",
+						"in": "path",
+						"required": true,
+						"description": "存储键名.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"description": "任意合法 JSON 值."
+							},
+							"example": {
+								"foo": "bar"
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "写入成功，无返回内容."
+					}
+				},
+				"summary": "写入存储值",
+				"description": "写入指定 key 的存储值，数据须为合法 JSON，最大 1MB."
+			},
+			"delete": {
+				"tags": ["存储"],
+				"operationId": "deleteStorageValue",
+				"parameters": [
+					{
+						"name": "key",
+						"in": "path",
+						"required": true,
+						"description": "存储键名.",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "删除成功，无返回内容."
+					}
+				},
+				"summary": "删除存储值",
+				"description": "删除指定 key 的存储值."
+			}
+		},
+		"/debug/gc": {
+			"put": {
+				"tags": ["DEBUG"],
+				"operationId": "debugGc",
+				"responses": {
+					"204": {
+						"description": "GC 触发成功，无返回内容."
+					}
+				},
+				"summary": "主动 GC",
+				"description": "进行主动 GC.需内核日志级别为 debug."
+			}
+		},
+		"/debug/pprof": {
+			"get": {
+				"tags": ["DEBUG"],
+				"operationId": "debugPprof",
+				"parameters": [
+					{
+						"name": "raw",
+						"in": "query",
+						"required": false,
+						"description": "设为 true 时返回原始 pprof 数据.",
+						"schema": {
+							"type": "boolean",
+							"default": false
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "pprof 调试页面或原始分析数据.",
+						"content": {
+							"text/html": {
+								"schema": {
+									"type": "string"
+								}
+							},
+							"application/octet-stream": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					}
+				},
+				"summary": "查看 pprof 调试信息",
+				"description": "查看 pprof 调试页面.需内核日志级别为 debug；具体 profile 可从页面进入."
+			}
+		}
+	}
 }

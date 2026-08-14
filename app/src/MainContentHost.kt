@@ -104,7 +104,7 @@ internal fun MainContentHost(
 
     @Composable
     fun paneInnerPadding(scaffoldPadding: PaddingValues, reserveBottomBar: Boolean): PaddingValues {
-        val bottomExtra = if (reserveBottomBar) bottomBarReservedHeight else UiDp.dp0
+        val bottomExtra = bottomBarReservedHeight.takeIf { reserveBottomBar } ?: UiDp.dp0
         val systemBars = WindowInsets.systemBars.asPaddingValues()
         return PaddingValues(
             top = scaffoldPadding.calculateTopPadding(),
@@ -248,28 +248,29 @@ private fun MainPagerHost(
                 ),
         ) { page ->
             val destination =
-                if (previousDestinations != visibleDestinations &&
-                    page == mainPagerState.pagerState.currentPage
-                ) {
-                    previousDestinations.getOrNull(page) ?: settledDestination
-                } else {
-                    visibleDestinations.getOrNull(page)
-                        ?: previousDestinations.getOrNull(page)
-                        ?: settledDestination
+                when {
+                    previousDestinations != visibleDestinations &&
+                        page == mainPagerState.pagerState.currentPage ->
+                        previousDestinations.getOrNull(page)
+                    else -> visibleDestinations.getOrNull(page)
                 }
+                    ?: previousDestinations.getOrNull(page)
+                    ?: settledDestination
             MainRootPageContent(
-                destination = destination,
-                mainInnerPadding = mainInnerPadding,
-                classicHomeEnabled = classicHomeEnabled,
-                moeWallpaperUri = moeWallpaperUri,
-                moeWallpaperZoom = moeWallpaperZoom,
-                moeWallpaperBiasX = moeWallpaperBiasX,
-                moeWallpaperBiasY = moeWallpaperBiasY,
-                navigator = navigator,
-                homePageProgress = homeVisibility,
-                selectedDestination = settledDestination,
-                windowLayoutMode = layoutMode,
-                onOpenPanel = onOpenPanel,
+                state = MainRootPageState(
+                    destination = destination,
+                    mainInnerPadding = mainInnerPadding,
+                    classicHomeEnabled = classicHomeEnabled,
+                    moeWallpaperUri = moeWallpaperUri,
+                    moeWallpaperZoom = moeWallpaperZoom,
+                    moeWallpaperBiasX = moeWallpaperBiasX,
+                    moeWallpaperBiasY = moeWallpaperBiasY,
+                    navigator = navigator,
+                    homePageProgress = homeVisibility,
+                    selectedDestination = settledDestination,
+                    windowLayoutMode = layoutMode,
+                    onOpenPanel = onOpenPanel,
+                ),
             )
         }
 

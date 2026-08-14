@@ -1,0 +1,276 @@
+---
+title: 組み込みAPI
+sidebarTitle: 組み込みAPI
+icon: terminal
+---
+JavaScript オーバーライドは、YumeBox の組み込み JavaScript 環境内で実行されます.次の API は、ランタイムによって提供される完全なグローバル メソッドです.
+
+## `deepMerge(target, patch, isOverride)`
+
+`deepMerge` は、`target` をその場で変更して返します.
+
+|パッチ値 |キー表記 |行動 |
+| --- | --- | --- |
+|オブジェクト | `key` |オブジェクトを再帰的にマージします. |
+|オブジェクト | `key!` |オブジェクト全体を直接置き換えます. |
+|配列 | `key` |交換用アレイ. |
+|配列 | `+key` |配列の先頭に挿入します. |
+|配列 | `key+` |配列の末尾に追加します. |
+|オブジェクトまたは配列 | `<key>` |山括弧を削除し、リテラルのキー名として扱います. |
+|スカラー | `key` |キーと値を直接書き込みます. |
+
+`+key` と `key+` は、`isOverride` が `true` の場合にのみ配列修飾子として機能します.スクリプトでは、常に `true` を渡すことをお勧めします.
+
+```js deepMerge 示例.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+    },
+  }, true);
+}
+```
+
+```yaml deepMerge 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  "enhanced-mode": fake-ip # [!code ++]
+```
+
+JavaScript の `deepMerge` は、`MATCH` ルールを自動的に最後に移動しません.この動作が必要な場合は、YAML の `rules-end` を使用するか、スクリプト内で配列を自分で処理します.
+
+間違った使用法または無効な使用法:
+
+```js deepMerge 无效类型.js icon="braces" lines
+function main(profile) {
+  deepMerge(profile, {
+    "+mixed-port": [7890],
+  }, true);
+  return profile;
+}
+```
+
+`mixed-port` はスカラーであり、配列修飾子は元の値を拡張しようとします.元の値が数値の場合、通常は反復不可能な型エラーがスローされます.ポートをリストに変換しません.
+
+## `yaml`
+
+### `yaml.parse(text)`
+
+YAML テキストを JavaScript 値に変換します. YAML オーバーライドと同じパーサーを使用し、アンカー、エイリアス、`<<` マージ キー、およびトップレベル `proxies` の `reality-opts.short-id` 文字列保護をサポートします.
+
+```js 解析 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  enable: true\n");
+  return deepMerge(profile, patch, true);
+}
+```
+
+```yaml 解析 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+無効な YAML を解析すると、直接エラーがスローされます.
+
+```js 解析错误 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  - enable: true\n    bad");
+  return deepMerge(profile, patch, true);
+}
+```
+
+### `yaml.stringify(value)`
+
+JavaScript 値を YAML 文字列に変換します.
+
+```js 生成 YAML.js icon="braces" lines
+function main(profile) {
+  const text = yaml.stringify({
+    "log-level": "info",
+    rules: ["MATCH,PROXY"],
+  });
+  console.info(text);
+  return profile;
+}
+```
+
+`yaml.stringify` の結果は文字列であるため、`main` の戻り値として直接使用することはできません.構成オブジェクトを返す必要があります.
+
+出力は次のようになります.
+
+```yaml
+log-level: info
+rules:
+  - MATCH,PROXY
+```
+
+## `fetch(input, init)`
+
+組み込みの `fetch` は `http://` のみをサポートし、`https://` はサポートしません.接続、読み取り、書き込みにはそれぞれ 15 秒のタイムアウトがあります.
+
+### リクエストパラメータ
+
+|パラメータ |タイプ |行動 |
+| --- | --- | --- |
+| `input` |文字列またはオブジェクト | URL 文字列、または `url` を含むオブジェクト. |
+| `init.method` |文字列 | HTTP メソッド、デフォルトは `GET`. |
+| `init.headers` |オブジェクト |リクエストヘッダー. |
+| `init.body` |文字列またはオブジェクト |文字列は直接送信されます.他の値は最初に `JSON.stringify` です. |
+
+`init` の `url`、`method`、`headers`、および `body` は、`input` オブジェクト内の同じ名前の値を上書きします.
+
+```js HTTP 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml", {
+    method: "GET",
+    headers: {
+      "x-client": "YumeBox",
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+### 応答オブジェクト
+
+|プロパティまたはメソッド |結果 |
+| --- | --- |
+| `ok` | `true` (ステータス コード `200` ～ `299`). |
+| `status` | HTTPステータスコード. |
+| `statusText` | HTTPステータステキスト. |
+| `url` |リクエストURL. |
+| `headers.get(name)` |応答ヘッダーを取得し、存在しない場合は `null` を返します. |
+| `headers.has(name)` |応答ヘッダーが存在するかどうかを確認します. |
+| `headers.toJSON()` |応答ヘッダー オブジェクトを返します. |
+| `text()` |テキストを非同期で読み取ります. |
+| `json()` | JSON を非同期で解析します. |
+| `yaml()` | YAML を非同期的に解析します. |
+
+```js 读取 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  profile["mixed-port"] = payload.port;
+  return profile;
+}
+```
+
+予期されるエラー:
+
+```js 不支持 HTTPS.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("https://example.com/patch.yaml");
+  return profile;
+}
+```
+
+スクリプトは、`fetch only supports http:// urls` を含むエラーで失敗します.ネットワーク接続が失敗した場合、URL が空だった場合、または応答を解析できない場合にも、スクリプトは停止します.
+
+`2xx` 以外の応答は自動的にエラーをスローしないため、`response.ok` を確認する必要があります.
+
+```js 检查 HTTP 状态.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) {
+    console.warn("HTTP 状态", response.status);
+    return profile;
+  }
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+## `console`
+
+ログは、現在上書きされているファイルと同じメイン ファイル名で、同じディレクトリにある `.log` ファイルに書き込まれます.古いログは上書きを実行する前に毎回リセットされます.
+
+|方法 |ログレベル |
+| --- | --- |
+| `console.log(...)` | `log` |
+| `console.info(...)` | `info` |
+| `console.warn(...)` | `warn` |
+| `console.error(...)` | `error` |
+| `console.debug(...)` | `debug` |
+
+複数のパラメータはスペースで連結されます.オブジェクトは JSON にシリアル化されます.
+
+```js 日志 API.js icon="braces" lines
+function main(profile) {
+  console.info("当前模式", profile.mode);
+  console.debug("代理数量", Array.isArray(profile.proxies) ? profile.proxies.length : 0);
+  return profile;
+}
+```
+
+ログの結果は次のようになります.
+
+```text
+[info] "当前模式" "rule"
+[debug] "代理数量" 12
+```
+
+暗号化構成スクリプトが実行されると、ログ内の構成値は `(redacted, encrypted profile)` に置き換えられます.
+
+## Base64
+
+### `b64e(value)` および `b64d(value)`
+
+`b64e` は UTF-8 テキストを Base64 にエンコードし、`b64d` は Base64 を UTF-8 テキストにデコードします.
+
+```js Base64 API.js icon="braces" lines
+function main(profile) {
+  const encoded = b64e("YumeBox");
+  const decoded = b64d(encoded);
+  profile["encoded-name"] = encoded;
+  profile["decoded-name"] = decoded;
+  return profile;
+}
+```
+
+期待される結果:
+
+```yaml
+encoded-name: WXVtZUJveA==
+decoded-name: YumeBox
+```
+
+### `Buffer`
+
+| API |行動 |
+| --- | --- |
+| `Buffer.from(value, "utf8")` | UTF-8 テキストをバッファ オブジェクトに変換します. |
+| `Buffer.from(value, "base64")` | Base64 テキストをバッファ オブジェクトに変換します. |
+| `Buffer.isBuffer(value)` | DreamBox バッファ オブジェクトであるかどうかを判断します. |
+| `buffer.toString("utf8")` | UTF-8 テキストにデコードされます. |
+| `buffer.toString("base64")` | Base64 テキストを返します. |
+| `buffer.valueOf()` | UTF-8 テキストを返します. |
+
+```js Buffer API.js icon="braces" lines
+function main(profile) {
+  const buffer = Buffer.from("YumeBox", "utf8");
+  profile["client-name"] = buffer.toString("utf8");
+  profile["client-name-base64"] = buffer.toString("base64");
+  return profile;
+}
+```
+
+期待される結果:
+
+```yaml
+client-name: YumeBox
+client-name-base64: WXVtZUJveA==
+```
+
+`utf8`、`utf-8`、および `base64` のみがサポートされています.他のエンコーディングでは `Buffer.from() unsupported encoding` または `Buffer.toString() unsupported encoding` がスローされます.

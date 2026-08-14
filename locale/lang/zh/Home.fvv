@@ -74,7 +74,7 @@ Home = {
         WallpaperDescription = "長按桌布，從相簿換圖"
         SwipeTitle = "左右滑動"
         SwipeDescription = "橫向滑動首頁，切換代理、設定檔和設定頁面"
-        AddTitle = "新增訂閱"
-        AddDescription = "點右上角圖示，貼上連結即可新增"
+        AddTitle = "設定系統桌布"
+        AddDescription = "開啟開關並完成權限申請，讓首頁使用目前的系統桌布"
     }
 }

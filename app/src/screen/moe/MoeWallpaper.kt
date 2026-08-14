@@ -17,12 +17,15 @@ package com.github.yumeyucca.yumebox.screen.moe
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.app.WallpaperManager
+import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
@@ -43,6 +46,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+internal val LocalUseSystemWallpaper = compositionLocalOf { false }
+internal val LocalWallpaperRefreshKey = compositionLocalOf { 0 }
+
 @Composable
 internal fun MoeWallpaperBackground(
     wallpaperUri: String,
@@ -55,9 +61,20 @@ internal fun MoeWallpaperBackground(
     val context = LocalContext.current
     val density = LocalDensity.current
     val bundledWallpaper = newResourceUri(R.drawable.wallpaper)
+    val useSystemWallpaper = LocalUseSystemWallpaper.current
+    val wallpaperRefreshKey = LocalWallpaperRefreshKey.current
     val model by
-    produceState(bundledWallpaper, wallpaperUri) {
-        value = withContext(Dispatchers.IO) { resolveWallpaperModel(context, wallpaperUri) }
+    produceState(bundledWallpaper, wallpaperUri, useSystemWallpaper, wallpaperRefreshKey) {
+        value =
+            withContext(Dispatchers.IO) {
+                val sourceUri =
+                    if (useSystemWallpaper) {
+                        copySystemWallpaper(context)
+                    } else {
+                        wallpaperUri
+                    }
+                resolveWallpaperModel(context, sourceUri)
+            }
     }
     val imageBounds by
     produceState<Pair<Int, Int>?>(null, model) {
@@ -151,4 +168,18 @@ private fun resolveWallpaperModel(context: Context, uri: String): String {
     }
         .getOrDefault(false)
     return if (readable) uri else bundledWallpaper
+}
+
+@SuppressLint("NewApi")
+private fun copySystemWallpaper(context: Context): String {
+    if (!SystemWallpaperAccess.isGranted(context)) return ""
+    val target = File(context.cacheDir, "system-wallpaper.jpg")
+    return runCatching {
+        WallpaperManager.getInstance(context).getWallpaperFile(WallpaperManager.FLAG_SYSTEM)?.use {
+            ParcelFileDescriptor.AutoCloseInputStream(it).use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+        } ?: return ""
+        "file://${target.absolutePath}"
+    }.getOrDefault("")
 }

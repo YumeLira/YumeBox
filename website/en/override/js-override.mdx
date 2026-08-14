@@ -1,194 +1,114 @@
 ---
-title: JavaScript API
-sidebarTitle: JavaScript
-icon: braces
+title: JavaScript syntax overview
+sidebarTitle: JS Overview
+icon: file-braces-corner
 ---
+The <Info> script only modifies the current configuration copy and does not directly modify the original subscription text. </Info>
 
-Extension: `.js`. You must define `main(profile)` and return a configuration object. To append to a list, use `rules+`, not the YAML modifier `rules-end`.
+<Prompt description="生成一个符合 YumeBox 运行时约束的 JavaScript 覆写">
+Please generate a JavaScript override for YumeBox.
+
+- `main(profile)` must be defined.
+- A configuration object must be returned; use `async main(profile)` when asynchronous requests are required.
+- Directly assign values ​​when modifying object fields, and use `deepMerge(profile, patch, true)` when modifying arrays.
+- Only use `yaml`, `deepMerge`, `fetch`, `console`, `b64e`, `b64d` and `Buffer` provided by YumeBox.
+- Do not return arrays, strings, numbers, or `undefined`.
+
+Goal:
+</Prompt>
+
+## Execution process
+
+<Steps>
+  <Step title="Initialize runtime">
+    Initializes the JavaScript runtime and built-in methods the first time a `.js` file appears in the current override chain.
+  </Step>
+
+  <Step title="Pass in configuration object">
+    The current configuration is converted to a JavaScript object and passed in as the `profile` parameter.
+  </Step>
+
+  <Step title="execute main">
+    The script can modify `profile` directly or return a new configuration object. Both synchronous return values ​​and completed Promises are supported.
+  </Step>
+
+  <Step title="Check return value">
+    The return value must be convertible to a JSON object. Script errors, missing `main`, or returning non-object values ​​will stop the current override chain.
+  </Step>
+</Steps>
+
+The same override chain reuses the JavaScript runtime, but each script executes in an isolated scope; the `main`, variables, and declarations of the previous script are not leaked to the next script.
 
 ## `main(profile)`
 
-<ParamField body="profile" type="object" required>
-  The current configuration object, which can be read and modified directly.
-</ParamField>
+### Minimal script
 
-<ParamField body="return" type="object" required>
-  Return a configuration object or a Promise that resolves to one.
+```js 最小覆写.js icon="braces" lines
+function main(profile) {
+  return profile;
+}
+```
 
-  If the function returns `undefined`, an array, or a scalar, or if it throws an error, the current script fails and the configuration from before the script ran is preserved.
-</ParamField>
+### Modify fields
 
-```js main-sync.js icon="braces" lines
+```js 修改字段.js icon="braces" lines
 function main(profile) {
   profile["log-level"] = "info";
+  profile["mixed-port"] = 7890;
   return profile;
 }
 ```
 
-```js main-async.js icon="braces" lines
-async function main(profile) {
-  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
-  if (!response.ok) return profile;
-  return deepMerge(profile, await response.yaml(), true);
-}
-```
+### expected diff
 
-## `deepMerge(target, patch, isOverride)`
-
-<ParamField body="target" type="object" required>
-  The target object. It is modified in place and returned.
-</ParamField>
-
-<ParamField body="patch" type="object" required>
-  The content to merge.
-</ParamField>
-
-<ParamField body="isOverride" type="boolean" default="true">
-  When `true`, enables the `+key` / `key+` / `key!` modifiers.
-</ParamField>
-
-### Patch keys
-
-<ParamField body="key" type="any">
-  Objects merge recursively; arrays replace; scalars overwrite.
-</ParamField>
-
-<ParamField body="+key" type="array">
-  Insert at the beginning of the list (`isOverride = true`).
-</ParamField>
-
-<ParamField body="key+" type="array">
-  Append to the end of the list (`isOverride = true`).
-</ParamField>
-
-<ParamField body="key!" type="object">
-  Replace the entire field.
-</ParamField>
-
-<ParamField body="angle-wrapped key" type="any">
-  Literal field name.
-</ParamField>
-
-```js deep-merge.js icon="braces" lines
+```js 修改字段 diff.js icon="braces" lines
 function main(profile) {
-  return deepMerge(
-    profile,
-    {
-      "+rules": ["DOMAIN-SUFFIX,router.local,DIRECT"],
-      "rules+": ["DOMAIN-SUFFIX,example.com,DIRECT"],
-      "dns!": {
-        enable: true,
-        nameserver: ["1.1.1.1"],
-      },
-    },
-    true
-  );
-}
-```
-
-## Built-in APIs
-
-### `yaml`
-
-<ParamField body="yaml.parse(text)" type="(text: string) => any">
-  YAML text -> value.
-</ParamField>
-
-<ParamField body="yaml.stringify(value)" type="(value: any) => string">
-  Value -> YAML text.
-</ParamField>
-
-### `fetch(input, init?)`
-
-Only `http://` is supported.
-
-<ParamField body="input" type="string | object" required>
-  A URL, or an object containing `url`.
-</ParamField>
-
-<ParamField body="init.method" type="string" default="GET">
-  HTTP method.
-</ParamField>
-
-<ParamField body="init.headers" type="object">
-  Request headers.
-</ParamField>
-
-<ParamField body="init.body" type="string | object">
-  Request body; non-string values are passed through `JSON.stringify`.
-</ParamField>
-
-<ResponseField name="ok" type="boolean">
-  Whether the status is 2xx.
-</ResponseField>
-
-<ResponseField name="status" type="number">
-  Status code.
-</ResponseField>
-
-<ResponseField name="statusText" type="string">
-  Status text.
-</ResponseField>
-
-<ResponseField name="url" type="string">
-  Request URL.
-</ResponseField>
-
-<ResponseField name="headers" type="object">
-  Provides `get` / `has` / `toJSON`.
-</ResponseField>
-
-<ResponseField name="text()" type="Promise<string>">
-  Response body as text.
-</ResponseField>
-
-<ResponseField name="json()" type="Promise<any>">
-  Parsed JSON.
-</ResponseField>
-
-<ResponseField name="yaml()" type="Promise<any>">
-  Parsed YAML.
-</ResponseField>
-
-```js fetch-rules.js icon="braces" lines
-async function main(profile) {
-  const response = await fetch("http://127.0.0.1:8080/rules.yaml");
-  if (!response.ok) return profile;
-  return deepMerge(profile, await response.yaml(), true);
-}
-```
-
-### `console`
-
-Writes to a `.log` file in the script's directory with the same base name as the main file. The log is reset before each execution.
-
-<ParamField body="console.log / info / warn / error / debug" type="function">
-  Write a log entry at the corresponding level. Log content is redacted for Age-encrypted configurations.
-</ParamField>
-
-### Base64
-
-<ParamField body="b64e(value)" type="(value: string) => string">
-  UTF-8 -> Base64.
-</ParamField>
-
-<ParamField body="b64d(value)" type="(value: string) => string">
-  Base64 -> UTF-8.
-</ParamField>
-
-<ParamField body="Buffer.from(value, encoding?)" type="function">
-  Compatibility API for UTF-8 encoding or Base64 decoding.
-</ParamField>
-
-## Example
-
-```js filter-proxies.js icon="braces" lines
-function main(profile) {
-  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
-  profile.proxies = proxies.filter((item) => {
-    const name = String((item && item.name) || "");
-    return !name.includes("expired");
-  });
+-  profile["log-level"] = "info"; // [!code --]
++  profile["log-level"] = "debug"; // [!code ++]
   return profile;
 }
 ```
+
+`// [!code --]` and `// [!code ++]` are only used for diff display in documentation and are legal JavaScript comments themselves.
+
+### Condition modification
+
+```js 按模式修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "global") {
+    profile["log-level"] = "warning";
+  }
+  return profile;
+}
+```
+
+### Asynchronous script
+
+```js 异步 main.js icon="braces" lines
+async function main(profile) {
+  await Promise.resolve();
+  profile.extra = "ready";
+  return profile;
+}
+```
+
+Promise must eventually complete; it will return `async main(profile) did not settle` when it is pending.
+
+## Return value requirements
+
+| return value | result |
+| --- | --- |
+| Configuration object | Success, hand over to next overwrite. |
+| Promise completed with result object | success. |
+| Array, string, number, boolean, `null` or `undefined` | Failure: `JS override result must be an object`. |
+| Object that cannot be converted to JSON | Fails and stops compilation. |
+
+Error example:
+
+```js 错误的返回值.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+If `profile.rules` is an array, the script will fail instead of continuing with the array as a complete configuration.

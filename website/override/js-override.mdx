@@ -1,194 +1,116 @@
 ---
-title: JavaScript API
-sidebarTitle: JavaScript
-icon: braces
+title: JavaScript 语法概览
+sidebarTitle: JS 概览
+icon: file-braces-corner
 ---
 
-扩展名：`.js`。必须定义 `main(profile)` 并返回配置对象。列表追加用 `rules+`，不是 YAML 的 `rules-end`。
+
+<Info>脚本只修改当前配置副本，不会直接修改订阅原文.</Info>
+
+<Prompt description="生成一个符合 YumeBox 运行时约束的 JavaScript 覆写">
+请为 YumeBox 生成一个 JavaScript 覆写.
+
+- 必须定义 `main(profile)`.
+- 必须返回配置对象；需要异步请求时使用 `async main(profile)`.
+- 修改对象字段时直接赋值，修改数组时使用 `deepMerge(profile, patch, true)`.
+- 只使用 YumeBox 提供的 `yaml`、`deepMerge`、`fetch`、`console`、`b64e`、`b64d` 和 `Buffer`.
+- 不要返回数组、字符串、数字或 `undefined`.
+
+目标：
+</Prompt>
+
+## 执行流程
+
+<Steps>
+  <Step title="初始化运行时">
+    当前覆写链第一次出现 `.js` 文件时，初始化 JavaScript 运行时和内置方法.
+  </Step>
+
+  <Step title="传入配置对象">
+    当前配置转换为 JavaScript 对象，并作为 `profile` 参数传入.
+  </Step>
+
+  <Step title="执行 main">
+    脚本可以直接修改 `profile`，也可以返回新的配置对象.同步返回值和已完成的 Promise 都支持.
+  </Step>
+
+  <Step title="检查返回值">
+    返回值必须能转换为 JSON 对象.脚本错误、缺少 `main` 或返回非对象值会停止当前覆写链.
+  </Step>
+</Steps>
+
+同一条覆写链会复用 JavaScript 运行时，但每个脚本在隔离作用域中执行；上一个脚本的 `main`、变量和声明不会泄漏到下一个脚本.
 
 ## `main(profile)`
 
-<ParamField body="profile" type="object" required>
-  当前配置对象，可直接读写。
-</ParamField>
+### 最小脚本
 
-<ParamField body="return" type="object" required>
-  返回配置对象，或 resolve 为对象的 Promise。
+```js 最小覆写.js icon="braces" lines
+function main(profile) {
+  return profile;
+}
+```
 
-  返回 `undefined` / 数组 / 标量，或抛错时，当前脚本失败并保留执行前配置。
-</ParamField>
+### 修改字段
 
-```js main-sync.js icon="braces" lines
+```js 修改字段.js icon="braces" lines
 function main(profile) {
   profile["log-level"] = "info";
+  profile["mixed-port"] = 7890;
   return profile;
 }
 ```
 
-```js main-async.js icon="braces" lines
-async function main(profile) {
-  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
-  if (!response.ok) return profile;
-  return deepMerge(profile, await response.yaml(), true);
-}
-```
+### 预期 diff
 
-## `deepMerge(target, patch, isOverride)`
-
-<ParamField body="target" type="object" required>
-  目标对象，就地修改并返回。
-</ParamField>
-
-<ParamField body="patch" type="object" required>
-  合并内容。
-</ParamField>
-
-<ParamField body="isOverride" type="boolean" default="true">
-  `true` 时启用 `+key` / `key+` / `key!` 修饰符。
-</ParamField>
-
-### patch 键名
-
-<ParamField body="key" type="any">
-  对象递归合并；数组替换；标量覆盖。
-</ParamField>
-
-<ParamField body="+key" type="array">
-  插入列表开头（`isOverride = true`）。
-</ParamField>
-
-<ParamField body="key+" type="array">
-  追加到列表末尾（`isOverride = true`）。
-</ParamField>
-
-<ParamField body="key!" type="object">
-  整字段替换。
-</ParamField>
-
-<ParamField body="angle-wrapped key" type="any">
-  字面量字段名。
-</ParamField>
-
-```js deep-merge.js icon="braces" lines
+```js 修改字段 diff.js icon="braces" lines
 function main(profile) {
-  return deepMerge(
-    profile,
-    {
-      "+rules": ["DOMAIN-SUFFIX,router.local,DIRECT"],
-      "rules+": ["DOMAIN-SUFFIX,example.com,DIRECT"],
-      "dns!": {
-        enable: true,
-        nameserver: ["1.1.1.1"],
-      },
-    },
-    true
-  );
-}
-```
-
-## 内置 API
-
-### `yaml`
-
-<ParamField body="yaml.parse(text)" type="(text: string) => any">
-  YAML 文本 -> 值。
-</ParamField>
-
-<ParamField body="yaml.stringify(value)" type="(value: any) => string">
-  值 -> YAML 文本。
-</ParamField>
-
-### `fetch(input, init?)`
-
-仅支持 `http://`。
-
-<ParamField body="input" type="string | object" required>
-  URL，或含 `url` 的对象。
-</ParamField>
-
-<ParamField body="init.method" type="string" default="GET">
-  HTTP 方法。
-</ParamField>
-
-<ParamField body="init.headers" type="object">
-  请求头。
-</ParamField>
-
-<ParamField body="init.body" type="string | object">
-  请求体；非字符串会 `JSON.stringify`。
-</ParamField>
-
-<ResponseField name="ok" type="boolean">
-  是否 2xx。
-</ResponseField>
-
-<ResponseField name="status" type="number">
-  状态码。
-</ResponseField>
-
-<ResponseField name="statusText" type="string">
-  状态文本。
-</ResponseField>
-
-<ResponseField name="url" type="string">
-  请求 URL。
-</ResponseField>
-
-<ResponseField name="headers" type="object">
-  含 `get` / `has` / `toJSON`。
-</ResponseField>
-
-<ResponseField name="text()" type="Promise<string>">
-  正文文本。
-</ResponseField>
-
-<ResponseField name="json()" type="Promise<any>">
-  JSON 解析。
-</ResponseField>
-
-<ResponseField name="yaml()" type="Promise<any>">
-  YAML 解析。
-</ResponseField>
-
-```js fetch-rules.js icon="braces" lines
-async function main(profile) {
-  const response = await fetch("http://127.0.0.1:8080/rules.yaml");
-  if (!response.ok) return profile;
-  return deepMerge(profile, await response.yaml(), true);
-}
-```
-
-### `console`
-
-写入脚本同目录、同主文件名的 `.log`。每次执行前重置。
-
-<ParamField body="console.log / info / warn / error / debug" type="function">
-  写对应级别日志。age 加密配置下日志内容会脱敏。
-</ParamField>
-
-### Base64
-
-<ParamField body="b64e(value)" type="(value: string) => string">
-  UTF-8 -> Base64。
-</ParamField>
-
-<ParamField body="b64d(value)" type="(value: string) => string">
-  Base64 -> UTF-8。
-</ParamField>
-
-<ParamField body="Buffer.from(value, encoding?)" type="function">
-  `utf-8` 编码或 `base64` 解码的兼容接口。
-</ParamField>
-
-## 示例
-
-```js filter-proxies.js icon="braces" lines
-function main(profile) {
-  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
-  profile.proxies = proxies.filter((item) => {
-    const name = String((item && item.name) || "");
-    return !name.includes("过期");
-  });
+-  profile["log-level"] = "info"; // [!code --]
++  profile["log-level"] = "debug"; // [!code ++]
   return profile;
 }
 ```
+
+`// [!code --]` 和 `// [!code ++]` 只用于文档中的差异显示，本身是合法的 JavaScript 注释.
+
+### 条件修改
+
+```js 按模式修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "global") {
+    profile["log-level"] = "warning";
+  }
+  return profile;
+}
+```
+
+### 异步脚本
+
+```js 异步 main.js icon="braces" lines
+async function main(profile) {
+  await Promise.resolve();
+  profile.extra = "ready";
+  return profile;
+}
+```
+
+Promise 必须最终完成；一直 pending 时会返回 `async main(profile) did not settle`.
+
+## 返回值要求
+
+| 返回值 | 结果 |
+| --- | --- |
+| 配置对象 | 成功，交给下一个覆写. |
+| 已完成 Promise，结果为对象 | 成功. |
+| 数组、字符串、数字、布尔值、`null` 或 `undefined` | 失败：`JS override result must be an object`. |
+| 无法转换为 JSON 的对象 | 失败并停止编译. |
+
+错误示例：
+
+```js 错误的返回值.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+如果 `profile.rules` 是数组，脚本会失败，而不是把数组当作完整配置继续执行.

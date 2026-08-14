@@ -17,7 +17,7 @@ Editor = {
     }
     Discard = {
         Title = "未保存の変更"
-        Summary = "未保存の変更があります。破棄しますか？"
+        Summary = "未保存の変更があります.破棄しますか？"
         Confirm = "破棄"
     }
     JsonSubtitle = "JSON 形式で編集"

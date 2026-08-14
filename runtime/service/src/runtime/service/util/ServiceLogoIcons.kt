@@ -20,25 +20,8 @@
 
 package com.github.yumeyucca.yumebox.runtime.service.util
 
-import com.github.yumeyucca.yumebox.data.model.AppIconStyle
 import com.github.yumeyucca.yumebox.runtime.service.R
-import com.tencent.mmkv.MMKV
 
 object ServiceLogoIcons {
-    private const val SETTINGS_STORE_ID = "settings"
-    private const val APP_ICON_STYLE_KEY = "appIconStyle"
-
-    fun resId(): Int =
-        if (isClassic()) {
-            R.drawable.ic_logo_service_classic
-        } else {
-            R.drawable.ic_logo_service
-        }
-
-    fun isClassic(): Boolean =
-        runCatching {
-                val settings = MMKV.mmkvWithID(SETTINGS_STORE_ID, MMKV.MULTI_PROCESS_MODE)
-                settings.decodeString(APP_ICON_STYLE_KEY) == AppIconStyle.Classic.name
-            }
-            .getOrDefault(false)
+    fun resId(): Int = R.drawable.ic_logo_service
 }

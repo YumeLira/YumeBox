@@ -74,7 +74,7 @@ Home = {
         WallpaperDescription = "长按壁纸，从相册换图"
         SwipeTitle = "左右滑动"
         SwipeDescription = "横向滑动首页，切换代理、配置和设置页面"
-        AddTitle = "添加订阅"
-        AddDescription = "点右上角图标，粘贴链接即可添加"
+        AddTitle = "设置系统壁纸"
+        AddDescription = "开启开关并完成权限申请，让首页使用当前系统壁纸"
     }
 }

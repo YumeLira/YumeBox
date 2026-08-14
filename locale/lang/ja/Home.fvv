@@ -8,7 +8,7 @@ Home = {
         Preparing = "準備中..."
         BuiltinGeoRequired = "先に Builtin 版をインストールしてください"
         StartFailed = "開始に失敗しました: %s"
-        RuntimeUnavailable = "ランタイムを利用できません。もう一度お試しください。"
+        RuntimeUnavailable = "ランタイムを利用できません.もう一度お試しください."
         StopFailed = "停止に失敗しました: %s"
     }
 
@@ -74,7 +74,7 @@ Home = {
         WallpaperDescription = "壁紙を長押ししてアルバムから選びます"
         SwipeTitle = "ページをスワイプ"
         SwipeDescription = "ホームを横にスワイプしてプロキシ、プロファイル、設定を切り替え"
-        AddTitle = "サブスクリプションを追加"
-        AddDescription = "右上のアイコンをタップし、リンクを貼り付けて追加"
+        AddTitle = "システム壁紙を設定"
+        AddDescription = "スイッチをオンにして権限を許可すると、現在のシステム壁紙を使用できます"
     }
 }

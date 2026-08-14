@@ -1,0 +1,284 @@
+---
+title: 示例与排错
+sidebarTitle: 示例与排错
+icon: bug
+---
+
+本页按实际需求展示 JavaScript 覆写.每个示例都包含预期结果或失败行为.
+
+## 修改标量字段
+
+```js 修改端口.js icon="braces" lines
+function main(profile) {
+  profile["mixed-port"] = 7890;
+  return profile;
+}
+```
+
+```js 修改端口 diff.js icon="braces" lines
+function main(profile) {
+-  profile["mixed-port"] = 10801; // [!code --]
++  profile["mixed-port"] = 7890; // [!code ++]
+  return profile;
+}
+```
+
+## 按条件修改
+
+```js 条件修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "rule") {
+    profile["log-level"] = "info";
+  }
+  return profile;
+}
+```
+
+当 `mode` 为 `rule` 时：
+
+```yaml
+log-level: info
+```
+
+当条件不满足时，脚本返回原对象，不产生 diff.
+
+## 添加对象字段
+
+```js 添加 DNS 字段.js icon="braces" lines
+function main(profile) {
+  if (!profile.dns) profile.dns = {};
+  profile.dns.enable = true;
+  profile.dns["enhanced-mode"] = "fake-ip";
+  return profile;
+}
+```
+
+```yaml 添加 DNS 字段 diff.yaml icon="file-code" lines
+dns:
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+```
+
+## 使用 `deepMerge` 添加规则
+
+```js 添加规则.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+  }, true);
+}
+```
+
+```yaml 添加规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+JavaScript 不会像 YAML 一样自动移动 `MATCH`.如果原列表没有把 `MATCH` 放在最后，脚本也不会替你修正.
+
+## 替换对象或数组
+
+```js 替换 DNS.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+      nameserver: ["1.1.1.1"],
+    },
+  }, true);
+}
+```
+
+```yaml 替换 DNS diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  nameserver: # [!code --]
+    - 223.5.5.5 # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver: # [!code ++]
+    - 1.1.1.1 # [!code ++]
+```
+
+## 过滤代理
+
+```js 过滤代理.js icon="braces" lines
+function main(profile) {
+  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
+  profile.proxies = proxies.filter((item) => {
+    const name = String((item && item.name) || "");
+    return !name.includes("过期");
+  });
+  return profile;
+}
+```
+
+```yaml 过滤代理 diff.yaml icon="file-code" lines
+proxies:
+  - name: 香港节点
+  - name: 过期节点 # [!code --]
+```
+
+如果 `profile.proxies` 不是数组，脚本会使用空数组，最终得到 `proxies: []`.
+
+## 修改命名策略组
+
+```js 修改策略组.js icon="braces" lines
+function main(profile) {
+  const groups = Array.isArray(profile["proxy-groups"])
+    ? profile["proxy-groups"]
+    : [];
+  const proxy = groups.find((group) => group && group.name === "PROXY");
+  if (proxy) proxy.proxies = ["DIRECT"];
+  return profile;
+}
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY
+    proxies: # [!code --]
+      - AUTO # [!code --]
+      - DIRECT # [!code ++]
+```
+
+如果找不到 `PROXY`，脚本不会创建新的策略组，也不会报错.
+
+## 读取远程 YAML
+
+```js 远程 YAML.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+远程返回：
+
+```yaml
+dns:
+  enable: true
+```
+
+预期 diff：
+
+```yaml 远程 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+网络失败、只支持 HTTPS、YAML 内容损坏或 Promise 未完成都会使脚本失败.
+
+## 读取远程 JSON
+
+```js 远程 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  if (typeof payload.port === "number") {
+    profile["mixed-port"] = payload.port;
+  }
+  return profile;
+}
+```
+
+如果 `payload.port` 不是数字，脚本会保留原来的 `mixed-port`.
+
+## 请求头和请求体
+
+```js POST 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer token",
+    },
+    body: {
+      mode: profile.mode,
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+对象请求体会在发送前转换为 JSON 字符串.
+
+## 日志和异常
+
+```js 记录并抛错.js icon="braces" lines
+function main(profile) {
+  console.info("开始处理", profile.mode);
+  if (!profile.mode) {
+    throw new Error("缺少 mode");
+  }
+  return profile;
+}
+```
+
+失败时：
+
+- 当前覆写写入 `[exception] 脚本执行失败`.
+- 不会继续执行后续覆写.
+- 普通配置会返回脚本错误和文件路径.
+- 加密配置不会在错误或日志中暴露配置内容和路径.
+
+## 返回错误值
+
+```js 返回数组.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+预期结果：
+
+```text
+JS override result must be an object
+```
+
+```js 缺少 main.js icon="braces" lines
+const unused = 1;
+```
+
+预期结果：
+
+```text
+JS override must define main(profile)
+```
+
+## 多个 JavaScript 覆写
+
+文件按绑定顺序执行，后一个脚本接收前一个脚本的返回值：
+
+```js 第一个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = 2;
+  return profile;
+}
+```
+
+```js 第二个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = profile.port + 3;
+  return profile;
+}
+```
+
+```yaml JavaScript 覆写链结果 diff.yaml icon="file-code" lines
+mixed-port: 1 # [!code --]
+mixed-port: 5 # [!code ++]
+```
+
+第二个脚本缺少 `main` 时，不会复用第一个脚本的函数，而是直接失败.

@@ -29,7 +29,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PagerDefaults
@@ -100,17 +99,13 @@ class MainPagerState(
         navJob?.cancel()
         selectedPage = boundedTarget
         isNavigating = true
-        val layoutInfo = pagerState.layoutInfo
-        val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
-        val currentDistanceInPages =
-            boundedTarget - pagerState.currentPage - pagerState.currentPageOffsetFraction
-        val scrollPixels = currentDistanceInPages * pageSize
-
         navJob = coroutineScope.launch {
             val myJob = coroutineContext.job
             try {
-                pagerState.animateScrollBy(
-                    value = scrollPixels,
+                // PagerState resolves the target after layout. A hand-calculated pixel distance
+                // can be zero when the first composition has not been measured yet.
+                pagerState.animateScrollToPage(
+                    page = boundedTarget,
                     animationSpec = MainBottomBarDefaults.PagerNavigationAnimationSpec,
                 )
             } finally {
@@ -225,7 +220,7 @@ private fun FloatingBottomBarContent(
     val mainPagerState = LocalMainPagerState.current
     val pagerState = mainPagerState.pagerState
     // Selection and indicator must share the pager's physical position. selectedPage is updated
-    // optimistically before animateScrollBy starts, which previously recolored an icon while the
+    // optimistically before navigation starts, which previously recolored an icon while the
     // indicator was still parked on the old page.
     val page by remember(pagerState) { derivedStateOf { pagerState.currentPage } }
     val indicatorProgress by

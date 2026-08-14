@@ -129,7 +129,7 @@ enum class OverridePresetItem(
     Proxy(
         id = "proxy",
         title = "代理规则集",
-        summary = "启用 proxy 规则集并走 Proxy。",
+        summary = "启用 proxy 规则集并走 Proxy.",
         icon = officialMrsCatalogIconUrl("Static"),
         providers =
             listOf(
@@ -140,7 +140,7 @@ enum class OverridePresetItem(
     Ads(
         id = "ads",
         title = "广告拦截",
-        summary = "启用 category-ads-all 并走 REJECT。",
+        summary = "启用 category-ads-all 并走 REJECT.",
         icon = officialMrsCatalogIconUrl("Adblock"),
         providers =
             listOf(
@@ -155,7 +155,7 @@ enum class OverridePresetItem(
     Google(
         id = "google",
         title = "Google",
-        summary = "启用 Google 分流和专属策略组。",
+        summary = "启用 Google 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Google"),
         groupName = "Google",
@@ -175,7 +175,7 @@ enum class OverridePresetItem(
     Telegram(
         id = "telegram",
         title = "Telegram",
-        summary = "启用 Telegram 分流和专属策略组。",
+        summary = "启用 Telegram 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Telegram"),
         groupName = "Telegram",
@@ -199,7 +199,7 @@ enum class OverridePresetItem(
     WhatsApp(
         id = "whatsapp",
         title = "WhatsApp",
-        summary = "启用 WhatsApp 分流和专属策略组。",
+        summary = "启用 WhatsApp 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("WhatsApp.png"),
         groupName = "WhatsApp",
@@ -217,7 +217,7 @@ enum class OverridePresetItem(
     Line(
         id = "line",
         title = "LINE",
-        summary = "启用 LINE 分流和专属策略组。",
+        summary = "启用 LINE 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("LineTV"),
         groupName = "LINE",
@@ -229,7 +229,7 @@ enum class OverridePresetItem(
     Twitter(
         id = "twitter",
         title = "Twitter / X",
-        summary = "启用 Twitter / X 分流和专属策略组。",
+        summary = "启用 Twitter / X 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Twitter"),
         groupName = "Twitter",
@@ -253,7 +253,7 @@ enum class OverridePresetItem(
     TikTok(
         id = "tiktok",
         title = "TikTok",
-        summary = "启用 TikTok 分流和专属策略组。",
+        summary = "启用 TikTok 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("TikTok"),
         groupName = "TikTok",
@@ -267,7 +267,7 @@ enum class OverridePresetItem(
     Speedtest(
         id = "speedtest",
         title = "Speedtest",
-        summary = "启用 Speedtest 分流和专属策略组。",
+        summary = "启用 Speedtest 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Speedtest"),
         groupName = "Speedtest",
@@ -285,7 +285,7 @@ enum class OverridePresetItem(
     GitHub(
         id = "github",
         title = "GitHub",
-        summary = "启用 GitHub 分流和专属策略组。",
+        summary = "启用 GitHub 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("github_00.png"),
         groupName = "GitHub",
@@ -299,7 +299,7 @@ enum class OverridePresetItem(
     Discord(
         id = "discord",
         title = "Discord",
-        summary = "启用 Discord 分流和专属策略组。",
+        summary = "启用 Discord 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Discord.png"),
         groupName = "Discord",
@@ -313,7 +313,7 @@ enum class OverridePresetItem(
     Reddit(
         id = "reddit",
         title = "Reddit",
-        summary = "启用 Reddit 分流和专属策略组。",
+        summary = "启用 Reddit 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Category_Magazine.png"),
         groupName = "Reddit",
@@ -327,7 +327,7 @@ enum class OverridePresetItem(
     Facebook(
         id = "facebook",
         title = "Facebook",
-        summary = "启用 Facebook 分流和专属策略组。",
+        summary = "启用 Facebook 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("facebook.png"),
         groupName = "Facebook",
@@ -351,7 +351,7 @@ enum class OverridePresetItem(
     Instagram(
         id = "instagram",
         title = "Instagram",
-        summary = "启用 Instagram 分流和专属策略组。",
+        summary = "启用 Instagram 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Instagram"),
         groupName = "Instagram",
@@ -369,7 +369,7 @@ enum class OverridePresetItem(
     Threads(
         id = "threads",
         title = "Threads",
-        summary = "启用 Threads 分流和专属策略组。",
+        summary = "启用 Threads 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Threads.png"),
         groupName = "Threads",
@@ -383,7 +383,7 @@ enum class OverridePresetItem(
     Microsoft(
         id = "microsoft",
         title = "Microsoft",
-        summary = "启用 Microsoft 分流和专属策略组。",
+        summary = "启用 Microsoft 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Microsoft"),
         groupName = "Microsoft",
@@ -401,7 +401,7 @@ enum class OverridePresetItem(
     Bing(
         id = "bing",
         title = "Bing",
-        summary = "启用 Bing 分流和专属策略组。",
+        summary = "启用 Bing 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("bing.png"),
         groupName = "Bing",
@@ -413,7 +413,7 @@ enum class OverridePresetItem(
     Apple(
         id = "apple",
         title = "Apple",
-        summary = "启用 Apple 分流和专属策略组。",
+        summary = "启用 Apple 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Apple"),
         groupName = "Apple",
@@ -427,7 +427,7 @@ enum class OverridePresetItem(
     YouTube(
         id = "youtube",
         title = "YouTube",
-        summary = "启用 YouTube 分流和专属策略组。",
+        summary = "启用 YouTube 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("YouTube"),
         groupName = "YouTube",
@@ -441,7 +441,7 @@ enum class OverridePresetItem(
     Netflix(
         id = "netflix",
         title = "Netflix",
-        summary = "启用 Netflix 分流和专属策略组。",
+        summary = "启用 Netflix 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Netflix"),
         groupName = "Netflix",
@@ -455,7 +455,7 @@ enum class OverridePresetItem(
     Disney(
         id = "disney",
         title = "Disney",
-        summary = "启用 Disney 分流和专属策略组。",
+        summary = "启用 Disney 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("DisneyPlus"),
         groupName = "Disney",
@@ -469,7 +469,7 @@ enum class OverridePresetItem(
     Hbo(
         id = "hbo",
         title = "HBO",
-        summary = "启用 HBO 分流和专属策略组。",
+        summary = "启用 HBO 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("HBO"),
         groupName = "HBO",
@@ -481,7 +481,7 @@ enum class OverridePresetItem(
     PrimeVideo(
         id = "primevideo",
         title = "Prime Video",
-        summary = "启用 Prime Video 分流和专属策略组。",
+        summary = "启用 Prime Video 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("PrimeVideo"),
         groupName = "PrimeVideo",
@@ -499,7 +499,7 @@ enum class OverridePresetItem(
     Tvb(
         id = "tvb",
         title = "TVB",
-        summary = "启用 TVB 分流和专属策略组。",
+        summary = "启用 TVB 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("TVBAnywhere+.png"),
         groupName = "TVB",
@@ -511,7 +511,7 @@ enum class OverridePresetItem(
     MyTvSuper(
         id = "mytvsuper",
         title = "MyTVSuper",
-        summary = "启用 MyTVSuper 分流和专属策略组。",
+        summary = "启用 MyTVSuper 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("TVBAnywhere+.png"),
         groupName = "MyTVSuper",
@@ -529,7 +529,7 @@ enum class OverridePresetItem(
     Dazn(
         id = "dazn",
         title = "DAZN",
-        summary = "启用 DAZN 分流和专属策略组。",
+        summary = "启用 DAZN 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Streaming"),
         groupName = "DAZN",
@@ -541,7 +541,7 @@ enum class OverridePresetItem(
     Spotify(
         id = "spotify",
         title = "Spotify",
-        summary = "启用 Spotify 分流和专属策略组。",
+        summary = "启用 Spotify 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Spotify"),
         groupName = "Spotify",
@@ -555,7 +555,7 @@ enum class OverridePresetItem(
     Amazon(
         id = "amazon",
         title = "Amazon",
-        summary = "启用 Amazon 分流和专属策略组。",
+        summary = "启用 Amazon 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Amazon.png"),
         groupName = "Amazon",
@@ -569,7 +569,7 @@ enum class OverridePresetItem(
     PayPal(
         id = "paypal",
         title = "PayPal",
-        summary = "启用 PayPal 分流和专属策略组。",
+        summary = "启用 PayPal 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Paypal"),
         groupName = "PayPal",
@@ -583,7 +583,7 @@ enum class OverridePresetItem(
     Cloudflare(
         id = "cloudflare",
         title = "Cloudflare",
-        summary = "启用 Cloudflare 分流和专属策略组。",
+        summary = "启用 Cloudflare 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Cloudflare.png"),
         groupName = "Cloudflare",
@@ -601,7 +601,7 @@ enum class OverridePresetItem(
     Zoom(
         id = "zoom",
         title = "Zoom",
-        summary = "启用 Zoom 分流和专属策略组。",
+        summary = "启用 Zoom 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Category_Networking.png"),
         groupName = "Zoom",
@@ -613,7 +613,7 @@ enum class OverridePresetItem(
     Wikimedia(
         id = "wikimedia",
         title = "Wikimedia",
-        summary = "启用 Wikimedia 分流和专属策略组。",
+        summary = "启用 Wikimedia 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Category_Research.png"),
         groupName = "Wikimedia",
@@ -631,7 +631,7 @@ enum class OverridePresetItem(
     Bilibili(
         id = "bilibili",
         title = "Bilibili",
-        summary = "启用 Bilibili 分流和专属策略组。",
+        summary = "启用 Bilibili 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Bili"),
         groupName = "Bilibili",
@@ -649,7 +649,7 @@ enum class OverridePresetItem(
     BiliIntl(
         id = "biliintl",
         title = "BiliIntl",
-        summary = "启用 BiliIntl 分流和专属策略组。",
+        summary = "启用 BiliIntl 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Bili"),
         groupName = "BiliIntl",
@@ -667,7 +667,7 @@ enum class OverridePresetItem(
     Bahamut(
         id = "bahamut",
         title = "Bahamut",
-        summary = "启用 Bahamut 分流和专属策略组。",
+        summary = "启用 Bahamut 分流和专属策略组.",
         isService = true,
         icon = officialMrsCatalogIconUrl("Bahamut"),
         groupName = "Bahamut",
@@ -681,7 +681,7 @@ enum class OverridePresetItem(
     Dmm(
         id = "dmm",
         title = "DMM",
-        summary = "启用 DMM 分流和专属策略组。",
+        summary = "启用 DMM 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("AnimeHome.png"),
         groupName = "DMM",
@@ -693,7 +693,7 @@ enum class OverridePresetItem(
     Abema(
         id = "abema",
         title = "Abema",
-        summary = "启用 Abema 分流和专属策略组。",
+        summary = "启用 Abema 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("AnimeHome.png"),
         groupName = "Abema",
@@ -707,7 +707,7 @@ enum class OverridePresetItem(
     Ehentai(
         id = "ehentai",
         title = "EHentai",
-        summary = "启用 EHentai 分流和专属策略组。",
+        summary = "启用 EHentai 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("HentaiHome.png"),
         groupName = "EHentai",
@@ -721,7 +721,7 @@ enum class OverridePresetItem(
     OpenAI(
         id = "openai",
         title = "OpenAI",
-        summary = "启用 OpenAI 分流和专属策略组。",
+        summary = "启用 OpenAI 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("ChatGPT.png"),
         groupName = "OpenAI",
@@ -735,7 +735,7 @@ enum class OverridePresetItem(
     Anthropic(
         id = "anthropic",
         title = "Claude / Anthropic",
-        summary = "启用 Claude / Anthropic 分流和专属策略组。",
+        summary = "启用 Claude / Anthropic 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Claude_01.png"),
         groupName = "Claude",
@@ -753,7 +753,7 @@ enum class OverridePresetItem(
     OneDrive(
         id = "onedrive",
         title = "OneDrive",
-        summary = "启用 OneDrive 分流和专属策略组。",
+        summary = "启用 OneDrive 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("OneDrive.png"),
         groupName = "OneDrive",
@@ -771,7 +771,7 @@ enum class OverridePresetItem(
     Pixiv(
         id = "pixiv",
         title = "Pixiv",
-        summary = "启用 Pixiv 分流和专属策略组。",
+        summary = "启用 Pixiv 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("Category_Photo.png"),
         groupName = "Pixiv",
@@ -785,7 +785,7 @@ enum class OverridePresetItem(
     Niconico(
         id = "niconico",
         title = "Niconico",
-        summary = "启用 Niconico 分流和专属策略组。",
+        summary = "启用 Niconico 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("AnimeHome.png"),
         groupName = "Niconico",
@@ -803,7 +803,7 @@ enum class OverridePresetItem(
     Steam(
         id = "steam",
         title = "Steam",
-        summary = "启用 Steam 分流和专属策略组。",
+        summary = "启用 Steam 分流和专属策略组.",
         isService = true,
         icon = officialMrsAppIconUrl("steam.png"),
         groupName = "Steam",
@@ -817,7 +817,7 @@ enum class OverridePresetItem(
     Cn(
         id = "cn",
         title = "中国大陆直连",
-        summary = "启用 cn 域名和 IP 规则并走 DIRECT。",
+        summary = "启用 cn 域名和 IP 规则并走 DIRECT.",
         icon = officialMrsCatalogIconUrl("China"),
         providers =
             listOf(
@@ -829,7 +829,7 @@ enum class OverridePresetItem(
     GeolocationNotCn(
         id = "geolocation_not_cn",
         title = "境外地理规则",
-        summary = "启用 geolocation-!cn 并走 Proxy。",
+        summary = "启用 geolocation-!cn 并走 Proxy.",
         icon = officialMrsCatalogIconUrl("Global"),
         providers =
             listOf(
@@ -844,7 +844,7 @@ enum class OverridePresetItem(
     Match(
         id = "match",
         title = "兜底 MATCH",
-        summary = "末尾追加 MATCH,Proxy。",
+        summary = "末尾追加 MATCH,Proxy.",
         icon = officialMrsCatalogIconUrl("Final"),
         detectionRules = listOf("MATCH,Proxy"),
     ),

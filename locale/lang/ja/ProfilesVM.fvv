@@ -8,7 +8,7 @@ ProfilesVM = {
         ProfileUpdated = "プロファイルを更新しました: %s"
         UpdateFailed = "プロファイルの更新に失敗しました: %s"
         ToggleFailed = "状態の切り替えに失敗しました: %s"
-        ProvidersPartial = "プロファイルを保存しました。外部リソース %d 件が失敗: %s"
+        ProvidersPartial = "プロファイルを保存しました.外部リソース %d 件が失敗: %s"
         ProvidersUndiscovered = "プロファイルを保存しましたが、外部リソース一覧を認識できませんでした"
     }
 

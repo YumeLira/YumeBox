@@ -1,0 +1,112 @@
+---
+title: overwrite
+sidebarTitle: Overview
+icon: file-pen
+---
+<Info> override only affects the application configuration and does not change the original configuration. It only takes effect when used. </Info>
+
+The function of overwriting can be summarized as: reading the original configuration, applying the bound overrides in sequence, and generating the configuration used for this run.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart LR
+    A["配置来源<br/>订阅 / 本地文件"] --> B["配置管理<br/>保存并选择当前配置"]
+    B --> C["覆写编译<br/>YAML / JavaScript"]
+    C --> D["运行阶段<br/>补丁、校验、启动 mihomo"]
+
+    classDef source fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef manage fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef compile fill:#f0fdf4,stroke:#22c55e,color:#14532d,stroke-width:1.5px;
+    classDef runtime fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    class A source;
+    class B manage;
+    class C compile;
+    class D runtime;
+```
+
+## Built-in override
+
+| Name | Function |
+| --- | --- |
+| Prevent DNS leaks | Add anti-leak rules and enable `fake-ip`. |
+| Add direct connection rules | Insert Baidu and Tencent rules at the beginning of the rule list. |
+| Pudding Dog Subscription Conversion | Add rule sets, proxy groups and diversion rules. |
+| ACL4SSR Online Full | Adds the complete ACL4SSR rule set and offload group. |
+
+<Info>The built-in override cannot be edited or deleted. Please copy it first if you need to modify it. </Info>
+
+## Apply override
+
+The effect of the two entrances is the same, and the selected override will be applied to the subscription.
+
+<Steps>
+  <Step title="From the subscription card app">
+    Open the subscription card and go to **Edit Subscription → Setting Type → Override Configuration**.
+
+    <Frame><img src="/images/guide/override-profile-settings.jpg" alt="Select Override Configuration in Subscription Settings" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="Configure application from override">
+    Select overwrite, click **Apply**, check the target subscription and confirm to save.
+
+    <Frame><img src="/images/guide/override-apply-to-profile.jpg" alt="Apply override to subscription" noZoom={true} /></Frame>
+  </Step>
+</Steps>
+
+
+### Execution order
+
+When multiple overrides are applied to the same subscription, YumeBox executes them in list order; later overrides can modify previous results.
+
+```yaml 原始配置.yaml icon="file-code" lines
+mixed-port: 7890
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml 第一份覆写.yaml icon="file-code" lines
+mixed-port: 10801
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二份覆写.yaml icon="file-code" lines
+mixed-port: 10802
+rules-end:
+  - DOMAIN-SUFFIX,last.example,PROXY
+```
+
+```yaml 最终结果 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 10802 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+Subsequent overwrites will not re-read the original subscription text, but will receive the results of the previous overwrite.
+
+## Custom override
+
+| Type | Purpose | Documentation |
+| --- | --- | --- |
+| YAML | Fixed field, rule and list modifications. | [YAML syntax](./yaml) |
+| JavaScript | Conditional judgment, dynamic processing and remote reading. | [JavaScript syntax](./js-override) |

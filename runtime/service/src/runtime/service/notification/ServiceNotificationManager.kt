@@ -89,11 +89,6 @@ class ServiceNotificationManager(
             }
         }
 
-    /** Force the current foreground notification to adopt the selected application icon style. */
-    fun refreshForIconStyleChange() {
-        refreshRunningNotification()
-    }
-
     /**
      * Stop updating and clear the notification. After this the traffic updater never notifies
      * again.

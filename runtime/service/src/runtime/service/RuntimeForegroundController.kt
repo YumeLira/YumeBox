@@ -104,9 +104,6 @@ class RuntimeForegroundController(
 
                     Intents.ACTION_OVERRIDE_CHANGED -> scheduleReload()
 
-                    Intents.ACTION_APP_ICON_STYLE_CHANGED ->
-                        scope.launch { notificationManager.refreshForIconStyleChange() }
-
                     Intents.ACTION_RUNTIME_REQUEST_STOP -> {
                         val targetMode = intent.getStringExtra(Intents.EXTRA_RUNTIME_MODE)
                         if (targetMode == null || targetMode == mode.name) {
@@ -358,7 +355,6 @@ class RuntimeForegroundController(
             IntentFilter().apply {
                 addAction(Intents.ACTION_PROFILE_CHANGED)
                 addAction(Intents.ACTION_OVERRIDE_CHANGED)
-                addAction(Intents.ACTION_APP_ICON_STYLE_CHANGED)
                 addAction(Intents.ACTION_RUNTIME_REQUEST_STOP)
             }
         ContextCompat.registerReceiver(

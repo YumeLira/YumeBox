@@ -21,7 +21,6 @@
 package com.github.yumeyucca.yumebox.data.store
 
 import com.github.yumeyucca.yumebox.data.model.AppColorTheme
-import com.github.yumeyucca.yumebox.data.model.AppIconStyle
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.tencent.mmkv.MMKV
@@ -30,25 +29,24 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
     val themeMode by enumFlow(ThemeMode.Auto)
     val appLanguage by enumFlow(AppLanguage.System)
     val colorTheme by enumFlow(AppColorTheme.ClassicMonochrome)
-    val themeAccentColorArgb by longFlow(0xFFFE678A)
+    val themeAccentColorArgb by longFlow(0xFF016888)
     val invertOnPrimaryColors by boolFlow(false)
     val homePreviewGuideShown by boolFlow(false)
     val automaticRestart by boolFlow(false)
     val autoUpdateCurrentProfileOnStart by boolFlow(true)
-    val hideAppIcon by boolFlow(false)
-    val appIconStyle by enumFlow(AppIconStyle.Default)
     val excludeFromRecents by boolFlow(false)
     val showTrafficNotification by boolFlow(true)
     val bottomBarAutoHide by boolFlow(true)
     val topBarBlurEnabled by boolFlow(false)
     val classicHomeEnabled by boolFlow(false)
+    val useSystemWallpaper by boolFlow(true)
+    val systemWallpaperPermissionRequested by boolFlow(false)
     val moeWallpaperUri by strFlow("")
     val moeWallpaperSourceUri by strFlow("")
     val moeWallpaperZoom by floatFlow(1.0f)
     val moeWallpaperBiasX by floatFlow(0.0f)
     val moeWallpaperBiasY by floatFlow(0.0f)
-    val moeHomeQuote by strFlow("さよならの朝指きりこのまま離れないで")
-    val moeHomeQuoteAuthor by strFlow("恋文")
+    val moeHomeQuote by strFlow("君の隣、感じちゃうの")
     val moeSidebarExpanded by boolFlow(true)
     val pageScale by floatFlow(1.0f)
     val predictiveBackEnabled by boolFlow(false)
@@ -59,6 +57,18 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
 
     init {
         migrateLegacyHomeKeys()
+        resetHomePreviewGuideForWallpaperUpdate()
+        if (!mmkv.containsKey("useSystemWallpaper") &&
+            mmkv.decodeString("moeWallpaperUri").orEmpty().isNotBlank()
+        ) {
+            mmkv.encode("useSystemWallpaper", false)
+        }
+    }
+
+    private fun resetHomePreviewGuideForWallpaperUpdate() {
+        if (mmkv.decodeInt("homePreviewGuideVersion", 0) >= 1) return
+        mmkv.encode("homePreviewGuideShown", false)
+        mmkv.encode("homePreviewGuideVersion", 1)
     }
 
     /**
@@ -87,7 +97,6 @@ class AppSettingsStore(externalMmkv: MMKV) : MMKVPreference(externalMmkv = exter
         moveString("acgWallpaperUri", "moeWallpaperUri")
         moveString("acgWallpaperSourceUri", "moeWallpaperSourceUri")
         moveString("acgHomeQuote", "moeHomeQuote")
-        moveString("acgHomeQuoteAuthor", "moeHomeQuoteAuthor")
         moveFloat("acgWallpaperZoom", "moeWallpaperZoom")
         moveFloat("acgWallpaperBiasX", "moeWallpaperBiasX")
         moveFloat("acgWallpaperBiasY", "moeWallpaperBiasY")

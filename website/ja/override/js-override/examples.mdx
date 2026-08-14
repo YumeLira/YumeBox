@@ -1,0 +1,283 @@
+---
+title: 例とトラブルシューティング
+sidebarTitle: 例とトラブルシューティング
+icon: bug
+---
+このページには、必要に応じて JavaScript のオーバーライドが表示されます.各例には、予想される結果または失敗した動作が含まれています.
+
+## スカラーフィールドを変更する
+
+```js 修改端口.js icon="braces" lines
+function main(profile) {
+  profile["mixed-port"] = 7890;
+  return profile;
+}
+```
+
+```js 修改端口 diff.js icon="braces" lines
+function main(profile) {
+-  profile["mixed-port"] = 10801; // [!code --]
++  profile["mixed-port"] = 7890; // [!code ++]
+  return profile;
+}
+```
+
+## 条件に応じて変更します
+
+```js 条件修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "rule") {
+    profile["log-level"] = "info";
+  }
+  return profile;
+}
+```
+
+`mode` が `rule` の場合:
+
+```yaml
+log-level: info
+```
+
+条件が満たされない場合、スクリプトは元のオブジェクトを返し、差分は生成されません.
+
+## オブジェクトフィールドを追加
+
+```js 添加 DNS 字段.js icon="braces" lines
+function main(profile) {
+  if (!profile.dns) profile.dns = {};
+  profile.dns.enable = true;
+  profile.dns["enhanced-mode"] = "fake-ip";
+  return profile;
+}
+```
+
+```yaml 添加 DNS 字段 diff.yaml icon="file-code" lines
+dns:
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+```
+
+## `deepMerge` を使用してルールを追加します
+
+```js 添加规则.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+  }, true);
+}
+```
+
+```yaml 添加规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+JavaScript は、YAML のように `MATCH` を自動的に移動しません.元のリストの最後に `MATCH` が配置されていない場合、スクリプトはそれを修正しません.
+
+## オブジェクトまたは配列を置き換えます
+
+```js 替换 DNS.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+      nameserver: ["1.1.1.1"],
+    },
+  }, true);
+}
+```
+
+```yaml 替换 DNS diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  nameserver: # [!code --]
+    - 223.5.5.5 # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver: # [!code ++]
+    - 1.1.1.1 # [!code ++]
+```
+
+## プロキシをフィルタリングします
+
+```js 过滤代理.js icon="braces" lines
+function main(profile) {
+  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
+  profile.proxies = proxies.filter((item) => {
+    const name = String((item && item.name) || "");
+    return !name.includes("过期");
+  });
+  return profile;
+}
+```
+
+```yaml 过滤代理 diff.yaml icon="file-code" lines
+proxies:
+  - name: 香港节点
+  - name: 过期节点 # [!code --]
+```
+
+`profile.proxies` が配列でない場合、スクリプトは空の配列を使用し、最終的に `proxies: []` になります.
+
+## 名前付けポリシーグループを変更する
+
+```js 修改策略组.js icon="braces" lines
+function main(profile) {
+  const groups = Array.isArray(profile["proxy-groups"])
+    ? profile["proxy-groups"]
+    : [];
+  const proxy = groups.find((group) => group && group.name === "PROXY");
+  if (proxy) proxy.proxies = ["DIRECT"];
+  return profile;
+}
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY
+    proxies: # [!code --]
+      - AUTO # [!code --]
+      - DIRECT # [!code ++]
+```
+
+`PROXY` が見つからない場合、スクリプトは新しいポリシー グループを作成せず、エラーを報告しません.
+
+## リモート YAML を読み取る
+
+```js 远程 YAML.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+リモートリターン:
+
+```yaml
+dns:
+  enable: true
+```
+
+予想される差分:
+
+```yaml 远程 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+ネットワーク障害、HTTPS のみのサポート、破損した YAML コンテンツ、または不完全な Promise により、スクリプトは失敗します.
+
+## リモート JSON を読み取る
+
+```js 远程 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  if (typeof payload.port === "number") {
+    profile["mixed-port"] = payload.port;
+  }
+  return profile;
+}
+```
+
+`payload.port` が数値でない場合、スクリプトは元の `mixed-port` を保持します.
+
+## リクエストヘッダーとリクエストボディ
+
+```js POST 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer token",
+    },
+    body: {
+      mode: profile.mode,
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+オブジェクトのリクエスト本文は、送信前に JSON 文字列に変換されます.
+
+## ログと例外
+
+```js 记录并抛错.js icon="braces" lines
+function main(profile) {
+  console.info("开始处理", profile.mode);
+  if (!profile.mode) {
+    throw new Error("缺少 mode");
+  }
+  return profile;
+}
+```
+
+失敗時:
+
+- 現在のオーバーライドは `[exception] 脚本执行失败` を書き込みます.
+- 以降の上書きは続行されません.
+- 通常の設定では、スクリプト エラーとファイル パスが返されます.
+- 暗号化された構成では、構成の内容とパスがエラーやログに公開されません.
+
+## エラー値を返す
+
+```js 返回数组.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+期待される結果:
+
+```text
+JS override result must be an object
+```
+
+```js 缺少 main.js icon="braces" lines
+const unused = 1;
+```
+
+期待される結果:
+
+```text
+JS override must define main(profile)
+```
+
+## 複数の JavaScript オーバーライド
+
+ファイルはバインド順に実行され、後続のスクリプトは前のスクリプトの戻り値を受け取ります.
+
+```js 第一个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = 2;
+  return profile;
+}
+```
+
+```js 第二个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = profile.port + 3;
+  return profile;
+}
+```
+
+```yaml JavaScript 覆写链结果 diff.yaml icon="file-code" lines
+mixed-port: 1 # [!code --]
+mixed-port: 5 # [!code ++]
+```
+
+2 番目のスクリプトに `main` がない場合、最初のスクリプトの関数は再利用されず、直接失敗します.

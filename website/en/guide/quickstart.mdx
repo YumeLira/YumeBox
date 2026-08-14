@@ -1,0 +1,52 @@
+---
+title: quick start
+sidebarTitle: quick start
+icon: rocket
+---
+<Info>YumeBox does not provide nodes or subscriptions, please prepare the configuration file or subscription address first. </Info>
+
+## First time use
+
+<Steps>
+  <Step title="Install APK">
+    Download and install the APK from [GitHub Releases](https://github.com/YumeYucca/YumeBox/releases).
+
+    | Version | Geo Data | Suitable Scenario |
+    | ---- | -------- | -------- |
+    | `builtin` | Built-in | First time installation |
+    | `external` | Not built-in | Version update |
+  </Step>
+
+  <Step title="Import configuration">
+    Click **Add Configuration** on the configuration page. After filling in the configuration name, you can import it through a subscription link, local file or QR code.
+
+    <Frame><img src="/images/guide/quickstart-import-config.png" alt="Add configuration file interface" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="Select configuration">
+    Click on the configuration card to make it the current configuration.
+
+    <Info> It is recommended not to add overrides when starting for the first time, and then modify it after confirming that the configuration can run normally. </Info>
+
+    <Frame><img src="/images/guide/quickstart-profile-card.jpg" alt="Configure card interface" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="Service configuration">
+    Open **Network Settings** and select the operating mode:
+
+    | Mode | Permissions | Features |
+    | ---- | ---- | ---- |
+    | `Vpn Service` | VPN | No Root required, good compatibility |
+    | `Tun` | Root | Create Tun virtual network card |
+    | `eBPF` | Root, eBPF | Bridge traffic using eBPF |
+
+    <Info>`eBPF` requires kernel support, currently in the `alpha` stage, </Info> may be removed in the future
+
+  </Step>
+
+  <Step title="Start agent">
+    Return to the homepage, click Start and complete system authorization.
+
+    <Check>After the agent group and node are loaded, you can start using it. </Check>
+  </Step>
+</Steps>

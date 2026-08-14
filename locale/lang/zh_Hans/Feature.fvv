@@ -72,7 +72,7 @@ Feature = {
 
         RestoreDialog = {
             Title = "恢复备份？"
-            Message = "恢复会停止代理和 Sub-Store，并覆盖当前设置、订阅、覆写和 Sub-Store 数据。"
+            Message = "恢复会停止代理和 Sub-Store，并覆盖当前设置、订阅、覆写和 Sub-Store 数据."
         }
 
         Message = {

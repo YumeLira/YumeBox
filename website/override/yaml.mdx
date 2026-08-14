@@ -1,87 +1,76 @@
 ---
-title: YAML API
-sidebarTitle: YAML
+title: YAML 语法概览
+sidebarTitle: YAML 概览
 icon: file-code
 ---
 
-扩展名：`.yaml` / `.yml`。顶层必须是对象。空文件跳过并 warning；未知扩展名导致编译失败。
+<Info>只写需要修改的字段，不要复制整份订阅.</Info>
 
-## 字段修饰符
+<Prompt description="生成一个符合 YumeBox 语法的 YAML 覆写">
+请根据下面的 mihomo 原始配置和修改目标，生成一个 YumeBox YAML 覆写.
 
-键名后缀决定写入方式。解析时先去掉后缀得到基础字段名。
+- 只输出可直接保存为 `.yaml` 的覆写内容.
+- 固定字段使用普通键；列表插入开头使用 `key-start`，追加到末尾使用 `key-end`.
+- 需要整字段替换时使用 `key-force`.
+- 保留原配置中没有要求修改的内容.
+- 生成后说明最终会改变哪些字段.
 
-<ParamField body="key" type="scalar | object | array">
-  默认。
+原始配置：
 
-  - 标量：覆盖
-  - 对象：递归合并
-  - 数组：整表替换
-</ParamField>
+修改目标：
+</Prompt>
 
-<ParamField body="key-start" type="array">
-  插入到目标列表开头。
-</ParamField>
 
-<ParamField body="key-end" type="array">
-  追加到目标列表末尾。
-</ParamField>
+## 执行流程
 
-<ParamField body="key-merge" type="object">
-  Map 递归合并，保留目标已有键。
-</ParamField>
+<Steps>
+  <Step title="读取原始配置">
+    先解析订阅或本地配置.原始 YAML 错误会停止本次编译.
+  </Step>
 
-<ParamField body="key-force" type="any">
-  整字段替换，不做合并。
-</ParamField>
+  <Step title="读取覆写链">
+    按绑定顺序读取 `.yaml` 和 `.yml` 文件.空文件会跳过并记录提示.
+  </Step>
 
-<ParamField body="angle-wrapped key" type="any">
-  字面量字段名。用尖括号包裹后不再解析修饰符后缀。
-</ParamField>
+  <Step title="应用当前文件">
+    解析键名修饰符，再根据字段类型执行替换、追加、合并或强制覆盖.
+  </Step>
 
-`rules`、`proxies`、`proxy-groups` 等列表字段支持 `-start` / `-end`。带 `name` 的对象列表按 `name` 去重，**同名保留最后一次**。
+  <Step title="生成运行配置">
+    用户覆写完成后，YumeBox 才会补充运行时需要的 DNS、Tun、监听器和 Provider 路径设置.
+  </Step>
+</Steps>
 
-## 同一字段多修饰符时的顺序
+## 修饰符速查
 
-1. `force`（存在则结束该字段）
-2. `start`
-3. 普通 `key` 替换，或保留原列表
-4. `end`
-5. `merge`
+| 写法 | 作用 | 详细说明 |
+| --- | --- | --- |
+| `key` | 普通写入. | 对象递归、数组替换、标量覆盖. |
+| `key-start` | 插入列表开头. | [列表与规则](/override/yaml/lists.mdx) |
+| `key-end` | 追加列表末尾. | [列表与规则](/override/yaml/lists.mdx) |
+| `key-merge` | 合并对象或追加列表项. | [字段行为](/override/yaml/fields.mdx) |
+| `key-force` | 直接替换整个字段. | [字段行为](/override/yaml/fields.mdx) |
+| `+key` | `key-start` 简写. | [列表与规则](/override/yaml/lists.mdx) |
+| `key+` | `key-end` 简写. | [列表与规则](/override/yaml/lists.mdx) |
+| `<key>` | 保留字面量键名. | [示例与排错](/override/yaml/examples.mdx) |
 
-## 示例
+显式的 `-start`、`-end`、`-merge`、`-force` 优先于 `+key` 和 `key+`.例如 `<rules+>` 最终写入真实键名 `rules+`.
 
-```yaml append-rules.yaml icon="file-code" lines
-rules-end:
-  - DOMAIN-SUFFIX,example.com,DIRECT
+## 最小示例
+
+```yaml 修改端口.yaml icon="file-code" lines
+mixed-port: 7890
+```
+
+```yaml 添加规则.yaml icon="file-code" lines
+rules-start:
   - DOMAIN-SUFFIX,lan,DIRECT
 ```
 
-```yaml patch-dns.yaml icon="file-code" lines
-dns:
+```yaml 替换 DNS.yaml icon="file-code" lines
+dns-force:
   enable: true
   enhanced-mode: fake-ip
   nameserver:
-    - https://dns.alidns.com/dns-query
-```
-
-```yaml rules-head-tail.yaml icon="file-code" lines
-rules-start:
-  - DOMAIN-SUFFIX,router.local,DIRECT
-
-rules-end:
-  - MATCH,PROXY
-```
-
-```yaml hosts-and-dns.yaml icon="file-code" lines
-hosts-merge:
-  router.local: 192.168.1.1
-
-dns-force:
-  enable: true
-  nameserver:
     - 1.1.1.1
-```
-
-```yaml literal-key.yaml icon="file-code" lines
-"<rules-end>": keep-this-key-name
 ```

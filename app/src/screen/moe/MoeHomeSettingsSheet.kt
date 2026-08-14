@@ -29,9 +29,11 @@ internal fun MoeHomeSettingsSheet(
     quote: String,
     classicHomeEnabled: Boolean,
     sidebarExpanded: Boolean,
+    useSystemWallpaper: Boolean,
     onQuoteChange: (String) -> Unit,
     onClassicHomeEnabledChange: (Boolean) -> Unit,
     onSidebarExpandedChange: (Boolean) -> Unit,
+    onUseSystemWallpaperChange: (Boolean) -> Unit,
     onChangeWallpaper: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -90,7 +92,11 @@ internal fun MoeHomeSettingsSheet(
                             checked = draftSidebarExpanded,
                             onCheckedChange = { draftSidebarExpanded = it },
                         )
-                        PreferenceValueItem(
+                        SystemWallpaperPreferenceItem(
+                            checked = useSystemWallpaper,
+                            onCheckedChange = onUseSystemWallpaperChange,
+                        )
+                        PreferenceArrowItem(
                             title = YumeTxt.Home.Settings.ChangeWallpaper,
                             onClick = onChangeWallpaper,
                         )

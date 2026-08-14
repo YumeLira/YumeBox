@@ -23,10 +23,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.tukaani.xz.XZInputStream
 import timber.log.Timber
 import java.io.File
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 /** Downloadable `libmihomocore.so` catalog and installer. Bundled Alpha remains the fallback. */
@@ -35,6 +37,7 @@ object KernelManager {
         "https://github.com/YumeYucca/Kernel-Builder/releases/download/kernel/kernel-index.json"
     const val BUNDLED_ALPHA_ID = "bundled-alpha"
     private const val CORE_FILE_PREFIX = "libmihomocore-"
+    private const val CORE_METADATA_SUFFIX = ".json"
     private const val ACTIVE_FILE = "active-kernel"
     private const val ABI = "arm64-v8a"
     private const val SHELL_ABI = 1
@@ -72,6 +75,14 @@ object KernelManager {
         val compression: String,
     )
 
+    @Serializable
+    private data class InstalledKernel(
+        val id: String,
+        val name: String,
+        val version: String,
+        val commit: String,
+    )
+
     suspend fun fetchIndex(url: String = INDEX_URL): Index = withContext(Dispatchers.IO) {
         require(url.startsWith("https://")) { "Kernel index must use HTTPS" }
         val response = client.get(url)
@@ -96,7 +107,12 @@ object KernelManager {
                 }
                 check(expanded.length() > 0L) { "Kernel archive is empty" }
                 check(isAndroidArm64Core(expanded)) { "Downloaded file is not a compatible Android ARM64 core" }
+                val metadata = metadataFile(context, kernel.id)
+                if (metadata.exists()) check(metadata.delete()) { "Unable to replace kernel metadata" }
                 replace(target, expanded)
+                runCatching { writeInstalledKernel(context, kernel) }.onFailure {
+                    Timber.tag("KernelManager").w(it, "Unable to save installed kernel version")
+                }
             } finally {
                 archive.delete()
                 expanded.delete()
@@ -135,6 +151,24 @@ object KernelManager {
 
     fun isInstalled(context: Context, id: String): Boolean =
         id == BUNDLED_ALPHA_ID || libraryFile(context, id).let(::isAndroidArm64Core)
+
+    /** Returns the source commit tied to the installed file, never the latest remote commit. */
+    fun installedCommit(context: Context, id: String): String? {
+        if (id == BUNDLED_ALPHA_ID || !isInstalled(context, id)) return null
+        readInstalledKernel(context, id)?.let { return it.commit }
+
+        // Kernels installed before metadata support still contain the build-stamped version.
+        val commit = readEmbeddedCommit(libraryFile(context, id), id) ?: return null
+        runCatching {
+            writeInstalledKernel(
+                context,
+                InstalledKernel(id = id, name = id, version = "$id-$commit", commit = commit),
+            )
+        }.onFailure {
+            Timber.tag("KernelManager").w(it, "Unable to cache embedded kernel version")
+        }
+        return commit
+    }
 
     private suspend fun download(kernel: Kernel, target: File) {
         target.delete()
@@ -179,7 +213,56 @@ object KernelManager {
         check(kernel.sizeBytes > 0 && kernel.sizeBytes <= 128L * 1024 * 1024) { "Invalid kernel size" }
         check(kernel.downloadUrl.startsWith("https://")) { "Kernel download must use HTTPS" }
         check(kernel.sha256.matches(Regex("[0-9a-f]{64}"))) { "Invalid kernel checksum" }
+        check(kernel.commit.matches(Regex("[0-9a-f]{40}"))) { "Invalid kernel commit" }
     }
+
+    private fun metadataFile(context: Context, id: String): File =
+        File(libraryDirectory(context), "$CORE_FILE_PREFIX$id$CORE_METADATA_SUFFIX")
+
+    private fun readInstalledKernel(context: Context, id: String): InstalledKernel? =
+        runCatching {
+            json.decodeFromString<InstalledKernel>(metadataFile(context, id).readText())
+        }.getOrNull()?.takeIf { metadata ->
+            metadata.id == id && metadata.commit.matches(Regex("[0-9a-f]{6,40}"))
+        }
+
+    private fun writeInstalledKernel(context: Context, kernel: Kernel) =
+        writeInstalledKernel(
+            context,
+            InstalledKernel(kernel.id, kernel.name, kernel.version, kernel.commit),
+        )
+
+    private fun writeInstalledKernel(context: Context, metadata: InstalledKernel) {
+        val target = metadataFile(context, metadata.id)
+        val pending = File(target.parentFile, "${target.name}.pending")
+        pending.writeText(json.encodeToString(metadata))
+        if (target.exists()) check(target.delete()) { "Unable to replace kernel metadata" }
+        check(pending.renameTo(target)) { "Unable to install kernel metadata" }
+    }
+
+    private fun readEmbeddedCommit(file: File, id: String): String? = runCatching {
+        val versionPattern =
+            when (id) {
+                "alpha" -> Regex("(?i)alpha-([0-9a-f]{6,40})")
+                "meta" -> Regex("(?i)meta-([0-9a-f]{6,40})")
+                "smart" -> Regex("(?i)(?:alpha-smart|smart(?:-smart)?)-([0-9a-f]{6,40})")
+                else -> return null
+            }
+        val buffer = ByteArray(64 * 1024)
+        var carry = ""
+        file.inputStream().buffered().use { input ->
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                val chunk = carry + String(buffer, 0, count, StandardCharsets.ISO_8859_1)
+                versionPattern.find(chunk)?.groupValues?.get(1)?.let { return it.lowercase() }
+                carry = chunk.takeLast(80)
+            }
+        }
+        null
+    }.onFailure {
+        Timber.tag("KernelManager").w(it, "Unable to read embedded kernel version")
+    }.getOrNull()
 
     private fun isAndroidArm64Core(file: File): Boolean = runCatching {
         if (!file.isFile || file.length() < 64) return false

@@ -1,0 +1,272 @@
+---
+title: Примеры и устранение неполадок
+sidebarTitle: Примеры и устранение неполадок
+icon: bug
+---
+На этой странице показано полное переопределение, которое можно сохранить напрямую, а также практические рекомендации по устранению распространенных ошибок.
+
+## Изменить порт и режим
+
+```yaml 基础字段.yaml icon="file-code" lines
+mixed-port: 7890
+mode: rule
+```
+
+```yaml 基础字段 diff.yaml icon="file-code" lines
+mixed-port: 10801 # [!code --]
+mixed-port: 7890 # [!code ++]
+mode: global # [!code --]
+mode: rule # [!code ++]
+```
+
+`mixed-port` и `mode` являются скалярами, а обычные ключи напрямую перезаписывают исходные значения.
+
+## Изменить DNS
+
+### Рекурсивная модификация
+
+```yaml DNS 子字段.yaml icon="file-code" lines
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+```
+
+```yaml DNS 子字段 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver:
+    - 223.5.5.5
+```
+
+### Полная замена
+
+```yaml DNS 完整替换.yaml icon="file-code" lines
+dns-force:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+```
+
+`dns-force` удалит другие поля исходного объекта `dns`, оставив только указанное выше содержимое.
+
+## Добавляем правила прямого подключения
+
+```yaml 添加直连规则.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,tencent.com,DIRECT
+```
+
+```yaml 添加直连规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,tencent.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,PROXY
+  - MATCH,PROXY
+```
+
+## Добавить провайдера
+
+```yaml 添加规则 Provider.yaml icon="file-code" lines
+rule-providers-merge:
+  local:
+    type: http
+    behavior: domain
+    format: yaml
+    interval: 86400
+    url: https://example.com/local.yaml
+    path: ./ruleset/local.yaml
+
+rules-end:
+  - RULE-SET,local,PROXY
+```
+
+Исправление среды выполнения нормализует путь поставщика к текущему каталогу конфигурации, чтобы предотвратить выход относительных путей за пределы области конфигурации.
+
+## Изменить группу политик
+
+```yaml 修改策略组.yaml icon="file-code" lines
+proxy-groups-end:
+  - name: PROXY
+    type: select
+    proxies:
+      - DIRECT
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY # [!code --]
+    type: url-test # [!code --]
+    proxies: # [!code --]
+      - AUTO # [!code --]
+  - name: PROXY # [!code ++]
+    type: select # [!code ++]
+    proxies: # [!code ++]
+      - DIRECT # [!code ++]
+```
+
+## Якоря YAML и `<<`
+
+Перезаписанный файл сначала расширит привязки, псевдонимы и ключи слияния `<<` с помощью анализатора YAML.
+
+```yaml 使用锚点.yaml icon="file-code" lines
+provider-default: &provider-default
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+
+rule-providers-merge:
+  example:
+    <<: *provider-default
+    url: https://example.com/rules.yaml
+    path: ./ruleset/example.yaml
+```
+
+Явные поля имеют приоритет над содержимым привязки:
+
+```yaml 锚点覆盖结果 diff.yaml icon="file-code" lines
+example:
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+  url: https://example.com/rules.yaml
+  path: ./ruleset/example.yaml
+```
+
+## __ДЕРЖАТЬ_101__
+
+YumeBox защищает строковое значение `reality-opts.short-id` в списке `proxies` верхнего уровня. Таким образом, `0123` и `1e5` не будут анализироваться YAML как числа.
+
+```yaml Reality short-id.yaml icon="file-code" lines
+proxies-end:
+  - name: 示例节点
+    type: vless
+    server: example.com
+    port: 443
+    reality-opts:
+      short-id: 0123
+```
+
+```yaml Reality short-id 预期.yaml icon="file-code" lines
+reality-opts:
+  short-id: "0123"
+```
+
+`short-id`, вложенный в другие пользовательские объекты, не активирует эту частную защиту.
+
+## Литеральные ключи
+
+Угловые скобки отключают анализ модификаторов и удаляют угловые скобки во время компиляции:
+
+```yaml 字面量键.yaml icon="file-code" lines
+<rules+>:
+  enabled: true
+```
+
+```yaml 字面量键结果 diff.yaml icon="file-code" lines
+rules+:
+  enabled: true # [!code ++]
+```
+
+Если `rules+` не упакован, он будет разобран и добавлен к `rules`; только после переноса будет записано поле с именем `rules+`.
+
+## Несколько перезаписанных файлов
+
+Перезаписанные файлы выполняются в порядке привязки в подписке, и последний файл может изменять результаты предыдущего файла.
+
+```yaml 第一个覆写.yaml icon="file-code" lines
+mixed-port: 7890
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二个覆写.yaml icon="file-code" lines
+mixed-port: 7891
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 覆写链最终 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 7891 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,original.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+## Пустой файл
+
+Пустые файлы или файлы, содержащие только пробельные символы, будут пропущены, а конфигурация не будет изменена:
+
+```yaml 空覆写.yaml icon="file-code" lines
+
+```
+
+Результат компиляции будет успешным, но в предупреждениях появится `skip empty override file`.
+
+## Ошибка анализа YAML
+
+Ошибки отступов, недопустимые сопоставления или незамкнутые строки остановят текущую цепочку перезаписи:
+
+```yaml 错误的缩进.yaml icon="file-code" lines
+proxy-groups:
+  -
+  name: PROXY
+```
+
+Ожидаемые результаты:
+
+```text
+parse yaml override <覆写文件路径>: <YAML 解析错误>
+```
+
+В сообщении об ошибке будет указан путь к перезаписанному файлу, и последующая перезапись не будет продолжена.
+
+## Неправильный тип корня
+
+Если верхний уровень YAML не является объектом, механизм переопределения заменяет корневую конфигурацию этим значением; компилятор затем отклоняет его:
+
+```yaml 错误的根类型.yaml icon="file-code" lines
+- this-is-a-list
+```
+
+Ожидаемые результаты:
+
+```text
+compiled root config must be an object
+```
+
+## `geosite-matcher` Ошибка проверки
+
+Само переопределение может записывать строки, но финальная проверка принимает только `mph` и `succinct`:
+
+```yaml 错误的 Matcher.yaml icon="file-code" lines
+geosite-matcher: unknown
+```
+
+Ожидаемые результаты:
+
+```text
+geosite-matcher must be one of: mph, succinct
+```
+
+## Границы времени выполнения
+
+После завершения перезаписи пользователя YumeBox по-прежнему будет выполнять исправления во время выполнения:
+
+| Сценарий | Финальное действие |
+| --- | --- |
+| DNS не включен | Дополнительный DNS по умолчанию, `fake-ip` и фильтры. |
+| `Vpn Service` или `eBPF` | Выключите `tun.enable`, `auto-route` и `auto-detect-interface`. |
+| `Tun` | Сохраняет настройки Tun в конфигурации. |
+| `listeners` | Удалите прослушиватели типов `redir` и `tun`. |
+| Предварительный просмотр конфигурации | Очистите порты, прослушиватели и записи Tun. |
+
+Таким образом, успешная перезапись не означает, что все поля станут окончательными текущими значениями; настройки, связанные с режимом бега, можно отрегулировать, применив патч в конце.

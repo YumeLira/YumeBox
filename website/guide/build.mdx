@@ -11,309 +11,245 @@ keywords:
   - Go
 ---
 
-YumeBox 的 APK 由 Android/Kotlin 代码、mihomo Go 内核、Rust 配置编译器和两组 C 原生库组成。仅运行 Gradle 不会自动生成缺失的 `jniLibs`，首次构建需要先完成原生构建。
+<Info>只运行 Gradle 不会生成缺失的 `jniLibs`；首次构建请先完成原生构建.</Info>
 
-<Columns cols={2}>
-  <Card title="构建问题" icon="circle-question-mark" href="/guide/faq" horizontal>
-    根据构建输出或内核错误定位原因。
-  </Card>
-
-  <Card title="mihomo 配置" icon="file-code" href="https://wiki.metacubex.one/config/" horizontal>
-    查看内核支持的配置字段。
-  </Card>
-</Columns>
-
-<Tip>
-  构建脚本会替换 `lib/mihomo/mihomo` 下现有的内核源码。不要在该目录保存未提交修改。
-</Tip>
+<Frame><img src="/images/diagrams/yumebox-build-pipeline.svg" alt="YumeBox 本地与 CI 构建链路" noZoom={true} /></Frame>
 
 ## 环境要求
 
-以下版本来自当前仓库的 `gradle.properties` 与 GitHub Actions。使用其他版本可能可以构建，但不属于项目持续验证的组合。
+| 工具 | 版本 | 用途 |
+| --- | --- | --- |
+| OpenJDK | 24 | Gradle 和 Android 编译 |
+| Android SDK | API 37 | 编译与目标平台 |
+| Android NDK | 30.0.14904198 | Go、Rust、C/C++ 原生构建 |
+| CMake | 3.22.1 | 构建 C/C++ 组件 |
+| Python | 3.10 或更高 | 执行构建脚本 |
+| Go | 1.26 | 构建 mihomo 核心 |
+| Rust | nightly | 构建配置编译器 |
+| cargo-ndk | 最新版本 | 为 Android 编译 Rust |
+| Git、patch | 可用 | 同步内核与应用 Go 补丁 |
 
-<ResponseField name="OpenJDK" type="24" required>
-  Gradle 与 Android 编译工具链使用 Java 24。CI 使用 Temurin 24。
-</ResponseField>
+当前应用只构建 `arm64-v8a`，对应 Rust target 为 `aarch64-linux-android`.
 
-<ResponseField name="Android SDK" type="API 37" required>
-  `compileSdk` 和 `targetSdk` 均为 37，最低系统版本为 Android 8.0（API 26）。
-</ResponseField>
-
-<ResponseField name="Android NDK" type="30.0.14904198" required>
-  Go 共享核心、Rust 和 C 原生库共用此 NDK。
-</ResponseField>
-
-<ResponseField name="CMake" type="3.22.1" required>
-  用于构建 `libloader.so` 与 `libcompat.so`。脚本优先选择 3.22.1。
-</ResponseField>
-
-<ResponseField name="Python" type="3.10+" required>
-  用于执行 `scripts/native-build.py` 和同步脚本。
-</ResponseField>
-
-<ResponseField name="Go" type="1.26" required>
-  构建 mihomo 共享核心和 PIE 启动壳。项目 CI 使用 MetaCubeX 的 Go 1.26 构建。
-</ResponseField>
-
-<ResponseField name="Rust" type="nightly" required>
-  需要 `rust-src`、四个 Android target 和 `cargo-ndk`。
-</ResponseField>
-
-<ResponseField name="Git / patch" type="command line" required>
-  `sync_kernel.py` 使用 Git 拉取内核；Go Android 兼容补丁需要 GNU `patch`。
-</ResponseField>
-
-<Info>
-  Windows 可在 PowerShell 中直接执行 Python、Git、patch 和 Gradle 命令。
-</Info>
-
-## 准备项目
+## 准备仓库
 
 <Steps>
-  <Step title="克隆仓库">
-    项目不使用 Git submodule，mihomo 源码会在后续步骤单独同步。
-
-    ```bash 克隆仓库
+  <Step title="获取源码">
+    ```bash
     git clone https://github.com/YumeYucca/YumeBox.git
     cd YumeBox
     ```
   </Step>
 
-  <Step title="安装 Android 组件">
-    确保 Android SDK Command-line Tools 的 `bin` 目录已加入 `PATH`。
+  <Step title="配置 Android SDK">
+    安装 API 37、NDK 30.0.14904198 和 CMake 3.22.1，然后在仓库根目录创建 `local.properties`：
 
-    <CodeGroup>
-      ```bash Linux / macOS / Windows PowerShell
-      sdkmanager "platforms;android-37" "ndk;30.0.14904198" "cmake;3.22.1"
-      ```
-
-      ```powershell PowerShell
-      sdkmanager "platforms;android-37" "ndk;30.0.14904198" "cmake;3.22.1"
-      ```
-    </CodeGroup>
-  </Step>
-
-  <Step title="配置 Android SDK 路径">
-    在仓库根目录创建 `local.properties`。使用正斜杠可以避免 Windows 路径转义问题。
-
-    <CodeGroup>
-      ```properties Linux / macOS
-      sdk.dir=/home/yume/Android/Sdk
-      ```
-
-      ```properties Windows
-      sdk.dir=C:/Users/Yume/AppData/Local/Android/Sdk
-      ```
-    </CodeGroup>
-
-    `ndk.dir` 通常不需要配置，脚本会读取 `android.ndkVersion` 并定位 SDK 下对应目录。
-  </Step>
-
-  <Step title="同步 mihomo 内核">
-    在 Linux、macOS 或 Windows PowerShell 中选择一个内核通道：
-
-    ```bash 同步 Alpha 内核
-    python3 scripts/sync_kernel.py alpha
+    ```properties
+    sdk.dir=C:/Android/Sdk
     ```
 
-    <Tabs sync={false}>
-      <Tab title="alpha">
-        MetaCubeX `Alpha` 分支，项目默认通道。
-      </Tab>
-
-      <Tab title="meta">
-        MetaCubeX `Meta` 分支。
-      </Tab>
-
-    </Tabs>
+    NDK 会根据 `gradle.properties` 中的 `android.ndkVersion` 自动定位.
   </Step>
 
-  <Step title="应用 Go Android 补丁">
-    这些补丁与 CI 保持一致，用于禁用 Android 上不兼容的 `pidfd`，并修正 32 位目标的 time64 syscall。补丁会修改当前 Go SDK，建议使用专门用于 YumeBox 的可写 Go 安装。
+  <Step title="准备 Go 与 Rust">
+    ```bash
+    rustup toolchain install nightly --component rust-src
+    rustup target add --toolchain nightly aarch64-linux-android
+    cargo install cargo-ndk
+    ```
 
-    ```bash 应用或识别已应用的补丁
+    构建 Go 核心前，还需要将 `.github/patch/` 中的补丁应用到 `go env GOROOT`.CI 会在构建原生组件前自动执行这一步.
+
+    在 Git Bash 或 WSL 中执行：
+
+    ```bash
     project_root="$PWD"
-    cd "$(go env GOROOT)"
-
+    go_root="$(go env GOROOT)"
     for patch_file in "$project_root"/.github/patch/*.patch; do
-      if patch --forward --dry-run -p 1 < "$patch_file" >/dev/null 2>&1; then
-        patch --forward -p 1 < "$patch_file"
-      elif patch --reverse --dry-run -p 1 < "$patch_file" >/dev/null 2>&1; then
-        echo "Already applied: $patch_file"
+      if (cd "$go_root" && patch --forward --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
+        (cd "$go_root" && patch --forward -p 1 < "$patch_file")
+      elif (cd "$go_root" && patch --reverse --dry-run -p 1 < "$patch_file") >/dev/null 2>&1; then
+        echo "已应用：$patch_file"
       else
-        echo "Cannot apply: $patch_file" >&2
+        echo "无法应用：$patch_file" >&2
         exit 1
       fi
     done
-
-    cd "$project_root"
     ```
   </Step>
 
-  <Step title="准备 Rust Android target">
-    ```bash 安装 Rust 工具链
-    rustup toolchain install nightly --component rust-src
-    rustup target add --toolchain nightly \
-      armv7-linux-androideabi \
-      aarch64-linux-android \
-      i686-linux-android \
-      x86_64-linux-android
-    cargo install cargo-ndk
+  <Step title="同步 mihomo">
+    选择一个内核通道.默认使用 Alpha：
+
+    ```bash
+    python scripts/sync_kernel.py alpha
+    ```
+
+    也可以使用 Meta：
+
+    ```bash
+    python scripts/sync_kernel.py meta
     ```
   </Step>
 </Steps>
 
 ## 构建原生组件
 
-首次构建或内核、Rust、C 源码发生变化后，执行原生构建脚本：
+### 完整构建
 
-<Tabs>
-  <Tab title="完整构建">
-    构建四种 ABI 的内核与原生库，并下载 Geo 数据。
+完整构建会生成所有原生库，并下载 Geo 数据：
 
-    ```bash 完整原生构建
-    python3 scripts/native-build.py --all
-    ```
-  </Tab>
+```bash
+python scripts/native-build.py --all
+```
 
-  <Tab title="仅 arm64-v8a">
-    适合本机调试，减少 Go、Rust 和 C 的重复编译。
+### 按组件构建
 
-    <CodeGroup>
-      ```bash Linux / macOS / Windows PowerShell
-      ABI_APP_LIST=arm64-v8a python3 scripts/native-build.py --go --rust --compat --loader
-      ```
+| 参数 | 输出或作用 |
+| --- | --- |
+| `--go` | mihomo 共享核心、预览库和 PIE 启动壳 |
+| `--rust` | Rust 配置编译器 `liboverride.so` |
+| `--compat` | 核心进程通信桥 `libcompat.so` |
+| `--ebpf` | Root eBPF socket bridge |
+| `--loader` | APK payload loader `libloader.so` |
+| `--shell` | 仅构建 mihomo PIE 启动壳 |
+| `--geo` | 下载并压缩 Geo 数据与 BundleMRS |
+| `--clean` | 清理原生、Geo 和版本标记 |
 
-      ```powershell PowerShell
-      $env:ABI_APP_LIST = "arm64-v8a"
-      python scripts/native-build.py --go --rust --compat --loader
-      ```
-    </CodeGroup>
-  </Tab>
-</Tabs>
+本机调试可只构建当前 ABI：
 
-### 可单独执行的任务
+<CodeGroup>
+  ```bash Linux / macOS / Git Bash
+  ABI_APP_LIST=arm64-v8a python scripts/native-build.py --go --rust --compat --loader --ebpf
+  ```
 
-<ResponseField name="--go" type="native">
-  构建 mihomo 共享核心 `libmihomocore.so` 和 PIE 启动壳 `libmihomo.so`。
-</ResponseField>
+  ```powershell Windows PowerShell
+  $env:ABI_APP_LIST = "arm64-v8a"
+  python scripts/native-build.py --go --rust --compat --loader --ebpf
+  ```
+</CodeGroup>
 
-<ResponseField name="--rust" type="native">
-  构建 Rust 配置编译器，输出 `liboverride.so`。
-</ResponseField>
+构建成功后，`jniLibs/arm64-v8a/` 应包含：
 
-<ResponseField name="--compat" type="native">
-  构建进程与 Unix socket bridge，输出 `libcompat.so`。
-</ResponseField>
+| 文件 | 用途 |
+| --- | --- |
+| `libmihomo.so` | mihomo PIE 启动壳 |
+| `libmihomocore.so` | mihomo Go 共享核心 |
+| `libpreview.so` | 配置预览 |
+| `liboverride.so` | 覆写编译 |
+| `libcompat.so` | 核心通信桥 |
+| `libebpfbridge.so` | eBPF 模式桥接 |
+| `libloader.so` | APK 原生载荷加载 |
+| `core-version.properties` | 内核分支、提交和构建信息 |
 
-<ResponseField name="--loader" type="native">
-  构建 APK payload loader，输出 `libloader.so`。
-</ResponseField>
+Geo 数据位于 `build/generated/assets/geo/`：
 
-<ResponseField name="--geo" type="assets">
-  下载并压缩 GeoIP、GeoSite、ASN 和 BundleMRS 数据。
-</ResponseField>
-
-<ResponseField name="--clean" type="maintenance">
-  清理脚本产生的 native、Geo 和版本标记文件。
-</ResponseField>
-
-<Check>
-  成功后，每个目标 ABI 的 `jniLibs/&lt;abi&gt;/` 下应包含 `libmihomo.so`、`libmihomocore.so`、`liboverride.so`、`libcompat.so`、`libloader.so` 和 `core-version.properties`。
-</Check>
+```text
+geoip.metadb.xz
+geosite.dat.xz
+ASN.mmdb.xz
+BundleMRS.7z
+```
 
 ## 构建 APK
 
+### Debug
+
+Debug 适合本地安装和调试：
+
 <CodeGroup>
   ```bash Linux / macOS
-  # 默认：arm64-v8a、外置 Geo 数据
   ./gradlew :app:assembleDebug
-
-  # arm64-v8a、内置 Geo 数据
   ./gradlew -Pgeo.bundle=true :app:assembleDebug
+  ```
 
-  # 全 ABI、内置 Geo 数据
+  ```powershell Windows
+  .\gradlew.bat :app:assembleDebug
+  .\gradlew.bat -Pgeo.bundle=true :app:assembleDebug
+  ```
+</CodeGroup>
+
+### Release
+
+Release 会启用压缩和资源收缩：
+
+<CodeGroup>
+  ```bash Linux / macOS
+  ./gradlew -Pgeo.bundle=false :app:assembleRelease
   ./gradlew -Pgeo.bundle=true :app:assembleRelease
   ```
 
   ```powershell Windows
-  # 默认：arm64-v8a、外置 Geo 数据
-  .\gradlew.bat :app:assembleDebug
-
-  # arm64-v8a、内置 Geo 数据
-  .\gradlew.bat -Pgeo.bundle=true :app:assembleDebug
-
-  # 全 ABI、内置 Geo 数据
+  .\gradlew.bat -Pgeo.bundle=false :app:assembleRelease
   .\gradlew.bat -Pgeo.bundle=true :app:assembleRelease
   ```
 </CodeGroup>
 
-<Columns cols={2}>
-  <Card title="external" icon="cloud-download">
-    APK 不携带 Geo 数据，体积较小；首次使用时需要网络下载。
-  </Card>
+### Geo 数据变体
 
-  <Card title="builtin" icon="package-check">
-    APK 携带 Geo 数据，安装后可直接使用，但文件更大。
-  </Card>
-</Columns>
+| 变体 | 内容 | 适用场景 |
+| --- | --- | --- |
+| `external` | 不内置 Geo 数据 | 体积更小，首次启动需要下载 |
+| `builtin` | 内置 Geo 数据 | 首次安装或离线使用 |
 
-APK 输出目录为 `app/build/outputs/apk/debug/` 或 `app/build/outputs/apk/release/`。所有构建仅生成 `arm64-v8a` APK。
+两种变体使用相同的应用代码和内核；差异只在 Geo 资源是否打包进 APK.
+
+APK 默认输出到：
+
+```text
+app/build/outputs/apk/debug/
+app/build/outputs/apk/release/
+```
+
+本地构建通常生成 `YumeBox-external.apk` 或 `YumeBox-builtin.apk`.实际文件名以输出目录为准.
 
 ## Release 签名
 
-没有签名配置时仍可执行本地编译，但正式分发应使用独立密钥。在仓库根目录放置 `release.keystore`，并创建 `signing.properties`：
+本地验证可以不配置正式签名；发布 APK 需要仓库根目录中的 `release.keystore` 和 `signing.properties`：
 
-```properties signing.properties
-keystore.password=your-store-password
+```properties
+keystore.password=你的仓库密码
 key.alias=yumebox
-key.password=your-key-password
+key.password=你的密钥密码
 ```
 
-<ParamField body="keystore.password" type="string" required>
-  `release.keystore` 的 store password。
-</ParamField>
+| 字段 | 说明 |
+| --- | --- |
+| `keystore.password` | keystore 密码 |
+| `key.alias` | 签名密钥别名 |
+| `key.password` | 签名密钥密码 |
 
-<ParamField body="key.alias" type="string" required>
-  用于签名的 key alias。
-</ParamField>
+<Info>不要提交 `release.keystore` 或 `signing.properties`.</Info>
 
-<ParamField body="key.password" type="string" required>
-  对应 key 的 password。
-</ParamField>
+## CI 构建
 
-<Danger>
-  不要提交 `release.keystore` 或 `signing.properties`。仓库已忽略这些文件，但仍应在提交前检查 `git status`。
-</Danger>
+| 阶段 | 主要工作 | 结果 |
+| --- | --- | --- |
+| 原生构建 | 同步内核，构建 Go、Rust、C/C++、eBPF 和 loader | `native-*` 构建产物 |
+| APK 构建 | 下载原生产物，分别打包 `builtin` 和 `external` | 两个 Release APK |
+| 发布准备 | 计算版本、生成 SHA-256 和元数据 | 发布目录与更新信息 |
+| Release 发布 | 上传 APK 和元数据 | GitHub Release |
 
-## 验证构建
+CI 使用 `arm64-v8a`，并通过 `build.number`、`build.hash` 和 `build.branch` 写入构建版本信息.
 
-<Steps>
-  <Step title="编译 Kotlin 与资源">
-    <CodeGroup>
-      ```bash Linux / macOS
-      ./gradlew :app:compileDebugKotlin
-      ```
+## 验证安装
 
-      ```powershell Windows
-      .\gradlew.bat :app:compileDebugKotlin
-      ```
-    </CodeGroup>
-  </Step>
+```bash
+adb install -r app/build/outputs/apk/debug/YumeBox-external.apk
+```
 
-  <Step title="确认 APK 产物">
-    检查 `app/build/outputs/apk/` 下的文件名、ABI 与 Geo 类型是否符合预期。
-  </Step>
+如果文件名不同，先查看 `app/build/outputs/apk/` 中的实际产物.
 
-  <Step title="安装到目标设备">
-    ```bash 安装 Debug APK
-    adb install -r app/build/outputs/apk/debug/YumeBox-external.apk
-    ```
+## 常见问题
 
-    实际文件名由当前版本和构建参数决定；命令执行前先查看输出目录。
-  </Step>
-</Steps>
+| 现象 | 处理 |
+| --- | --- |
+| `jniLibs/arm64-v8a` 缺少 `.so` | 先运行 `python scripts/native-build.py --all`. |
+| 找不到 Android SDK | 检查 `local.properties` 或 `ANDROID_SDK_ROOT`. |
+| 找不到 NDK | 安装 `30.0.14904198`，不要使用其他版本替代. |
+| `cargo-ndk` 或 Rust target 缺失 | 重新安装 nightly、`rust-src` 和 `aarch64-linux-android`. |
+| Go 补丁无法应用 | 检查补丁是否已经应用，或换用专用 Go SDK. |
+| `builtin` 缺少 Geo 文件 | 先运行 `python scripts/native-build.py --geo`. |
+| ABI 不受支持 | 当前项目只支持 `arm64-v8a`. |
 
-<Card title="构建失败排查" icon="wrench" href="/guide/faq" horizontal>
-  查看 SDK、NDK、原生库、配置编译和内核启动错误的处理方法。
-</Card>
+更多构建错误请查看[常见问题](/guide/faq).

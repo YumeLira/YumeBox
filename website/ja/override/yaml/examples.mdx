@@ -1,0 +1,272 @@
+---
+title: 例とトラブルシューティング
+sidebarTitle: 例とトラブルシューティング
+icon: bug
+---
+このページには、直接保存できる完全なオーバーライドと、一般的なエラーの実際的な予想が表示されます.
+
+## ポートとモードを変更する
+
+```yaml 基础字段.yaml icon="file-code" lines
+mixed-port: 7890
+mode: rule
+```
+
+```yaml 基础字段 diff.yaml icon="file-code" lines
+mixed-port: 10801 # [!code --]
+mixed-port: 7890 # [!code ++]
+mode: global # [!code --]
+mode: rule # [!code ++]
+```
+
+`mixed-port` と `mode` は両方ともスカラーであり、通常のキーは元の値を直接上書きします.
+
+## DNS を変更する
+
+### 再帰的変更
+
+```yaml DNS 子字段.yaml icon="file-code" lines
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+```
+
+```yaml DNS 子字段 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver:
+    - 223.5.5.5
+```
+
+### 完全交換
+
+```yaml DNS 完整替换.yaml icon="file-code" lines
+dns-force:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+```
+
+`dns-force` は、元の `dns` オブジェクトの他のフィールドを削除し、上記のコンテンツのみを残します.
+
+## 直接接続ルールを追加する
+
+```yaml 添加直连规则.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,tencent.com,DIRECT
+```
+
+```yaml 添加直连规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,tencent.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,PROXY
+  - MATCH,PROXY
+```
+
+## プロバイダーを追加
+
+```yaml 添加规则 Provider.yaml icon="file-code" lines
+rule-providers-merge:
+  local:
+    type: http
+    behavior: domain
+    format: yaml
+    interval: 86400
+    url: https://example.com/local.yaml
+    path: ./ruleset/local.yaml
+
+rules-end:
+  - RULE-SET,local,PROXY
+```
+
+ランタイム パッチは、相対パスが構成スコープから外れるのを防ぐために、現在の構成ディレクトリへのプロバイダー パスを正規化します.
+
+## ポリシーグループを変更する
+
+```yaml 修改策略组.yaml icon="file-code" lines
+proxy-groups-end:
+  - name: PROXY
+    type: select
+    proxies:
+      - DIRECT
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY # [!code --]
+    type: url-test # [!code --]
+    proxies: # [!code --]
+      - AUTO # [!code --]
+  - name: PROXY # [!code ++]
+    type: select # [!code ++]
+    proxies: # [!code ++]
+      - DIRECT # [!code ++]
+```
+
+## YAML アンカーと `<<`
+
+上書きされたファイルは、まず YAML パーサーによってアンカー、エイリアス、および `<<` マージ キーを展開します.
+
+```yaml 使用锚点.yaml icon="file-code" lines
+provider-default: &provider-default
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+
+rule-providers-merge:
+  example:
+    <<: *provider-default
+    url: https://example.com/rules.yaml
+    path: ./ruleset/example.yaml
+```
+
+明示的なフィールドはアンカー コンテンツよりも優先されます.
+
+```yaml 锚点覆盖结果 diff.yaml icon="file-code" lines
+example:
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+  url: https://example.com/rules.yaml
+  path: ./ruleset/example.yaml
+```
+
+## `reality-opts.short-id`
+
+DreamBox は、最上位の `proxies` リスト内の `reality-opts.short-id` の文字列値を保護します.こうすることで、`0123` と `1e5` は YAML によって数値として解析されなくなります.
+
+```yaml Reality short-id.yaml icon="file-code" lines
+proxies-end:
+  - name: 示例节点
+    type: vless
+    server: example.com
+    port: 443
+    reality-opts:
+      short-id: 0123
+```
+
+```yaml Reality short-id 预期.yaml icon="file-code" lines
+reality-opts:
+  short-id: "0123"
+```
+
+他のカスタム オブジェクト内にネストされた `short-id` は、このプライベート保護をトリガーしません.
+
+## リテラルキー
+
+山括弧は修飾子の解析をオフにし、コンパイル時に山括弧を削除します.
+
+```yaml 字面量键.yaml icon="file-code" lines
+<rules+>:
+  enabled: true
+```
+
+```yaml 字面量键结果 diff.yaml icon="file-code" lines
+rules+:
+  enabled: true # [!code ++]
+```
+
+ラップされていない場合、`rules+` は解析されて `rules` に追加されます.ラッピング後にのみ、`rules+` という名前のフィールドが書き込まれます.
+
+## 複数の上書きファイル
+
+上書きされたファイルはサブスクリプション内のバインド順序で実行され、後のファイルは前のファイルの結果を変更する可能性があります.
+
+```yaml 第一个覆写.yaml icon="file-code" lines
+mixed-port: 7890
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二个覆写.yaml icon="file-code" lines
+mixed-port: 7891
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 覆写链最终 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 7891 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,original.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+## 空のファイル
+
+空のファイルまたは空白文字のみを含むファイルはスキップされ、構成は変更されません.
+
+```yaml 空覆写.yaml icon="file-code" lines
+
+```
+
+コンパイル結果は成功しますが、警告に `skip empty override file` が表示されます.
+
+## YAML 解析エラー
+
+インデント エラー、不正なマッピング、または閉じられていない文字列があると、現在の上書きチェーンが停止します.
+
+```yaml 错误的缩进.yaml icon="file-code" lines
+proxy-groups:
+  -
+  name: PROXY
+```
+
+期待される結果:
+
+```text
+parse yaml override <覆写文件路径>: <YAML 解析错误>
+```
+
+エラー メッセージには上書きされたファイルへのパスが含まれており、それ以降の上書きは続行されません.
+
+## ルートの種類が間違っています
+
+YAML のトップレベルがオブジェクトではない場合、オーバーライド エンジンはルート設定をその値に置き換えます.コンパイラはそれを拒否します.
+
+```yaml 错误的根类型.yaml icon="file-code" lines
+- this-is-a-list
+```
+
+期待される結果:
+
+```text
+compiled root config must be an object
+```
+
+## `geosite-matcher` 検証エラー
+
+オーバーライド自体は文字列を書き込むことができますが、最終チェックでは `mph` と `succinct` のみが受け入れられます.
+
+```yaml 错误的 Matcher.yaml icon="file-code" lines
+geosite-matcher: unknown
+```
+
+期待される結果:
+
+```text
+geosite-matcher must be one of: mph, succinct
+```
+
+## 実行時の境界
+
+ユーザーによる上書きが完了した後も、YumeBox はランタイム パッチを実行します.
+
+|シナリオ |最終アクション |
+| --- | --- |
+| DNS が有効になっていません |補足的なデフォルト DNS、`fake-ip`、およびフィルター. |
+| `Vpn Service` または `eBPF` | `tun.enable`、`auto-route`、`auto-detect-interface` をオフにします. |
+| `Tun` | Tun 設定を構成に保存します. |
+| `listeners` | `redir` および `tun` タイプのリスナーを削除します. |
+|構成プレビュー |ポート、リスナー、および Tun エントリをクリアします. |
+
+したがって、上書きが成功しても、すべてのフィールドが最終的な実行値になるわけではありません.実行モード関連の設定は、最後にパッチを適用することで調整できます.

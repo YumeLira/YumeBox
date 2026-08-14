@@ -1,0 +1,243 @@
+---
+title: リストとルール
+sidebarTitle: リストとルール
+icon: list-plus
+---
+このページはリスト修飾子専用です.すべての例では、対応するフィールドが元の構成にすでに存在していることを前提としています.
+
+## `key-start`
+
+元のリストの先頭に配列項目を挿入します.
+
+```yaml 插入列表开头.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml key-start 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+間違った使用法または無効な使用法:
+
+```yaml key-start 无效类型.yaml icon="file-code" lines
+mixed-port-start: 7890
+dns-start:
+  enable: true
+```
+
+これら 2 つの項目はエラーを報告しませんが、`mixed-port` はスカラーであり、`dns` はオブジェクトであるため、リストの挿入は行われません.
+
+## `key-end`
+
+配列項目を元のリストの末尾に追加します. `rules` の場合、元の構成のターミナル `MATCH` セクションは新しいコンテンツの後に残ります.新しいコンテンツの内部順序は変更されません.
+
+```yaml 追加列表末尾.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml key-end 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+間違った使用法または無効な使用法:
+
+```yaml key-end 无效类型.yaml icon="file-code" lines
+mode-end: global
+```
+
+`mode` はスカラーであり、`mode-end` はそれをリストに変換せず、`mode` をオーバーライドしません.
+
+## `key-merge`
+
+`key-merge` では、フィールドの種類ごとに異なる結果が得られます.
+
+|フィールドの種類 |結果 |
+| --- | --- |
+|通常のリスト |配列項目を追加します. |
+|名前付きオブジェクトのリスト |重複を削除するには、追加後に `name` を押します. |
+| `rules` |追加後、`MATCH` を最後に戻します. |
+|オブジェクトマッピング |再帰的なマージ マッピング. |
+|普通の物体 |リテラル キーによってマージされると、ネストされた修飾子は解析されなくなります. |
+|スカラー |無視されました. |
+
+### リストの追加
+
+```yaml key-merge 列表.yaml icon="file-code" lines
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+```
+
+```yaml key-merge 列表结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+### マップのマージ
+
+```yaml key-merge 映射.yaml icon="file-code" lines
+proxy-providers-merge:
+  extra:
+    type: file
+    path: extra.yaml
+```
+
+```yaml key-merge 映射结果 diff.yaml icon="file-code" lines
+proxy-providers:
+  base:
+    type: http
+  extra: # [!code ++]
+    type: file # [!code ++]
+    path: extra.yaml # [!code ++]
+```
+
+間違った使用法または無効な使用法:
+
+```yaml key-merge 标量.yaml icon="file-code" lines
+mixed-port-merge:
+  value: 7890
+```
+
+`mixed-port` はスカラーであり、`key-merge` は無視され、ポートはオブジェクトに変換されません.
+
+## `key-force`
+
+`key-force` はフィールド全体を直接置き換え、フィールド タイプの処理をスキップします.元のリストのクリア、オブジェクト全体の置換、または未知の構造の上書きに適しています.
+
+```yaml key-force 列表.yaml icon="file-code" lines
+rules-force:
+  - DOMAIN-SUFFIX,new.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml key-force 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT # [!code --]
+  - MATCH,OLD # [!code --]
+  - DOMAIN-SUFFIX,new.example,DIRECT # [!code ++]
+  - MATCH,PROXY # [!code ++]
+```
+
+同じ基本キーに対して同時に複数の操作がある場合は、`force` が優先されます.
+
+```yaml force 优先.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,ignored.example,DIRECT
+
+rules-force:
+  - MATCH,PROXY
+```
+
+最終的には `MATCH,PROXY` だけが残り、`rules-start` は実行を継続しません.
+
+## 略語
+
+これら 2 つの記述方法は、リスト操作の短縮形です.
+
+|略語 |同等の書き込み |結果 |
+| --- | --- | --- |
+| `+key` | `key-start` |冒頭を挿入します. |
+| `key+` | `key-end` |最後に追加します. |
+
+```yaml 列表简写.yaml icon="file-code" lines
++rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 列表简写结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+間違った使用法または無効な使用法:
+
+```yaml 简写用于标量.yaml icon="file-code" lines
++mode: rule
+mode+:
+  - global
+```
+
+`+mode` と `mode+` はリスト操作としてのみ認識され、スカラー `mode` は変更されません.
+
+## `null` リスト項目
+
+リスト修飾子の値は、単一の値、配列、または `null` にすることができます.
+
+|値 |結果 |
+| --- | --- |
+|配列 |複数のリスト項目に展開します. |
+|単一のスカラーまたはオブジェクト |リスト項目として. |
+| `null` |リスト項目を生成しません. |
+
+```yaml null 列表项.yaml icon="file-code" lines
+rules-end: null
+
+rules-start:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+```
+
+最終的には `DOMAIN-SUFFIX,example.com,DIRECT` のみが挿入されます.
+
+## 複数の操作のシーケンス
+
+同じ YAML ファイルに対して複数の操作を同時に使用できます.リストフィールドの順序は次のとおりです.
+
+```yaml 多个列表操作.yaml icon="file-code" lines
+rules:
+  - MATCH,REPLACED
+
++rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT
+
+rules-start:
+  - DOMAIN-SUFFIX,start.example,DIRECT
+
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT
+
+rules-end:
+  - DOMAIN-SUFFIX,end.example,DIRECT
+```
+
+```yaml 多个列表操作结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,end.example,DIRECT # [!code ++]
+  - MATCH,REPLACED
+```
+
+同じベースキーに `key-force` も存在する場合、上記の操作はすべてスキップされます.
+
+## `MATCH` ルール
+
+元のリスト内の最初のコンマ区切りセグメントが `MATCH` (大文字と小文字を区別しない) である文字列のみが終端ルールとして認識されます.オブジェクト、数字、その他のルールは動きを引き起こしません.ファイルの上書きによって追加されたルールは再度スキャンされません.
+
+```yaml 终端规则判断.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+  - MATCH,PROXY
+  - match,FINAL
+```
+
+DreamBox は、元のリストの最初に認識された位置から開始し、後続のコンテンツを終端ルール セグメントとして最後に保持します.

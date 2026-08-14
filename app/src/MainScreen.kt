@@ -44,6 +44,7 @@ import com.github.yumeyucca.yumebox.presentation.webview.WebViewUtils
 import com.github.yumeyucca.yumebox.screen.home.HomePager
 import com.github.yumeyucca.yumebox.screen.home.HomeViewModel
 import com.github.yumeyucca.yumebox.screen.moe.MoeHomePage
+import com.github.yumeyucca.yumebox.screen.moe.LocalUseSystemWallpaper
 import com.github.yumeyucca.yumebox.screen.moe.calculateHomeVisibility
 import com.github.yumeyucca.yumebox.screen.profiles.ProfilesPager
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
@@ -107,14 +108,15 @@ fun MainScreen(
     val moeWallpaperZoom by appSettingsViewModel.moeWallpaperZoom.state.collectAsState()
     val moeWallpaperBiasX by appSettingsViewModel.moeWallpaperBiasX.state.collectAsState()
     val moeWallpaperBiasY by appSettingsViewModel.moeWallpaperBiasY.state.collectAsState()
+    val useSystemWallpaper by appSettingsViewModel.useSystemWallpaper.state.collectAsState()
     val selectedPanelType by featureStore.selectedPanelType.state.collectAsState()
     val panelOpenMode by featureStore.panelOpenMode.state.collectAsState()
     val panelUrl = remember(selectedPanelType) { WebViewUtils.getPanelUrl(selectedPanelType) }
     val openNetworkPanel: () -> Unit = {
-        if (panelUrl.isNotBlank()) {
+        panelUrl.takeIf { it.isNotBlank() }?.let { url ->
             when (panelOpenMode) {
-                LinkOpenMode.IN_APP -> WebViewActivity.start(context, panelUrl)
-                LinkOpenMode.EXTERNAL_BROWSER -> openUrl(context, panelUrl)
+                LinkOpenMode.IN_APP -> WebViewActivity.start(context, url)
+                LinkOpenMode.EXTERNAL_BROWSER -> openUrl(context, url)
             }
         }
     }
@@ -162,22 +164,16 @@ fun MainScreen(
     // Key off the actual theme background, not isSystemInDarkTheme(): the in-app theme can
     // disagree with the system setting, and a white scrim on a dark UI is glaring.
     val bottomBarScrimColor =
-        if (MiuixTheme.colorScheme.background.luminance() < 0.5f) {
-            bottomBarBackground
-        } else {
-            Color.White
-        }
+        bottomBarBackground.takeIf { MiuixTheme.colorScheme.background.luminance() < 0.5f }
+            ?: Color.White
     val bottomBarHazeStyle = YumeHaze.bottomBarStyle(bottomBarBackground)
 
     LaunchedEffect(visibleDestinations) {
         val pending = pendingDestination
         val currentDestination =
-            if (pending != null && pending in visibleDestinations) {
-                pending
-            } else {
-                previousDestinations.getOrNull(mainPagerState.pagerState.currentPage)
-                    ?: settledDestination
-            }
+            pending?.takeIf { it in visibleDestinations }
+                ?: previousDestinations.getOrNull(mainPagerState.pagerState.currentPage)
+                ?: settledDestination
         val targetDestination =
             currentDestination.takeIf { it in visibleDestinations } ?: BottomBarDestination.Config
         val targetPage = visibleDestinations.indexOf(targetDestination)
@@ -297,6 +293,7 @@ fun MainScreen(
         LocalBottomBarScrollBehavior provides bottomBarScrollBehavior,
         LocalBottomBarHazeState provides if (topBarBlurEnabled) hazeState else null,
         LocalBottomBarHazeStyle provides if (topBarBlurEnabled) bottomBarHazeStyle else null,
+        LocalUseSystemWallpaper provides useSystemWallpaper,
     ) {
         MainContentHost(
             usesSplitShell = usesSplitShell,
@@ -332,68 +329,65 @@ private fun MainScreenBackHandler(mainPagerState: MainPagerState, canPopRoute: B
     androidx.activity.compose.BackHandler(enabled = canReturnHome) { mainPagerState.animateToPage(0) }
 }
 
+internal data class MainRootPageState(
+    val destination: BottomBarDestination,
+    val mainInnerPadding: PaddingValues,
+    val classicHomeEnabled: Boolean,
+    val moeWallpaperUri: String,
+    val moeWallpaperZoom: Float,
+    val moeWallpaperBiasX: Float,
+    val moeWallpaperBiasY: Float,
+    val navigator: Navigator,
+    val homePageProgress: Float,
+    val selectedDestination: BottomBarDestination,
+    val windowLayoutMode: WindowLayoutMode,
+    val onOpenPanel: () -> Unit,
+)
+
 @Composable
-internal fun MainRootPageContent(
-    destination: BottomBarDestination,
-    mainInnerPadding: PaddingValues,
-    classicHomeEnabled: Boolean,
-    moeWallpaperUri: String,
-    moeWallpaperZoom: Float,
-    moeWallpaperBiasX: Float,
-    moeWallpaperBiasY: Float,
-    navigator: Navigator,
-    homePageProgress: Float,
-    selectedDestination: BottomBarDestination,
-    windowLayoutMode: WindowLayoutMode,
-    onOpenPanel: () -> Unit,
-) {
+internal fun MainRootPageContent(state: MainRootPageState) {
     val detailNavigator = LocalDetailNavigator.current
     val openProvidersFromProxy: () -> Unit = {
-        if (detailNavigator != null) {
-            detailNavigator.replaceAll(listOf(Route.About, Route.Providers))
-        } else {
-            navigator.replaceAll(
+        detailNavigator?.replaceAll(listOf(Route.About, Route.Providers))
+            ?: state.navigator.replaceAll(
                 listOf(
                     Route.Main(initialPage = BottomBarDestination.Proxy.ordinal),
                     Route.Providers,
                 )
             )
-        }
     }
-    when (destination) {
+    when (state.destination) {
         BottomBarDestination.Home -> {
-            if (classicHomeEnabled) {
+            if (state.classicHomeEnabled) {
                 HomePager(
-                    mainInnerPadding = mainInnerPadding,
-                    isActive = selectedDestination == BottomBarDestination.Home,
-                    onOpenPanel = onOpenPanel,
+                    mainInnerPadding = state.mainInnerPadding,
+                    isActive = state.selectedDestination == BottomBarDestination.Home,
+                    onOpenPanel = state.onOpenPanel,
                 )
             } else {
                 MoeHomePage(
-                    mainInnerPadding = mainInnerPadding,
-                    wallpaperUri = moeWallpaperUri,
-                    wallpaperZoom = moeWallpaperZoom,
-                    wallpaperBiasX = moeWallpaperBiasX,
-                    wallpaperBiasY = moeWallpaperBiasY,
-                    isActive = selectedDestination == BottomBarDestination.Home,
-                    pageProgress = homePageProgress,
-                    onOpenPanel = onOpenPanel,
-                    windowLayoutMode = windowLayoutMode,
+                    mainInnerPadding = state.mainInnerPadding,
+                    wallpaperUri = state.moeWallpaperUri,
+                    wallpaperZoom = state.moeWallpaperZoom,
+                    wallpaperBiasX = state.moeWallpaperBiasX,
+                    wallpaperBiasY = state.moeWallpaperBiasY,
+                    isActive = state.selectedDestination == BottomBarDestination.Home,
+                    pageProgress = state.homePageProgress,
+                    onOpenPanel = state.onOpenPanel,
+                    windowLayoutMode = state.windowLayoutMode,
                 )
             }
         }
 
         BottomBarDestination.Proxy ->
             ProxyPager(
-                mainInnerPadding = mainInnerPadding,
-                onNavigateToProviders = {
-                    openProvidersFromProxy()
-                },
-                isActive = selectedDestination == BottomBarDestination.Proxy,
-                windowLayoutMode = windowLayoutMode,
+                mainInnerPadding = state.mainInnerPadding,
+                onNavigateToProviders = openProvidersFromProxy,
+                isActive = state.selectedDestination == BottomBarDestination.Proxy,
+                windowLayoutMode = state.windowLayoutMode,
             )
 
-        BottomBarDestination.Config -> ProfilesPager(mainInnerPadding, windowLayoutMode)
-        BottomBarDestination.Setting -> SettingPager(mainInnerPadding, windowLayoutMode)
+        BottomBarDestination.Config -> ProfilesPager(state.mainInnerPadding, state.windowLayoutMode)
+        BottomBarDestination.Setting -> SettingPager(state.mainInnerPadding, state.windowLayoutMode)
     }
 }

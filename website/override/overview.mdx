@@ -1,0 +1,113 @@
+---
+title: 覆写
+sidebarTitle: 概览
+icon: file-pen
+---
+
+<Info>覆写只作用于应用配置，不会改动原始配置，仅在使用时生效.</Info>
+
+覆写的作用可以概括为：读取原始配置，按顺序应用绑定的覆写，生成本次运行使用的配置.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart LR
+    A["配置来源<br/>订阅 / 本地文件"] --> B["配置管理<br/>保存并选择当前配置"]
+    B --> C["覆写编译<br/>YAML / JavaScript"]
+    C --> D["运行阶段<br/>补丁、校验、启动 mihomo"]
+
+    classDef source fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef manage fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef compile fill:#f0fdf4,stroke:#22c55e,color:#14532d,stroke-width:1.5px;
+    classDef runtime fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    class A source;
+    class B manage;
+    class C compile;
+    class D runtime;
+```
+
+## 内置覆写
+
+| 名称 | 作用 |
+| --- | --- |
+| 防止 DNS 泄露 | 添加防泄露规则并启用 `fake-ip`. |
+| 添加直连规则 | 将百度、腾讯规则插入规则列表开头. |
+| 布丁狗的订阅转换 | 添加规则集、代理组和分流规则. |
+| ACL4SSR Online Full | 添加完整的 ACL4SSR 规则集和分流组. |
+
+<Info>内置覆写不可编辑或删除，需要修改时请先复制.</Info>
+
+## 应用覆写
+
+两种入口的效果相同，都会把选中的覆写应用到订阅
+
+<Steps>
+  <Step title="从订阅卡片应用">
+    打开订阅卡片，进入**编辑订阅 → 设置类型 → 覆写配置**.
+
+    <Frame><img src="/images/guide/override-profile-settings.jpg" alt="在订阅设置中选择覆写配置" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="从覆写配置应用">
+    选择覆写，点击**应用**，勾选目标订阅后确认保存.
+
+    <Frame><img src="/images/guide/override-apply-to-profile.jpg" alt="将覆写应用到订阅" noZoom={true} /></Frame>
+  </Step>
+</Steps>
+
+
+### 执行顺序
+
+同一订阅应用多个覆写时，YumeBox 按列表顺序执行；后执行的覆写可以修改前面的结果.
+
+```yaml 原始配置.yaml icon="file-code" lines
+mixed-port: 7890
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml 第一份覆写.yaml icon="file-code" lines
+mixed-port: 10801
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二份覆写.yaml icon="file-code" lines
+mixed-port: 10802
+rules-end:
+  - DOMAIN-SUFFIX,last.example,PROXY
+```
+
+```yaml 最终结果 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 10802 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+后续覆写不会重新读取订阅原文，而是接收前一份覆写的结果.
+
+## 自定义覆写
+
+| 类型 | 用途 | 文档 |
+| --- | --- | --- |
+| YAML | 固定字段、规则和列表修改. | [YAML 语法](/override/yaml) |
+| JavaScript | 条件判断、动态处理和远程读取. | [JavaScript 语法](/override/js-override) |

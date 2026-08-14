@@ -56,6 +56,7 @@ import com.github.yumeyucca.yumebox.presentation.theme.YumeHaze
 import com.github.yumeyucca.yumebox.presentation.theme.YumeTheme
 import com.github.yumeyucca.yumebox.runtime.service.WifiAutomationService
 import com.github.yumeyucca.yumebox.screen.moe.HomePreviewGuideDialog
+import com.github.yumeyucca.yumebox.screen.moe.SystemWallpaperAccess
 import com.github.yumeyucca.yumebox.screen.settings.AppSettingsViewModel
 import com.tencent.mmkv.MMKV
 import dev.chrisbanes.haze.HazeState
@@ -71,6 +72,7 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : FragmentActivity() {
+    private var systemWallpaperPermissionRequestHandled = false
     private val appSettingsStore: AppSettingsStore by inject()
     private val navigationComponent: AppNavigationComponent by lazy {
         retainedComponent { componentContext ->
@@ -83,6 +85,7 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         private const val REQUEST_STARTUP_PERMISSIONS = 1001
+        private const val REQUEST_SYSTEM_WALLPAPER_PERMISSION = 1002
         private const val MIUI_GET_INSTALLED_APPS_PERMISSION =
             "com.android.permission.GET_INSTALLED_APPS"
         private const val EXTRA_EXIT_UI_WHEN_BACKGROUND = "exit_ui_when_background"
@@ -133,7 +136,10 @@ class MainActivity : FragmentActivity() {
         intentController = IntentController(this, lifecycleScope)
         handleIntent(intent)
 
-        requestStartupPermissions()
+        val startupPermissionsRequested = requestStartupPermissions()
+        if (!startupPermissionsRequested) {
+            window.decorView.post(::requestSystemWallpaperPermissionIfNeeded)
+        }
 
         if (networkSettingsStorage.wifiAutomationEnabled.value) {
             WifiAutomationService.start(this)
@@ -154,6 +160,8 @@ class MainActivity : FragmentActivity() {
             val topBarBlurEnabled =
                 appSettingsViewModel.topBarBlurEnabled.state.collectAsState().value
             val pageScale = appSettingsViewModel.pageScale.state.collectAsState().value
+            val useSystemWallpaper =
+                appSettingsViewModel.useSystemWallpaper.state.collectAsState().value
 
             LaunchedEffect(excludeFromRecents) {
                 this@MainActivity.applyExcludeFromRecents(excludeFromRecents)
@@ -192,6 +200,9 @@ class MainActivity : FragmentActivity() {
                                 }
                                 HomePreviewGuideDialog(
                                     show = showHomeGuide,
+                                    useSystemWallpaper = useSystemWallpaper,
+                                    onUseSystemWallpaperChange =
+                                        appSettingsViewModel::onUseSystemWallpaperChange,
                                     onDismissRequest = {
                                         showHomeGuide = false
                                         appSettingsStorage.homePreviewGuideShown.set(true)
@@ -233,6 +244,17 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_STARTUP_PERMISSIONS) {
+            window.decorView.post(::requestSystemWallpaperPermissionIfNeeded)
+        }
     }
 
     override fun onTrimMemory(level: Int) {
@@ -280,7 +302,7 @@ class MainActivity : FragmentActivity() {
      * dialog sequence; permissions that aren't runtime-requestable on this device/OS are simply
      * skipped.
      */
-    private fun requestStartupPermissions() {
+    private fun requestStartupPermissions(): Boolean {
         val permissions = buildList {
             if (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -299,6 +321,27 @@ class MainActivity : FragmentActivity() {
         }
         if (permissions.isNotEmpty()) {
             requestPermissions(permissions.toTypedArray(), REQUEST_STARTUP_PERMISSIONS)
+        }
+        return permissions.isNotEmpty()
+    }
+
+    private fun requestSystemWallpaperPermissionIfNeeded() {
+        if (systemWallpaperPermissionRequestHandled) return
+        systemWallpaperPermissionRequestHandled = true
+        if (!appSettingsStore.useSystemWallpaper.value) return
+        if (SystemWallpaperAccess.isGranted(this)) {
+            appSettingsStore.systemWallpaperPermissionRequested.set(true)
+            return
+        }
+
+        appSettingsStore.systemWallpaperPermissionRequested.set(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            startActivity(SystemWallpaperAccess.settingsIntent(this))
+        } else {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
+                REQUEST_SYSTEM_WALLPAPER_PERMISSION,
+            )
         }
     }
 

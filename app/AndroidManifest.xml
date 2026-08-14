@@ -132,22 +132,6 @@
             </intent-filter>
         </activity-alias>
 
-        <activity-alias
-            android:name=".MainActivityAliasClassic"
-            android:exported="true"
-            android:enabled="false"
-            android:icon="@mipmap/ic_launcher_classic"
-            android:roundIcon="@mipmap/ic_launcher_classic"
-            android:targetActivity=".MainActivity">
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts"/>
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity-alias>
-
         <meta-data
             android:name="org.chromium.webapk.shell_apk"
             android:value=""/>

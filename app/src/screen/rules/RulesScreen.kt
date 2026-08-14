@@ -36,6 +36,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.yumeyucca.yumebox.common.util.toast
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.util.*
 
 /**
  * Runtime rules from `GET /rules`. Each card has an enable switch wired to `PATCH /rules/disable`.
@@ -263,10 +263,11 @@ private fun RuleCard(
     onEnabledChange: (Boolean) -> Unit,
 ) {
     val spacing = AppTheme.spacing
+    val locale = LocalLocale.current.platformLocale
     val totalCount = rule.hitCount + rule.missCount
     val hitRate =
         if (totalCount > 0L) {
-            String.format(Locale.getDefault(), "%.1f%%", rule.hitCount * 100.0 / totalCount)
+            String.format(locale, "%.1f%%", rule.hitCount * 100.0 / totalCount)
         } else {
             "-"
         }

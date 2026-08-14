@@ -33,9 +33,6 @@ AppSettings = {
         LanguageRussian = "Русский"
 
         ColorThemeTitle = "主题配色"
-        AppIconTitle = "应用图标"
-        AppIconDefault = "默认"
-        AppIconClassic = "经典"
         ColorThemePickerTitle = "选择主题色"
         ColorThemeCodeLabel = "主题色代码（#RRGGBB）"
         ColorThemeCustomSummary = "当前主题色：%s"
@@ -50,18 +47,15 @@ AppSettings = {
         PredictiveBackProgressTitle = "预测返回幅度"
 
         ClassicHomeTitle = "经典首页"
+        SystemWallpaperTitle = "设置为系统壁纸"
         HomeQuoteTitle = "首页一言"
         HomeQuoteDefault = "在安静的线路上，等一朵云完成漫游"
-        HomeQuoteAuthorTitle = "一言作者"
-        HomeQuoteAuthorDefault = "YumeBox"
         EditHomeQuoteTitle = "编辑一言"
-        EditHomeQuoteAuthorTitle = "编辑一言作者"
         HomeWallpaperImportFailed = "无法将壁纸复制到本地，已改用原始来源"
     }
 
     Privacy = {
 
-        HideIconTitle = "隐藏应用图标"
         HideFromRecentsTitle = "隐藏后台卡片"
     }
 
@@ -80,8 +74,6 @@ AppSettings = {
 
     WarningDialog = {
         Title = "警告"
-        HideIconMsg1 = "请在隐藏之前确认你能够访问本应用的设置界面！"
-        HideIconMsg2 = "对于 HyperOS, 请开启 自启动 和 后台弹出界面 权限，以接受拨号界面代码！"
     }
 
     EditDialog = {

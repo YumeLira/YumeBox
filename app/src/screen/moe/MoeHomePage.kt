@@ -56,6 +56,7 @@ import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
 import com.github.yumeyucca.yumebox.presentation.icon.ShellIcons
 import com.github.yumeyucca.yumebox.presentation.icon.Yume
 import com.github.yumeyucca.yumebox.presentation.icon.yume.Zashboard
+import com.github.yumeyucca.yumebox.presentation.icon.yume.Palette
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.AnimationSpecs
 import com.github.yumeyucca.yumebox.screen.home.HomeProxyControlState
@@ -102,10 +103,12 @@ fun MoeHomePage(
     val classicHomeEnabled = moe.classicHomeEnabled
     val moeHomeQuote = moe.moeHomeQuote
     val sidebarExpanded = moe.sidebarExpanded
+    val useSystemWallpaper = moe.useSystemWallpaper
 
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val batteryPercent = rememberMoeBatteryPercent(context)
     var showHomeSettingsSheet by remember { mutableStateOf(false) }
+    var wallpaperRefreshKey by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) { homeViewModel.refreshProxyMode() }
 
@@ -124,6 +127,7 @@ fun MoeHomePage(
             if (event == Lifecycle.Event.ON_RESUME) {
                 homeViewModel.reconcileRuntimeState()
                 homeViewModel.refreshProxyMode()
+                wallpaperRefreshKey++
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -247,6 +251,12 @@ fun MoeHomePage(
             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
         )
     }
+    val homeSidebarIcons = remember(sidebarIcons, launchWallpaperPicker) {
+        sidebarIcons + MoeSidebarIconItem(Yume.Palette) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            launchWallpaperPicker()
+        }
+    }
 
     val layoutState =
         MoeHomeLayoutState(
@@ -260,7 +270,7 @@ fun MoeHomePage(
             sidebarToggleProgress = animatedSidebarToggleProgress,
             duration = durationPair,
             batteryPercent = batteryPercent,
-            sidebarIcons = sidebarIcons,
+            sidebarIcons = homeSidebarIcons,
             contentSurface = contentSurface,
             isRunning = isRunning,
             traffic = trafficData,
@@ -287,16 +297,20 @@ fun MoeHomePage(
             openSettings = { showHomeSettingsSheet = true },
             toggleProxy = handleProxyAction,
         )
-    with(actions) { MoeHomeLayout(layoutState) }
+    CompositionLocalProvider(LocalWallpaperRefreshKey provides wallpaperRefreshKey) {
+        with(actions) { MoeHomeLayout(layoutState) }
+    }
 
     MoeHomeSettingsSheet(
         show = showHomeSettingsSheet,
         quote = moeHomeQuote,
         classicHomeEnabled = classicHomeEnabled,
         sidebarExpanded = sidebarExpanded,
+        useSystemWallpaper = useSystemWallpaper,
         onQuoteChange = appSettingsViewModel::onMoeHomeQuoteChange,
         onClassicHomeEnabledChange = appSettingsViewModel::onClassicHomeEnabledChange,
         onSidebarExpandedChange = appSettingsViewModel::onMoeSidebarExpandedChange,
+        onUseSystemWallpaperChange = appSettingsViewModel::onUseSystemWallpaperChange,
         onChangeWallpaper = {
             showHomeSettingsSheet = false
             launchWallpaperPicker()

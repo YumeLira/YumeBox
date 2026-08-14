@@ -1,87 +1,75 @@
 ---
-title: YAML API
-sidebarTitle: YAML
+title: YAML syntax overview
+sidebarTitle: YAML overview
 icon: file-code
 ---
+<Info> Only write the fields that need to be modified, do not copy the entire subscription. </Info>
 
-Extensions: `.yaml` / `.yml`. The top-level value must be an object. Empty files are skipped with a warning; an unknown extension causes compilation to fail.
+<Prompt description="生成一个符合 YumeBox 语法的 YAML 覆写">
+Please generate a YumeBox YAML override based on the original mihomo configuration and modification target below.
 
-## Field modifiers
+- Only output overrides that can be saved directly as `.yaml`.
+- Fixed fields use ordinary keys; list insertion uses `key-start` at the beginning, and appending to the end uses `key-end`.
+- Use `key-force` when whole field replacement is required.
+- Keep the original configuration without any modifications required.
+- Post-generation description of which fields will ultimately be changed.
 
-A key suffix determines how the field is written. The parser removes the suffix first to obtain the base field name.
+Original configuration:
 
-<ParamField body="key" type="scalar | object | array">
-  Default behavior.
+Modify target:
+</Prompt>
 
-  - Scalars: overwrite
-  - Objects: merge recursively
-  - Arrays: replace the entire list
-</ParamField>
 
-<ParamField body="key-start" type="array">
-  Insert at the beginning of the target list.
-</ParamField>
+## Execution process
 
-<ParamField body="key-end" type="array">
-  Append to the end of the target list.
-</ParamField>
+<Steps>
+  <Step title="Read original configuration">
+    First resolve the subscription or local configuration. Raw YAML errors will stop this compilation.
+  </Step>
 
-<ParamField body="key-merge" type="object">
-  Recursively merge the map while preserving existing target keys.
-</ParamField>
+  <Step title="Read overwrite chain">
+    Read the `.yaml` and `.yml` files in binding order. Empty files are skipped and a prompt is logged.
+  </Step>
 
-<ParamField body="key-force" type="any">
-  Replace the entire field without merging.
-</ParamField>
+  <Step title="Apply current file">
+    Parse key name modifiers and then perform replacement, append, merge, or force override based on field type.
+  </Step>
 
-<ParamField body="angle-wrapped key" type="any">
-  Literal field name. Wrapping a key in angle brackets disables modifier-suffix parsing.
-</ParamField>
+  <Step title="Generate run configuration">
+    After the user overwrite is completed, YumeBox will supplement the DNS, Tun, listener and Provider path settings required for runtime.
+  </Step>
+</Steps>
 
-List fields such as `rules`, `proxies`, and `proxy-groups` support `-start` / `-end`. Object lists whose entries have a `name` are deduplicated by `name`; **the last entry with the same name is kept**.
+## Modifier quick check
 
-## Order when one field has multiple modifiers
+| Writing method | Function | Detailed description |
+| --- | --- | --- |
+| `key` | Normal write. | Object recursion, array replacement, scalar coverage. |
+| `key-start` | Insert at the beginning of the list. | [Lists and Rules](./yaml/lists.mdx) |
+| `key-end` | Append to the end of the list. | [Lists and Rules](./yaml/lists.mdx) |
+| `key-merge` | Merge objects or append list items. | [Field Behavior](./yaml/fields.mdx) |
+| `key-force` | Directly replaces the entire field. | [Field Behavior](./yaml/fields.mdx) |
+| `+key` | `key-start` Abbreviation. | [Lists and Rules](./yaml/lists.mdx) |
+| `key+` | `key-end` Abbreviation. | [Lists and Rules](./yaml/lists.mdx) |
+| `<key>` | Reserve literal key names. | [Examples and Troubleshooting](./yaml/examples.mdx) |
 
-1. `force` (stop processing this field if present)
-2. `start`
-3. Replace with the plain `key`, or keep the original list
-4. `end`
-5. `merge`
+Explicit `-start`, `-end`, `-merge`, `-force` take precedence over `+key` and `key+`. For example, `<rules+>` eventually writes the real key name `rules+`.
 
-## Examples
+## Minimal example
 
-```yaml append-rules.yaml icon="file-code" lines
-rules-end:
-  - DOMAIN-SUFFIX,example.com,DIRECT
+```yaml 修改端口.yaml icon="file-code" lines
+mixed-port: 7890
+```
+
+```yaml 添加规则.yaml icon="file-code" lines
+rules-start:
   - DOMAIN-SUFFIX,lan,DIRECT
 ```
 
-```yaml patch-dns.yaml icon="file-code" lines
-dns:
+```yaml 替换 DNS.yaml icon="file-code" lines
+dns-force:
   enable: true
   enhanced-mode: fake-ip
   nameserver:
-    - https://dns.alidns.com/dns-query
-```
-
-```yaml rules-head-tail.yaml icon="file-code" lines
-rules-start:
-  - DOMAIN-SUFFIX,router.local,DIRECT
-
-rules-end:
-  - MATCH,PROXY
-```
-
-```yaml hosts-and-dns.yaml icon="file-code" lines
-hosts-merge:
-  router.local: 192.168.1.1
-
-dns-force:
-  enable: true
-  nameserver:
     - 1.1.1.1
-```
-
-```yaml literal-key.yaml icon="file-code" lines
-"<rules-end>": keep-this-key-name
 ```

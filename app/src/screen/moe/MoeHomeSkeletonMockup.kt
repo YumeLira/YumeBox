@@ -56,6 +56,8 @@ internal enum class HomeMockupDemo {
 @Composable
 internal fun MoeHomeSkeletonMockup(
     demo: HomeMockupDemo = HomeMockupDemo.StartButton,
+    animateLaunch: Boolean = true,
+    markWallpaper: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MiuixTheme.colorScheme
@@ -291,6 +293,16 @@ internal fun MoeHomeSkeletonMockup(
                             )
                         }
                     }
+                    if (markWallpaper) {
+                        Text(
+                            text = "System Wallpaper",
+                            color = Color.White,
+                            style = MiuixTheme.textStyles.footnote1.copy(fontSize = 11.sp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(10.dp),
+                        )
+                    }
                 }
 
                 // Bottom third: quote block + the launch controls row (config circle + capsule).
@@ -338,7 +350,11 @@ internal fun MoeHomeSkeletonMockup(
 
                     Spacer(Modifier.weight(1f))
 
-                    if (wallpaper) PlainLaunchRow() else HighlightedLaunchRow()
+                    if (wallpaper || !animateLaunch) {
+                        PlainLaunchRow()
+                    } else {
+                        HighlightedLaunchRow(animate = animateLaunch)
+                    }
 
                     Spacer(Modifier.height(5.dp))
                 }
@@ -367,13 +383,16 @@ internal fun MoeHomeSkeletonMockup(
 }
 
 @Composable
-private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
+private fun HighlightedLaunchRow(
+    modifier: Modifier = Modifier,
+    animate: Boolean = true,
+) {
     val colorScheme = MiuixTheme.colorScheme
     val palette = mockupPalette()
 
     val transition = rememberInfiniteTransition(label = "start_chip")
     // A press that reads as a tap: hold, snap down, snap back, then rest until the next cycle.
-    val pressScale by
+    val animatedPressScale by
     transition.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
@@ -392,7 +411,7 @@ private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
             ),
         label = "press_scale",
     )
-    val rippleScale by
+    val animatedRippleScale by
     transition.animateFloat(
         initialValue = 0.6f,
         targetValue = 2.6f,
@@ -403,7 +422,7 @@ private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
             ),
         label = "ripple_scale",
     )
-    val rippleAlpha by
+    val animatedRippleAlpha by
     transition.animateFloat(
         initialValue = 0.5f,
         targetValue = 0f,
@@ -414,6 +433,9 @@ private fun HighlightedLaunchRow(modifier: Modifier = Modifier) {
             ),
         label = "ripple_alpha",
     )
+    val pressScale = animatedPressScale.takeIf { animate } ?: 1f
+    val rippleScale = animatedRippleScale.takeIf { animate } ?: 0.6f
+    val rippleAlpha = animatedRippleAlpha.takeIf { animate } ?: 0f
 
     Row(
         modifier = modifier.fillMaxWidth(),

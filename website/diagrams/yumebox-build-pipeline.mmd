@@ -1,0 +1,43 @@
+# @title YumeBox 构建链路
+# @roles critical:A,B,C info:D,E,F,G,H success:L,M muted:K
+flowchart LR
+    subgraph PREP["准备"]
+        direction TB
+        A["同步 mihomo<br/>Alpha / Meta"]
+        B["Go + Rust + patch"]
+        C["Android SDK + NDK"]
+    end
+
+    subgraph NATIVE["原生构建"]
+        direction TB
+        D["Go 核心"]
+        E["Rust 编译器"]
+        F["C / CMake"]
+        G["eBPF / loader"]
+        H["Geo 数据"]
+    end
+
+    subgraph APK["Gradle 打包"]
+        direction TB
+        I["jniLibs + assets"]
+        J["Debug / Release"]
+        K["builtin / external"]
+    end
+
+    subgraph OUTPUT["产物"]
+        direction TB
+        L["arm64-v8a APK"]
+        M["安装 / 发布"]
+    end
+
+    A --> D
+    B --> D
+    B --> E
+    C --> F
+    C --> G
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    I --> J --> K --> L --> M

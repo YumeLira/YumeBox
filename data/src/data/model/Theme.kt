@@ -38,8 +38,3 @@ enum class AppLanguage {
 enum class AppColorTheme {
     ClassicMonochrome
 }
-
-enum class AppIconStyle {
-    Default,
-    Classic,
-}

@@ -1,0 +1,277 @@
+---
+title: 内置 API
+sidebarTitle: 内置 API
+icon: terminal
+---
+
+JavaScript 覆写运行在 YumeBox 内置的 JavaScript 环境中.以下 API 是运行时提供的完整全局方法.
+
+## `deepMerge(target, patch, isOverride)`
+
+`deepMerge` 会原地修改 `target` 并返回它.
+
+| patch 值 | 键写法 | 行为 |
+| --- | --- | --- |
+| 对象 | `key` | 递归合并对象. |
+| 对象 | `key!` | 直接替换整个对象. |
+| 数组 | `key` | 替换数组. |
+| 数组 | `+key` | 插入数组开头. |
+| 数组 | `key+` | 追加数组末尾. |
+| 对象或数组 | `<key>` | 去掉尖括号后按字面量键名处理. |
+| 标量 | `key` | 直接写入键和值. |
+
+`+key` 和 `key+` 只有在 `isOverride` 为 `true` 时才作为数组修饰符.脚本建议始终传入 `true`.
+
+```js deepMerge 示例.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+    },
+  }, true);
+}
+```
+
+```yaml deepMerge 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  "enhanced-mode": fake-ip # [!code ++]
+```
+
+JavaScript 的 `deepMerge` 不会自动把 `MATCH` 规则移到末尾；需要该行为时，使用 YAML 的 `rules-end`，或在脚本中自行处理数组.
+
+错误或无效用法：
+
+```js deepMerge 无效类型.js icon="braces" lines
+function main(profile) {
+  deepMerge(profile, {
+    "+mixed-port": [7890],
+  }, true);
+  return profile;
+}
+```
+
+`mixed-port` 是标量，数组修饰符会尝试展开原值；如果原值是数字，通常会抛出不可迭代的类型错误.它不会把端口转换成列表.
+
+## `yaml`
+
+### `yaml.parse(text)`
+
+将 YAML 文本转换为 JavaScript 值.它使用与 YAML 覆写相同的解析器，支持锚点、别名、`<<` 合并键和顶层 `proxies` 中的 `reality-opts.short-id` 字符串保护.
+
+```js 解析 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  enable: true\n");
+  return deepMerge(profile, patch, true);
+}
+```
+
+```yaml 解析 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+解析无效 YAML 会直接抛错：
+
+```js 解析错误 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  - enable: true\n    bad");
+  return deepMerge(profile, patch, true);
+}
+```
+
+### `yaml.stringify(value)`
+
+将 JavaScript 值转换为 YAML 字符串.
+
+```js 生成 YAML.js icon="braces" lines
+function main(profile) {
+  const text = yaml.stringify({
+    "log-level": "info",
+    rules: ["MATCH,PROXY"],
+  });
+  console.info(text);
+  return profile;
+}
+```
+
+`yaml.stringify` 的结果是字符串，不能直接作为 `main` 的返回值；必须返回配置对象.
+
+输出内容类似：
+
+```yaml
+log-level: info
+rules:
+  - MATCH,PROXY
+```
+
+## `fetch(input, init)`
+
+内置 `fetch` 只支持 `http://`，不支持 `https://`.连接、读取和写入各有 15 秒超时.
+
+### 请求参数
+
+| 参数 | 类型 | 行为 |
+| --- | --- | --- |
+| `input` | 字符串或对象 | URL 字符串，或包含 `url` 的对象. |
+| `init.method` | 字符串 | HTTP 方法，默认 `GET`. |
+| `init.headers` | 对象 | 请求头. |
+| `init.body` | 字符串或对象 | 字符串直接发送；其他值先 `JSON.stringify`. |
+
+`init` 中的 `url`、`method`、`headers` 和 `body` 会覆盖 `input` 对象中的同名值.
+
+```js HTTP 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml", {
+    method: "GET",
+    headers: {
+      "x-client": "YumeBox",
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+### 响应对象
+
+| 属性或方法 | 结果 |
+| --- | --- |
+| `ok` | 状态码为 `200` 至 `299` 时为 `true`. |
+| `status` | HTTP 状态码. |
+| `statusText` | HTTP 状态文本. |
+| `url` | 请求 URL. |
+| `headers.get(name)` | 获取响应头，不存在时返回 `null`. |
+| `headers.has(name)` | 判断响应头是否存在. |
+| `headers.toJSON()` | 返回响应头对象. |
+| `text()` | 异步读取文本. |
+| `json()` | 异步解析 JSON. |
+| `yaml()` | 异步解析 YAML. |
+
+```js 读取 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  profile["mixed-port"] = payload.port;
+  return profile;
+}
+```
+
+错误预期：
+
+```js 不支持 HTTPS.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("https://example.com/patch.yaml");
+  return profile;
+}
+```
+
+脚本会失败，错误包含 `fetch only supports http:// urls`.网络连接失败、URL 为空或响应无法解析时也会停止脚本.
+
+非 `2xx` 响应不会自动抛错，必须检查 `response.ok`：
+
+```js 检查 HTTP 状态.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) {
+    console.warn("HTTP 状态", response.status);
+    return profile;
+  }
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+## `console`
+
+日志写入当前覆写文件同目录、同主文件名的 `.log` 文件；每次执行该覆写前，旧日志会被重置.
+
+| 方法 | 日志级别 |
+| --- | --- |
+| `console.log(...)` | `log` |
+| `console.info(...)` | `info` |
+| `console.warn(...)` | `warn` |
+| `console.error(...)` | `error` |
+| `console.debug(...)` | `debug` |
+
+多个参数会以空格连接；对象会序列化为 JSON.
+
+```js 日志 API.js icon="braces" lines
+function main(profile) {
+  console.info("当前模式", profile.mode);
+  console.debug("代理数量", Array.isArray(profile.proxies) ? profile.proxies.length : 0);
+  return profile;
+}
+```
+
+日志结果类似：
+
+```text
+[info] "当前模式" "rule"
+[debug] "代理数量" 12
+```
+
+加密配置执行脚本时，日志中的配置值会替换为 `(redacted, encrypted profile)`.
+
+## Base64
+
+### `b64e(value)` 与 `b64d(value)`
+
+`b64e` 将 UTF-8 文本编码为 Base64，`b64d` 将 Base64 解码为 UTF-8 文本.
+
+```js Base64 API.js icon="braces" lines
+function main(profile) {
+  const encoded = b64e("YumeBox");
+  const decoded = b64d(encoded);
+  profile["encoded-name"] = encoded;
+  profile["decoded-name"] = decoded;
+  return profile;
+}
+```
+
+预期结果：
+
+```yaml
+encoded-name: WXVtZUJveA==
+decoded-name: YumeBox
+```
+
+### `Buffer`
+
+| API | 行为 |
+| --- | --- |
+| `Buffer.from(value, "utf8")` | 将 UTF-8 文本转换为缓冲对象. |
+| `Buffer.from(value, "base64")` | 将 Base64 文本转换为缓冲对象. |
+| `Buffer.isBuffer(value)` | 判断是否为 YumeBox 缓冲对象. |
+| `buffer.toString("utf8")` | 解码为 UTF-8 文本. |
+| `buffer.toString("base64")` | 返回 Base64 文本. |
+| `buffer.valueOf()` | 返回 UTF-8 文本. |
+
+```js Buffer API.js icon="braces" lines
+function main(profile) {
+  const buffer = Buffer.from("YumeBox", "utf8");
+  profile["client-name"] = buffer.toString("utf8");
+  profile["client-name-base64"] = buffer.toString("base64");
+  return profile;
+}
+```
+
+预期结果：
+
+```yaml
+client-name: YumeBox
+client-name-base64: WXVtZUJveA==
+```
+
+只支持 `utf8`、`utf-8` 和 `base64`.其他编码会抛出 `Buffer.from() unsupported encoding` 或 `Buffer.toString() unsupported encoding`.

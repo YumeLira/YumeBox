@@ -33,9 +33,6 @@ AppSettings = {
         LanguageRussian = "Русский"
 
         ColorThemeTitle = "Палитра темы"
-        AppIconTitle = "Значок приложения"
-        AppIconDefault = "По умолчанию"
-        AppIconClassic = "Классический"
         ColorThemePickerTitle = "Выбрать цвет темы"
         ColorThemeCodeLabel = "Код цвета темы (#RRGGBB)"
         ColorThemeCustomSummary = "Текущий цвет темы: %s"
@@ -50,18 +47,15 @@ AppSettings = {
         PredictiveBackProgressTitle = "Амплитуда возврата"
 
         ClassicHomeTitle = "Классическая главная"
+        SystemWallpaperTitle = "Установить системные обои"
         HomeQuoteTitle = "Цитата на главной"
         HomeQuoteDefault = "На тихом маршруте ждать, пока облако закончит роуминг"
-        HomeQuoteAuthorTitle = "Автор цитаты"
-        HomeQuoteAuthorDefault = "YumeBox"
         EditHomeQuoteTitle = "Изменить цитату"
-        EditHomeQuoteAuthorTitle = "Изменить автора цитаты"
         HomeWallpaperImportFailed = "Не удалось скопировать обои локально; используется исходный источник"
     }
 
     Privacy = {
 
-        HideIconTitle = "Скрыть значок приложения"
         HideFromRecentsTitle = "Скрыть карточку в недавних"
     }
 
@@ -80,8 +74,6 @@ AppSettings = {
 
     WarningDialog = {
         Title = "Предупреждение"
-        HideIconMsg1 = "Перед скрытием убедитесь, что можете открыть настройки этого приложения!"
-        HideIconMsg2 = "Для HyperOS включите автозапуск и всплывающие окна в фоне, чтобы принимать коды с экрана набора!"
     }
 
     EditDialog = {

@@ -1,0 +1,75 @@
+---
+title: YAML 構文の概要
+sidebarTitle: YAMLの概要
+icon: file-code
+---
+<Info> 変更する必要があるフィールドのみを書き込み、サブスクリプション全体をコピーしないでください. </Info>
+
+<Prompt description="生成一个符合 YumeBox 语法的 YAML 覆写">
+以下の元の mihomo 設定と変更ターゲットに基づいて、YumeBox YAML オーバーライドを生成してください.
+
+- `.yaml` として直接保存できるオーバーライドのみを出力します.
+- 固定フィールドは通常のキーを使用します.リストの挿入では先頭で `key-start` を使用し、末尾への追加では `key-end` を使用します.
+- フィールド全体の置換が必要な場合は、`key-force` を使用します.
+- 変更を加えることなく、元の構成を維持します.
+- 最終的に変更されるフィールドの生成後の説明.
+
+元の構成:
+
+ターゲットを変更します:
+</Prompt>
+
+
+## 実行プロセス
+
+<Steps>
+  <Step title="元の構成を読み取る">
+    まず、サブスクリプションまたはローカル構成を解決します.未加工の YAML エラーにより、このコンパイルは停止します.
+  </Step>
+
+  <Step title="読み取り上書きチェーン">
+    `.yaml` ファイルと `.yml` ファイルをバインド順に読み取ります.空のファイルはスキップされ、プロンプトがログに記録されます.
+  </Step>
+
+  <Step title="現在のファイルを適用する">
+    キー名修飾子を解析し、フィールド タイプに基づいて置換、追加、マージ、または強制オーバーライドを実行します.
+  </Step>
+
+  <Step title="実行構成を生成する">
+    ユーザーによる上書きが完了すると、実行時に必要な DNS、Tun、リスナー、プロバイダー パスの設定が DreamBox によって補完されます.
+  </Step>
+</Steps>
+
+## 修飾子のクイックチェック
+
+|書き方 |機能 |詳細な説明 |
+| --- | --- | --- |
+| `key` |通常の書き込み. |オブジェクトの再帰、配列の置換、スカラー カバレッジ. |
+| `key-start` |リストの先頭に挿入します. | [リストとルール](./yaml/lists.mdx) |
+| `key-end` |リストの最後に追加します. | [リストとルール](./yaml/lists.mdx) |
+| `key-merge` |オブジェクトを結合するか、リスト項目を追加します. | [フィールドの動作](./yaml/fields.mdx) |
+| `key-force` |フィールド全体を直接置き換えます. | [フィールドの動作](./yaml/fields.mdx) |
+| `+key` | `key-start` の略語. | [リストとルール](./yaml/lists.mdx) |
+| `key+` | `key-end` の略語. | [リストとルール](./yaml/lists.mdx) |
+| `<key>` |リテラルのキー名を予約します. | [例とトラブルシューティング](./yaml/examples.mdx) |
+
+明示的な `-start`、`-end`、`-merge`、`-force` は、`+key` および `key+` よりも優先されます.たとえば、`<rules+>` は最終的に実際のキー名 `rules+` を書き込みます.
+
+## 最小限の例
+
+```yaml 修改端口.yaml icon="file-code" lines
+mixed-port: 7890
+```
+
+```yaml 添加规则.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,lan,DIRECT
+```
+
+```yaml 替换 DNS.yaml icon="file-code" lines
+dns-force:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+```

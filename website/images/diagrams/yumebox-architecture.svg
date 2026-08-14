@@ -1,0 +1,322 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1668.0639999999999 867.3799999999999" width="1668.0639999999999" height="867.3799999999999" style="--bg:#FFFFFF;--fg:#27272A;--line:#A1A1AA;--accent:#3F3F46;--muted:#71717A;--surface:#F4F4F5;--border:#D4D4D8;--_line:#A1A1AA;--_arrow:#A1A1AA;--_text:#27272A;--_text-sec:#71717A;--_text-muted:#71717A;--_node-fill:#FFFFFF;--_node-stroke:#71717A;--_group-fill:#3F3F4618;--_group-hdr:#3F3F46;--_inner-stroke:#71717A" id="bm-diagram-1">
+<style>
+#bm-diagram-1 {
+  /* 覆盖 CSS 变量 */
+  --_text:       #27272A       !important;
+  --_text-sec:   #71717A !important;
+  --_line:       #A1A1AA      !important;
+  --_arrow:      #A1A1AA      !important;
+  --_node-fill:  #FFFFFF       !important;
+  --_node-stroke:#71717A    !important;
+  --_group-fill: #3F3F4618 !important;
+  --_group-hdr:  #3F3F46 !important;
+}
+#bm-diagram-1 text {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace !important;
+  font-size:   13px !important;
+  dominant-baseline: central;
+  dy: 0.35em;
+}
+/* ── 类图/ER图标题文字：覆盖内联 dy，实现真正的垂直居中 ── */
+/* 类图类名、ER图实体名使用 renderMultilineText 渲染，内联 dy 与 font-size 相关，
+   但某些字体下 central 基线对中文不准确，改用 middle + 动态 dy 计算 */
+#bm-diagram-1 .class-node text,
+#bm-diagram-1 .entity text {
+  dy: 0.35em !important;
+}
+/* 类图/ER图标题使用 middle 基线，对中文字体更友好 */
+#bm-diagram-1 .class-node > text:first-of-type,
+#bm-diagram-1 .class-node text[text-anchor="middle"],
+#bm-diagram-1 .entity > text:first-of-type,
+#bm-diagram-1 .entity text[text-anchor="middle"] {
+  dominant-baseline: middle !important;
+}
+/* ── 节点形状：类选择器 + 通用元素选择器双保险，确保无论 cleanHardcodedColors 是否删除 fill 属性都能生效 ── */
+/* 排除 .block 内的矩形（时序图 loop/alt/opt/rect 块），避免覆盖其专属样式 */
+#bm-diagram-1 .node rect,
+#bm-diagram-1 .node circle,
+#bm-diagram-1 .node ellipse,
+#bm-diagram-1 .node polygon,
+#bm-diagram-1 .node path,
+#bm-diagram-1 rect,
+#bm-diagram-1 circle,
+#bm-diagram-1 ellipse {
+  fill:         #FFFFFF        !important;
+  stroke:       #71717A     !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0px 0px transparent) !important;
+}
+/* ── 时序图 block（loop/alt/opt）矩形：覆盖通用 rect 规则 ── */
+/* 外边框矩形（block 内第一个 rect）：fill none，只有描边 */
+#bm-diagram-1 .block > rect:first-of-type {
+  fill:         none !important;
+  stroke:       #71717A !important;
+  stroke-width: 1px !important;
+  filter:       none !important;
+}
+/* header tab 矩形（block 内第二个 rect，即 rect + rect）：accent 半透明填充 */
+#bm-diagram-1 .block > rect:nth-of-type(2) {
+  fill:         #3F3F4630 !important;
+  stroke:       #71717A !important;
+  stroke-width: 1px !important;
+  filter:       none !important;
+}
+/* 时序图 block（loop/alt/opt）文字：10px */
+#bm-diagram-1 .block text {
+  font-size: 10px !important;
+}
+/* seq-rect-bg：rect rgb(...) 纯背景色块，不加描边，不加阴影 */
+#bm-diagram-1 .seq-rect-bg {
+  stroke:       none !important;
+  stroke-width: 0 !important;
+  filter:       none !important;
+}
+#bm-diagram-1 .node rect {
+  rx: 4px !important;
+  ry: 4px !important;
+}
+/* 菱形/多边形节点 */
+#bm-diagram-1 .node polygon {
+  fill:   #FFFFFF     !important;
+  stroke: #71717A  !important;
+  stroke-width: 2px !important;
+}
+/* 节点文字 */
+#bm-diagram-1 g.node text,
+#bm-diagram-1 .label text,
+#bm-diagram-1 .nodeLabel {
+  fill: #27272A !important;
+}
+/* 子图/cluster 标题 */
+#bm-diagram-1 .cluster-label text {
+  fill:        #3F3F46 !important;
+  font-size:   12px !important;
+  font-weight: 600 !important;
+}
+/* cluster 容器 */
+#bm-diagram-1 .cluster rect {
+  fill:   #3F3F4618 !important;
+  stroke: #71717A !important;
+  stroke-width: 1px !important;
+  filter: none !important;
+}
+/* 边/连线：只选连线相关路径，不影响节点内部形状 */
+#bm-diagram-1 .edge path,
+#bm-diagram-1 .edgePath path,
+#bm-diagram-1 .edgePath .path {
+  fill:         none          !important;
+  stroke:       #A1A1AA  !important;
+  stroke-width: 2px !important;
+}
+/* 连线（line 元素） */
+#bm-diagram-1 .edge line,
+#bm-diagram-1 .flowchart-link {
+  stroke:       #A1A1AA  !important;
+  stroke-width: 2px !important;
+}
+/* 箭头：marker 内的多边形/路径专属 */
+#bm-diagram-1 marker polygon,
+#bm-diagram-1 marker path,
+#bm-diagram-1 .arrowhead polygon,
+#bm-diagram-1 .arrowhead path {
+  stroke: #A1A1AA !important;
+  fill:   #A1A1AA !important;
+  filter: none !important;
+}
+/* 边标签 */
+#bm-diagram-1 .edgeLabel text,
+#bm-diagram-1 .edgeLabel {
+  fill:      #71717A !important;
+  font-size: 11px  !important;
+}
+/* ── Semantic Role Colors ── */
+#bm-diagram-1 .bm-critical.node rect,
+#bm-diagram-1 .bm-critical.node circle,
+#bm-diagram-1 .bm-critical.node ellipse,
+#bm-diagram-1 .bm-critical.node polygon {
+  fill:   #FFF7ED   !important;
+  stroke: #F97316 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-critical.node text {
+  fill: #9A3412 !important;
+}
+#bm-diagram-1 .bm-success.node rect,
+#bm-diagram-1 .bm-success.node circle,
+#bm-diagram-1 .bm-success.node ellipse,
+#bm-diagram-1 .bm-success.node polygon {
+  fill:   #F0FDF4   !important;
+  stroke: #22C55E !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-success.node text {
+  fill: #166534 !important;
+}
+#bm-diagram-1 .bm-danger.node rect,
+#bm-diagram-1 .bm-danger.node circle,
+#bm-diagram-1 .bm-danger.node ellipse,
+#bm-diagram-1 .bm-danger.node polygon {
+  fill:   #FEF2F2   !important;
+  stroke: #EF4444 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-danger.node text {
+  fill: #991B1B !important;
+}
+#bm-diagram-1 .bm-info.node rect,
+#bm-diagram-1 .bm-info.node circle,
+#bm-diagram-1 .bm-info.node ellipse,
+#bm-diagram-1 .bm-info.node polygon {
+  fill:   #EFF6FF   !important;
+  stroke: #3B82F6 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-info.node text {
+  fill: #1D4ED8 !important;
+}
+#bm-diagram-1 .bm-muted.node rect,
+#bm-diagram-1 .bm-muted.node circle,
+#bm-diagram-1 .bm-muted.node ellipse,
+#bm-diagram-1 .bm-muted.node polygon {
+  fill:   #F4F4F5   !important;
+  stroke: #A1A1AA !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-muted.node text {
+  fill: #52525B !important;
+}</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<g class="subgraph" data-id="INPUT">
+  <rect x="40" y="40" width="734.781" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="40" width="734.781" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="52" y="54" font-size="12" font-weight="600" fill="var(--_text-sec)">YumeBox 用户入口</text>
+</g>
+<g class="subgraph" data-id="MIHOMO">
+  <rect x="1206.3294999999998" y="325.0799999999999" width="242.98899999999998" height="300.5" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1206.3294999999998" y="325.0799999999999" width="242.98899999999998" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1218.3294999999998" y="339.0799999999999" font-size="12" font-weight="600" fill="var(--_text-sec)">mihomo 核心</text>
+</g>
+<g class="subgraph" data-id="SYSTEM">
+  <rect x="1081.679" y="86.27999999999997" width="413.91999999999996" height="181.8" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1081.679" y="86.27999999999997" width="413.91999999999996" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1093.679" y="100.27999999999997" font-size="12" font-weight="600" fill="var(--_text-sec)">Android 系统接入</text>
+</g>
+<g class="subgraph" data-id="OBSERVE">
+  <rect x="1107.1439999999998" y="645.5799999999999" width="520.92" height="181.8" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1107.1439999999998" y="645.5799999999999" width="520.92" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1119.1439999999998" y="659.5799999999999" font-size="12" font-weight="600" fill="var(--_text-sec)">运行观测</text>
+</g>
+<polyline class="edge" data-from="A" data-to="SESSION" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="233.55299999999997,110.9 790.781,110.9 790.781,181.79999999999993 822.781,181.79999999999993" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="B" data-to="SESSION" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="453.3359999999999,110.9 790.781,110.9 790.781,181.79999999999993 822.781,181.79999999999993" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="C" data-to="SESSION" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="620.5079999999999,110.9 790.781,110.9 790.781,181.79999999999993 822.781,181.79999999999993" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="D" data-to="SESSION" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="758.781,102.45 790.781,102.45 790.781,181.79999999999993 822.781,181.79999999999993" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SESSION" data-to="E" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1033.6789999999999,181.79999999999993 1069.679,181.79999999999993 1069.679,395.9799999999999 1233.3294999999998,395.9799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SESSION" data-to="H" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1033.6789999999999,181.79999999999993 1069.679,181.79999999999993 1069.679,148.72999999999996 1251.127,148.72999999999996" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="I" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1296.6657500000001,252.07999999999998 1296.6657500000001,268.08 1300.495,290.0799999999999 1415.6954999999998,290.0799999999999 1415.6954999999998,325.0799999999999 1415.6954999999998,536.68 1377.7269999999999,536.68 1377.7269999999999,572.68" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="J" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1430.6015,252.07999999999998 1430.6015,268.08 1432.3184999999999,278.0799999999999 1432.3184999999999,278.0799999999999 1432.3184999999999,325.0799999999999 1432.3184999999999,548.68 1397.9729999999997,548.68 1397.9729999999997,572.68" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="K" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1169.548,252.07999999999998 1169.548,268.08 1156.8155000000002,315.0799999999999 1222.3294999999998,315.0799999999999 1222.3294999999998,325.0799999999999 1222.3294999999998,548.68 1337.235,548.68 1337.235,572.68" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="G" data-to="L" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1367.6039999999998,609.5799999999999 1367.6039999999998,625.5799999999999 1367.6039999999998,635.5799999999999 1367.6039999999998,635.5799999999999 1367.6039999999998,645.5799999999999 1367.6039999999998,689.5799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="E" data-to="F" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1323.34175,422.87999999999994 1323.34175,470.87999999999994" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="F" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1323.34175,524.68 1323.34175,536.68 1357.4809999999998,536.68 1357.4809999999998,572.68" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="H" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1297.91275,167.17999999999998 1297.91275,215.17999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="H" data-to="J" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1327.0494999999999,167.17999999999998 1327.0494999999999,179.17999999999998 1430.6015,179.17999999999998 1430.6015,215.17999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="H" data-to="K" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1276.4344999999998,167.17999999999998 1276.4344999999998,179.17999999999998 1169.548,179.17999999999998 1169.548,215.17999999999998" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="L" data-to="M" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1376.245,726.4799999999999 1376.245,750.4799999999999 1433.936,750.4799999999999 1433.936,774.4799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="L" data-to="N" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1393.5269999999998,726.4799999999999 1393.5269999999998,738.4799999999999 1561.4489999999996,738.4799999999999 1561.4489999999996,774.4799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="L" data-to="O" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1341.6809999999998,726.4799999999999 1341.6809999999998,738.4799999999999 1161.0265,738.4799999999999 1161.0265,774.4799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="L" data-to="P" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="1358.9629999999997,726.4799999999999 1358.9629999999997,750.4799999999999 1301.742,750.4799999999999 1301.742,774.4799999999999" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="node bm-critical"  data-shape="rectangle" data-id="SESSION">
+  <rect x="822.781" y="154.89999999999992" width="210.898" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="928.2299999999999" y="181.79999999999993" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="928.2299999999999" dy="-3.9000000000000012">YumeBox 运行会话</tspan><tspan x="928.2299999999999" dy="16.900000000000002">编译 · 校验 · 启动 · 热重载</tspan></text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="A">
+  <rect x="56" y="84" width="177.55299999999997" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="144.7765" y="110.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="144.7765" dy="-3.9000000000000012">配置管理</tspan><tspan x="144.7765" dy="16.900000000000002">订阅 · YAML · 二维码</tspan></text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="B">
+  <rect x="253.55299999999997" y="84" width="199.78299999999996" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="353.44449999999995" y="110.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="353.44449999999995" dy="-3.9000000000000012">覆写管理</tspan><tspan x="353.44449999999995" dy="16.900000000000002">内置 · YAML · JavaScript</tspan></text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="C">
+  <rect x="473.3359999999999" y="84" width="147.172" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="546.9219999999999" y="110.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="546.9219999999999" dy="-3.9000000000000012">服务配置</tspan><tspan x="546.9219999999999" dy="16.900000000000002">Vpn · Tun · eBPF</tspan></text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="D">
+  <rect x="640.5079999999999" y="84" width="118.273" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="699.6444999999999" y="102.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Wi-Fi 自动化</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="E">
+  <rect x="1233.3294999999998" y="369.0799999999999" width="172.36599999999999" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1319.5124999999998" y="395.9799999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1319.5124999999998" dy="-3.9000000000000012">配置解析</tspan><tspan x="1319.5124999999998" dy="16.900000000000002">节点 · Provider · Geo</tspan></text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="F">
+  <rect x="1240.12275" y="470.87999999999994" width="166.438" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1323.34175" y="497.7799999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1323.34175" dy="-3.9000000000000012">路由决策</tspan><tspan x="1323.34175" dy="16.900000000000002">DNS · 规则 · 代理组</tspan></text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="G">
+  <rect x="1316.9889999999998" y="572.68" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1367.6039999999998" y="591.13" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">代理连接</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="H">
+  <rect x="1251.127" y="130.27999999999997" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1301.742" y="148.72999999999996" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">服务进程</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="I">
+  <rect x="1240.12275" y="215.17999999999998" width="113.086" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1296.66575" y="233.63" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">VpnService</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="J">
+  <rect x="1383.321" y="215.17999999999998" width="94.561" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1430.6015" y="233.63" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Root Tun</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="K">
+  <rect x="1110.4115" y="215.17999999999998" width="118.273" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1169.548" y="233.63" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">eBPF Bridge</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="L">
+  <rect x="1324.399" y="689.5799999999999" width="86.41" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1367.6039999999998" y="708.03" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">控制器</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="M">
+  <rect x="1383.321" y="774.4799999999999" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1433.936" y="792.93" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">日志订阅</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="N">
+  <rect x="1510.8339999999998" y="774.4799999999999" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1561.4489999999998" y="792.93" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">连接跟踪</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="O">
+  <rect x="1110.4115" y="774.4799999999999" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1161.0265" y="792.93" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">流量统计</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="P">
+  <rect x="1251.127" y="774.4799999999999" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1301.742" y="792.93" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">运行状态</text>
+</g>
+</svg>

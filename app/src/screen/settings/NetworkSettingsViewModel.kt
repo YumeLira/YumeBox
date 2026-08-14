@@ -80,6 +80,7 @@ class NetworkSettingsViewModel(
     private val _kernelStatus = MutableStateFlow("No downloaded kernel installed")
     private val _kernelBusy = MutableStateFlow(false)
     private val _activeKernelId = MutableStateFlow(KernelManager.BUNDLED_ALPHA_ID)
+    private val _installedKernelCommits = MutableStateFlow<Map<String, String>>(emptyMap())
 
     data class NetworkSettingsScreenState(
         val runMode: RunMode = RunMode.VpnService,
@@ -91,6 +92,7 @@ class NetworkSettingsViewModel(
         val kernelStatus: String = "No downloaded kernel installed",
         val kernelBusy: Boolean = false,
         val activeKernelId: String = KernelManager.BUNDLED_ALPHA_ID,
+        val installedKernelCommits: Map<String, String> = emptyMap(),
     )
 
     val networkScreenState: StateFlow<NetworkSettingsScreenState> =
@@ -110,8 +112,14 @@ class NetworkSettingsViewModel(
                     ebpfAvailable = ebpf,
                 )
             },
-            combine(_kernels, _kernelStatus, _kernelBusy, _activeKernelId) { availableKernels, status, busy, active ->
-                KernelUiSelection(availableKernels, status, busy, active)
+            combine(
+                _kernels,
+                _kernelStatus,
+                _kernelBusy,
+                _activeKernelId,
+                _installedKernelCommits,
+            ) { availableKernels, status, busy, active, installedCommits ->
+                KernelUiSelection(availableKernels, status, busy, active, installedCommits)
             },
         ) { base, kernel ->
             base.copy(
@@ -119,6 +127,7 @@ class NetworkSettingsViewModel(
                 kernelStatus = kernel.status,
                 kernelBusy = kernel.busy,
                 activeKernelId = kernel.active,
+                installedKernelCommits = kernel.installedCommits,
             )
         }
             .stateInWhileSubscribed(
@@ -193,6 +202,7 @@ class NetworkSettingsViewModel(
     init {
         _activeKernelId.value = KernelManager.activeKernelId(getApplication())
         viewModelScope.launch {
+            refreshInstalledKernelCommits()
             val root = RootAccessSupport.evaluateAsync(getApplication()).canStartRoot
             _rootAvailable.value = root
             val cgroupPath = EbpfCgroupSupport.rootCgroupPath()
@@ -338,6 +348,7 @@ class NetworkSettingsViewModel(
                 if (!failed) completed++
             }
             if (!failed) _kernelStatus.value = "$completed kernel(s) downloaded and verified"
+            if (!failed) refreshInstalledKernelCommits()
             _kernelBusy.value = false
             onFinished(!failed)
         }
@@ -393,12 +404,22 @@ class NetworkSettingsViewModel(
             runCatching { KernelManager.install(getApplication(), kernel) }
                 .onSuccess {
                     KernelManager.activate(getApplication(), kernel.id)
+                    refreshInstalledKernelCommits()
                     _activeKernelId.value = kernel.id
                     _kernelStatus.value = "${kernel.name} selected. Restart the service to load it."
                 }
                 .onFailure { error -> _kernelStatus.value = "Kernel install failed: ${error.message}" }
             _kernelBusy.value = false
         }
+    }
+
+    private suspend fun refreshInstalledKernelCommits() {
+        _installedKernelCommits.value =
+            withContext(Dispatchers.IO) {
+                listOf("alpha", "meta", "smart").mapNotNull { id ->
+                    KernelManager.installedCommit(getApplication(), id)?.let { id to it }
+                }.toMap()
+            }
     }
 }
 
@@ -407,6 +428,7 @@ private data class KernelUiSelection(
     val status: String,
     val busy: Boolean,
     val active: String,
+    val installedCommits: Map<String, String>,
 )
 
 data class NetworkSettingsUiState(val configuredMode: RunMode = RunMode.VpnService)

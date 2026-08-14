@@ -1,0 +1,85 @@
+---
+title: 服务配置
+sidebarTitle: 服务配置
+icon: network
+---
+
+<Info>服务配置位于**网络设置 → 高级选项**，选择模式后，页面会显示对应的配置项</Info>
+
+<View title="Vpn Service" icon="shield-check">
+
+  <ResponseField name="绕过私有网络" type="boolean" default="true">
+    私有地址不进入 VPN.
+  </ResponseField>
+
+  <ResponseField name="DNS 劫持" type="boolean" default="true">
+    将 DNS 请求交给 mihomo.
+  </ResponseField>
+
+  <ResponseField name="启用 IPv6" type="boolean" default="false">
+    为 VPN 添加 IPv6 地址和路由.
+  </ResponseField>
+
+  <ResponseField name="允许应用绕过" type="boolean" default="true">
+    允许应用请求绕过 VPN.
+  </ResponseField>
+
+  <ResponseField name="VPN 系统代理" type="boolean" default="true">
+    为支持系统代理的应用设置 mihomo HTTP 代理.
+  </ResponseField>
+
+  <Info> Wifi 自动化,仅支持 `Vpn Service` 模式</Info>
+ 
+</View>
+
+<View title="Tun" icon="network">
+
+  <ResponseField name="虚拟网卡" type="string" default="Yume">
+    Tun 接口名称，不能为空.
+  </ResponseField>
+
+  <ResponseField name="MTU" type="integer" default="1500">
+    Tun 接口大小，范围为 `576` 到 `9000`.
+  </ResponseField>
+
+  <ResponseField name="协议栈" type="System | gVisor | Mixed" default="gVisor">
+    选择 Tun 网络栈.
+  </ResponseField>
+
+  <ResponseField name="DNS 模式" type="RedirHost | FakeIP" default="RedirHost">
+    `RedirHost` 返回真实地址，`FakeIP` 使用 fake-ip 地址池.
+  </ResponseField>
+
+  <ResponseField name="自动路由" type="boolean" default="true">
+    由 mihomo 自动生成 Tun 路由.
+  </ResponseField>
+
+  <ResponseField name="严格路由" type="boolean" default="false">
+    严格处理未匹配路由，配置不完整时可能丢包.
+  </ResponseField>
+
+  <ResponseField name="自动重定向" type="boolean" default="true">
+    自动接管应用 TCP 流量.
+  </ResponseField>
+
+  <ResponseField name="启用 IPv6" type="boolean" default="false">
+    允许 Tun 处理 IPv6 流量.
+  </ResponseField>
+
+</View>
+
+<View title="eBPF" icon="cpu">
+
+  <ResponseField name="绕过私有网络" type="boolean" default="true">
+    自动排除常见私有网段，显式排除地址优先.
+  </ResponseField>
+
+  <ResponseField name="DNS 劫持" type="boolean" default="true">
+    启动 eBPF DNS 监听器.
+  </ResponseField>
+
+  <ResponseField name="启用 IPv6" type="boolean" default="false">
+    允许 eBPF 处理 IPv6.
+  </ResponseField>
+
+</View>

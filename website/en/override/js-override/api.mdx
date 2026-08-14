@@ -1,0 +1,276 @@
+---
+title: Built-in API
+sidebarTitle: Built-in API
+icon: terminal
+---
+JavaScript overrides run within YumeBox's built-in JavaScript environment. The following APIs are complete global methods provided by the runtime.
+
+## `deepMerge(target, patch, isOverride)`
+
+`deepMerge` will modify `target` in place and return it.
+
+| patch value | key notation | behavior |
+| --- | --- | --- |
+| Object | `key` | Recursively merge objects. |
+| Object | `key!` | Directly replaces the entire object. |
+| Array | `key` | Replacement array. |
+| Array | `+key` | Insert at the beginning of the array. |
+| Array | `key+` | Append to the end of the array. |
+| Object or array | `<key>` | Remove the angle brackets and treat it as a literal key name. |
+| Scalar | `key` | Write keys and values directly. |
+
+`+key` and `key+` act as array modifiers only if `isOverride` is `true`. The script recommends always passing in `true`.
+
+```js deepMerge 示例.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+    },
+  }, true);
+}
+```
+
+```yaml deepMerge 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  "enhanced-mode": fake-ip # [!code ++]
+```
+
+JavaScript's `deepMerge` does not automatically move the `MATCH` rule to the end; when you need this behavior, use YAML's `rules-end`, or handle the array yourself in your script.
+
+Incorrect or invalid usage:
+
+```js deepMerge 无效类型.js icon="braces" lines
+function main(profile) {
+  deepMerge(profile, {
+    "+mixed-port": [7890],
+  }, true);
+  return profile;
+}
+```
+
+`mixed-port` is a scalar, and the array modifier will try to expand the original value; if the original value is a number, a non-iterable type error will usually be thrown. It does not convert ports to lists.
+
+## `yaml`
+
+### `yaml.parse(text)`
+
+Convert YAML text to JavaScript values. It uses the same parser as the YAML override, supporting anchors, aliases, `<<` merge keys, and `reality-opts.short-id` string protection in top-level `proxies`.
+
+```js 解析 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  enable: true\n");
+  return deepMerge(profile, patch, true);
+}
+```
+
+```yaml 解析 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+Parsing invalid YAML will directly throw an error:
+
+```js 解析错误 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  - enable: true\n    bad");
+  return deepMerge(profile, patch, true);
+}
+```
+
+### `yaml.stringify(value)`
+
+Convert JavaScript values to YAML strings.
+
+```js 生成 YAML.js icon="braces" lines
+function main(profile) {
+  const text = yaml.stringify({
+    "log-level": "info",
+    rules: ["MATCH,PROXY"],
+  });
+  console.info(text);
+  return profile;
+}
+```
+
+The result of `yaml.stringify` is a string and cannot be directly used as the return value of `main`; a configuration object must be returned.
+
+The output is similar to:
+
+```yaml
+log-level: info
+rules:
+  - MATCH,PROXY
+```
+
+## `fetch(input, init)`
+
+The built-in `fetch` only supports `http://`, not `https://`. Connections, reads, and writes each have a 15-second timeout.
+
+### Request parameters
+
+| Parameters | Type | Behavior |
+| --- | --- | --- |
+| `input` | String or object | URL string, or object containing `url`. |
+| `init.method` | String | HTTP method, default `GET`. |
+| `init.headers` | Object | Request header. |
+| `init.body` | String or object | Strings are sent directly; other values are `JSON.stringify` first. |
+
+`url`, `method`, `headers`, and `body` in `init` overwrite the values of the same name in the `input` object.
+
+```js HTTP 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml", {
+    method: "GET",
+    headers: {
+      "x-client": "YumeBox",
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+### Response object
+
+| Property or method | Result |
+| --- | --- |
+| `ok` | `true` for status codes `200` to `299`. |
+| `status` | HTTP status code. |
+| `statusText` | HTTP status text. |
+| `url` | Request URL. |
+| `headers.get(name)` | Get the response header and return `null` if it does not exist. |
+| `headers.has(name)` | Determine whether the response header exists. |
+| `headers.toJSON()` | Returns the response header object. |
+| `text()` | Read text asynchronously. |
+| `json()` | Parses JSON asynchronously. |
+| `yaml()` | Parses YAML asynchronously. |
+
+```js 读取 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  profile["mixed-port"] = payload.port;
+  return profile;
+}
+```
+
+Error expected:
+
+```js 不支持 HTTPS.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("https://example.com/patch.yaml");
+  return profile;
+}
+```
+
+The script will fail with an error containing `fetch only supports http:// urls`. The script also stops when the network connection fails, the URL is empty, or the response cannot be parsed.
+
+Non-`2xx` responses will not automatically throw an error and must be checked for `response.ok`:
+
+```js 检查 HTTP 状态.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) {
+    console.warn("HTTP 状态", response.status);
+    return profile;
+  }
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+## `console`
+
+The log is written to the `.log` file in the same directory and with the same main file name as the currently overwritten file; the old log will be reset each time before executing the overwrite.
+
+| Method | Log Level |
+| --- | --- |
+| `console.log(...)` | `log` |
+| `console.info(...)` | `info` |
+| `console.warn(...)` | `warn` |
+| `console.error(...)` | `error` |
+| `console.debug(...)` | `debug` |
+
+Multiple parameters are concatenated with spaces; objects are serialized to JSON.
+
+```js 日志 API.js icon="braces" lines
+function main(profile) {
+  console.info("当前模式", profile.mode);
+  console.debug("代理数量", Array.isArray(profile.proxies) ? profile.proxies.length : 0);
+  return profile;
+}
+```
+
+The log results are similar:
+
+```text
+[info] "当前模式" "rule"
+[debug] "代理数量" 12
+```
+
+When the encryption configuration script is executed, the configuration value in the log is replaced with `(redacted, encrypted profile)`.
+
+## Base64
+
+### `b64e(value)` and `b64d(value)`
+
+`b64e` encodes UTF-8 text to Base64, and `b64d` decodes Base64 to UTF-8 text.
+
+```js Base64 API.js icon="braces" lines
+function main(profile) {
+  const encoded = b64e("YumeBox");
+  const decoded = b64d(encoded);
+  profile["encoded-name"] = encoded;
+  profile["decoded-name"] = decoded;
+  return profile;
+}
+```
+
+Expected results:
+
+```yaml
+encoded-name: WXVtZUJveA==
+decoded-name: YumeBox
+```
+
+### `Buffer`
+
+| API | Behavior |
+| --- | --- |
+| `Buffer.from(value, "utf8")` | Convert UTF-8 text to a buffer object. |
+| `Buffer.from(value, "base64")` | Convert Base64 text to a buffer object. |
+| `Buffer.isBuffer(value)` | Determine whether it is a YumeBox buffer object. |
+| `buffer.toString("utf8")` | Decoded to UTF-8 text. |
+| `buffer.toString("base64")` | Returns Base64 text. |
+| `buffer.valueOf()` | Returns UTF-8 text. |
+
+```js Buffer API.js icon="braces" lines
+function main(profile) {
+  const buffer = Buffer.from("YumeBox", "utf8");
+  profile["client-name"] = buffer.toString("utf8");
+  profile["client-name-base64"] = buffer.toString("base64");
+  return profile;
+}
+```
+
+Expected results:
+
+```yaml
+client-name: YumeBox
+client-name-base64: WXVtZUJveA==
+```
+
+Only `utf8`, `utf-8` and `base64` are supported. Other encodings throw `Buffer.from() unsupported encoding` or `Buffer.toString() unsupported encoding`.

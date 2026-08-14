@@ -74,7 +74,7 @@ Home = {
         WallpaperDescription = "Long-press the wallpaper to pick from your album"
         SwipeTitle = "Swipe pages"
         SwipeDescription = "Swipe across Home to switch to Proxy, Profiles, and Settings"
-        AddTitle = "Add subscription"
-        AddDescription = "Click the icon in the upper right corner and paste the link to add it"
+        AddTitle = "Set System Wallpaper"
+        AddDescription = "Enable the switch and grant access to use your current system wallpaper"
     }
 }

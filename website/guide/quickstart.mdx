@@ -1,0 +1,53 @@
+---
+title: 快速开始
+sidebarTitle: 快速开始
+icon: rocket
+---
+
+<Info>YumeBox 不提供节点或订阅，请先准备配置文件或订阅地址.</Info>
+
+## 首次使用
+
+<Steps>
+  <Step title="安装 APK">
+    从 [GitHub Releases](https://github.com/YumeYucca/YumeBox/releases) 下载并安装 APK.
+
+    | 版本 | Geo 数据 | 适合场景 |
+    | ---- | -------- | -------- |
+    | `builtin` | 内置 | 首次安装 |
+    | `external` | 不内置 | 版本更新 |
+  </Step>
+
+  <Step title="导入配置">
+    在配置页点击**添加配置**，填写配置名称后，可通过订阅链接、本地文件或二维码导入.
+
+    <Frame><img src="/images/guide/quickstart-import-config.png" alt="添加配置文件界面" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="选择配置">
+    点击配置卡片，将它设为当前配置.
+
+    <Info>首次启动建议先不添加覆写，确认配置可以正常运行后再修改.</Info>
+
+    <Frame><img src="/images/guide/quickstart-profile-card.jpg" alt="配置卡片界面" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="服务配置">
+    打开**网络设置**，选择运行模式：
+
+    | 模式 | 权限 | 特点 |
+    | ---- | ---- | ---- |
+    | `Vpn Service` | VPN | 无需 Root，兼容性好 |
+    | `Tun` | Root | 创建 Tun 虚拟网卡 |
+    | `eBPF` | Root、eBPF | 使用 eBPF 桥接流量 |
+
+    <Info>`eBPF` 需要内核支持,当前处于 `alpha` 阶段,未来可能移除</Info>
+
+  </Step>
+
+  <Step title="启动代理">
+    返回首页，点击启动并完成系统授权.
+
+    <Check>代理组和节点加载完成后，即可开始使用.</Check>
+  </Step>
+</Steps>

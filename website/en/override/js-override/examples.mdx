@@ -1,0 +1,283 @@
+---
+title: Examples and troubleshooting
+sidebarTitle: Examples and troubleshooting
+icon: bug
+---
+This page shows JavaScript overrides as needed. Each example contains expected results or failing behavior.
+
+## Modify scalar fields
+
+```js 修改端口.js icon="braces" lines
+function main(profile) {
+  profile["mixed-port"] = 7890;
+  return profile;
+}
+```
+
+```js 修改端口 diff.js icon="braces" lines
+function main(profile) {
+-  profile["mixed-port"] = 10801; // [!code --]
++  profile["mixed-port"] = 7890; // [!code ++]
+  return profile;
+}
+```
+
+## Modify according to conditions
+
+```js 条件修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "rule") {
+    profile["log-level"] = "info";
+  }
+  return profile;
+}
+```
+
+When `mode` is `rule`:
+
+```yaml
+log-level: info
+```
+
+When the conditions are not met, the script returns the original object and no diff is generated.
+
+## Add object field
+
+```js 添加 DNS 字段.js icon="braces" lines
+function main(profile) {
+  if (!profile.dns) profile.dns = {};
+  profile.dns.enable = true;
+  profile.dns["enhanced-mode"] = "fake-ip";
+  return profile;
+}
+```
+
+```yaml 添加 DNS 字段 diff.yaml icon="file-code" lines
+dns:
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+```
+
+## Use `deepMerge` to add rules
+
+```js 添加规则.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+  }, true);
+}
+```
+
+```yaml 添加规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+JavaScript does not automatically move `MATCH` like YAML does. If the original list didn't put `MATCH` at the end, the script won't fix it for you.
+
+## Replace object or array
+
+```js 替换 DNS.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+      nameserver: ["1.1.1.1"],
+    },
+  }, true);
+}
+```
+
+```yaml 替换 DNS diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  nameserver: # [!code --]
+    - 223.5.5.5 # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver: # [!code ++]
+    - 1.1.1.1 # [!code ++]
+```
+
+## Filter proxy
+
+```js 过滤代理.js icon="braces" lines
+function main(profile) {
+  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
+  profile.proxies = proxies.filter((item) => {
+    const name = String((item && item.name) || "");
+    return !name.includes("过期");
+  });
+  return profile;
+}
+```
+
+```yaml 过滤代理 diff.yaml icon="file-code" lines
+proxies:
+  - name: 香港节点
+  - name: 过期节点 # [!code --]
+```
+
+If `profile.proxies` is not an array, the script uses an empty array and ends up with `proxies: []`.
+
+## Modify naming policy group
+
+```js 修改策略组.js icon="braces" lines
+function main(profile) {
+  const groups = Array.isArray(profile["proxy-groups"])
+    ? profile["proxy-groups"]
+    : [];
+  const proxy = groups.find((group) => group && group.name === "PROXY");
+  if (proxy) proxy.proxies = ["DIRECT"];
+  return profile;
+}
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY
+    proxies: # [!code --]
+      - AUTO # [!code --]
+      - DIRECT # [!code ++]
+```
+
+If `PROXY` is not found, the script will not create a new policy group and will not report an error.
+
+## Read remote YAML
+
+```js 远程 YAML.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+Remote return:
+
+```yaml
+dns:
+  enable: true
+```
+
+Expected diff:
+
+```yaml 远程 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+Network failure, HTTPS only support, corrupted YAML content, or incomplete Promise will cause the script to fail.
+
+## Read remote JSON
+
+```js 远程 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  if (typeof payload.port === "number") {
+    profile["mixed-port"] = payload.port;
+  }
+  return profile;
+}
+```
+
+If `payload.port` is not a number, the script retains the original `mixed-port`.
+
+## Request header and request body
+
+```js POST 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer token",
+    },
+    body: {
+      mode: profile.mode,
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+The object request body is converted to a JSON string before being sent.
+
+## Logs and Exceptions
+
+```js 记录并抛错.js icon="braces" lines
+function main(profile) {
+  console.info("开始处理", profile.mode);
+  if (!profile.mode) {
+    throw new Error("缺少 mode");
+  }
+  return profile;
+}
+```
+
+On failure:
+
+- The current override writes `[exception] 脚本执行失败`.
+- Subsequent overwrites will not proceed.
+- Normal configuration will return script errors and file paths.
+- Encrypted configuration does not expose configuration content and paths in errors or logs.
+
+## Return error value
+
+```js 返回数组.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+Expected results:
+
+```text
+JS override result must be an object
+```
+
+```js 缺少 main.js icon="braces" lines
+const unused = 1;
+```
+
+Expected results:
+
+```text
+JS override must define main(profile)
+```
+
+## Multiple JavaScript overrides
+
+Files are executed in binding order, with subsequent scripts receiving the return value of the previous script:
+
+```js 第一个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = 2;
+  return profile;
+}
+```
+
+```js 第二个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = profile.port + 3;
+  return profile;
+}
+```
+
+```yaml JavaScript 覆写链结果 diff.yaml icon="file-code" lines
+mixed-port: 1 # [!code --]
+mixed-port: 5 # [!code ++]
+```
+
+When the second script lacks `main`, the function of the first script will not be reused, but will fail directly.

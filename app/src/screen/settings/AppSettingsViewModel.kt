@@ -30,7 +30,6 @@ import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.core.util.moeWallpaperFile
 import com.github.yumeyucca.yumebox.data.controller.AppSettingsController
 import com.github.yumeyucca.yumebox.data.model.AppColorTheme
-import com.github.yumeyucca.yumebox.data.model.AppIconStyle
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
 import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
@@ -59,20 +58,18 @@ class AppSettingsViewModel(
     val automaticRestart: Preference<Boolean> = settings.automaticRestart
     val autoUpdateCurrentProfileOnStart: Preference<Boolean> =
         settings.autoUpdateCurrentProfileOnStart
-    val hideAppIcon: Preference<Boolean> = settings.hideAppIcon
-    val appIconStyle: Preference<AppIconStyle> = settings.appIconStyle
     val excludeFromRecents: Preference<Boolean> = settings.excludeFromRecents
     val showTrafficNotification: Preference<Boolean> = settings.showTrafficNotification
     val bottomBarAutoHide: Preference<Boolean> = settings.bottomBarAutoHide
     val topBarBlurEnabled: Preference<Boolean> = settings.topBarBlurEnabled
     val classicHomeEnabled: Preference<Boolean> = settings.classicHomeEnabled
+    val useSystemWallpaper: Preference<Boolean> = settings.useSystemWallpaper
     val moeWallpaperUri: Preference<String> = settings.moeWallpaperUri
     val moeWallpaperSourceUri: Preference<String> = settings.moeWallpaperSourceUri
     val moeWallpaperZoom: Preference<Float> = settings.moeWallpaperZoom
     val moeWallpaperBiasX: Preference<Float> = settings.moeWallpaperBiasX
     val moeWallpaperBiasY: Preference<Float> = settings.moeWallpaperBiasY
     val moeHomeQuote: Preference<String> = settings.moeHomeQuote
-    val moeHomeQuoteAuthor: Preference<String> = settings.moeHomeQuoteAuthor
     val moeSidebarExpanded: Preference<Boolean> = settings.moeSidebarExpanded
     val pageScale: Preference<Float> = settings.pageScale
     val predictiveBackEnabled: Preference<Boolean> = settings.predictiveBackEnabled
@@ -112,7 +109,7 @@ class AppSettingsViewModel(
         val topBarBlurEnabled: Boolean = false,
         val pageScale: Float = 1f,
         val classicHomeEnabled: Boolean = false,
-        val appIconStyle: AppIconStyle = AppIconStyle.Default,
+        val useSystemWallpaper: Boolean = true,
     )
 
     val interfaceSectionState: StateFlow<InterfaceSectionState> =
@@ -136,13 +133,13 @@ class AppSettingsViewModel(
                 topBarBlurEnabled.state,
                 pageScale.state,
                 classicHomeEnabled.state,
-                appIconStyle.state,
-            ) { blur, scale, classic, iconStyle ->
+                useSystemWallpaper.state,
+            ) { blur, scale, classic, systemWallpaper ->
                 InterfaceSectionExtras(
                     topBarBlurEnabled = blur,
                     pageScale = scale,
                     classicHomeEnabled = classic,
-                    appIconStyle = iconStyle,
+                    useSystemWallpaper = systemWallpaper,
                 )
             },
         ) { base, extra ->
@@ -150,7 +147,7 @@ class AppSettingsViewModel(
                 topBarBlurEnabled = extra.topBarBlurEnabled,
                 pageScale = extra.pageScale,
                 classicHomeEnabled = extra.classicHomeEnabled,
-                appIconStyle = extra.appIconStyle,
+                useSystemWallpaper = extra.useSystemWallpaper,
             )
         }
             .stateInWhileSubscribed(
@@ -164,7 +161,7 @@ class AppSettingsViewModel(
                     topBarBlurEnabled = topBarBlurEnabled.value,
                     pageScale = pageScale.value,
                     classicHomeEnabled = classicHomeEnabled.value,
-                    appIconStyle = appIconStyle.value,
+                    useSystemWallpaper = useSystemWallpaper.value,
                 ),
             )
 
@@ -172,7 +169,7 @@ class AppSettingsViewModel(
         val topBarBlurEnabled: Boolean,
         val pageScale: Float,
         val classicHomeEnabled: Boolean,
-        val appIconStyle: AppIconStyle,
+        val useSystemWallpaper: Boolean,
     )
 
     data class ServiceSectionState(
@@ -203,18 +200,16 @@ class AppSettingsViewModel(
             )
 
     data class PrivacySectionState(
-        val hideAppIcon: Boolean = false,
         val excludeFromRecents: Boolean = false,
     )
 
     val privacySectionState: StateFlow<PrivacySectionState> =
-        combine(hideAppIcon.state, excludeFromRecents.state) { hide, exclude ->
-            PrivacySectionState(hideAppIcon = hide, excludeFromRecents = exclude)
+        excludeFromRecents.state.map { exclude ->
+            PrivacySectionState(excludeFromRecents = exclude)
         }
             .stateInWhileSubscribed(
                 viewModelScope,
                 PrivacySectionState(
-                    hideAppIcon = hideAppIcon.value,
                     excludeFromRecents = excludeFromRecents.value,
                 ),
             )
@@ -232,6 +227,7 @@ class AppSettingsViewModel(
     data class MoeHomeSectionState(
         val themeMode: ThemeMode = ThemeMode.Auto,
         val classicHomeEnabled: Boolean = false,
+        val useSystemWallpaper: Boolean = true,
         val moeHomeQuote: String = "",
         val sidebarExpanded: Boolean = false,
     )
@@ -240,12 +236,14 @@ class AppSettingsViewModel(
         combine(
             themeMode.state,
             classicHomeEnabled.state,
+            useSystemWallpaper.state,
             moeHomeQuote.state,
             moeSidebarExpanded.state,
-        ) { theme, classic, quote, sidebar ->
+        ) { theme, classic, systemWallpaper, quote, sidebar ->
             MoeHomeSectionState(
                 themeMode = theme,
                 classicHomeEnabled = classic,
+                useSystemWallpaper = systemWallpaper,
                 moeHomeQuote = quote,
                 sidebarExpanded = sidebar,
             )
@@ -255,6 +253,7 @@ class AppSettingsViewModel(
                 MoeHomeSectionState(
                     themeMode = themeMode.value,
                     classicHomeEnabled = classicHomeEnabled.value,
+                    useSystemWallpaper = useSystemWallpaper.value,
                     moeHomeQuote = moeHomeQuote.value,
                     sidebarExpanded = moeSidebarExpanded.value,
                 ),
@@ -283,6 +282,8 @@ class AppSettingsViewModel(
 
     fun onClassicHomeEnabledChange(enabled: Boolean) = classicHomeEnabled.set(enabled)
 
+    fun onUseSystemWallpaperChange(enabled: Boolean) = useSystemWallpaper.set(enabled)
+
     fun onMoeWallpaperUriChange(uri: String) = moeWallpaperUri.set(uri)
 
     /**
@@ -293,6 +294,7 @@ class AppSettingsViewModel(
      */
     fun applyMoeWallpaper(sourceUri: String, onApplied: () -> Unit) {
         viewModelScope.launch {
+            useSystemWallpaper.set(false)
             val localPath = MoeWallpaperImporter.importToLocal(application, sourceUri)
             if (localPath != null) {
                 moeWallpaperUri.set(localPath)
@@ -314,7 +316,6 @@ class AppSettingsViewModel(
 
     fun onMoeHomeQuoteChange(quote: String) = moeHomeQuote.set(quote)
 
-    fun onMoeHomeQuoteAuthorChange(author: String) = moeHomeQuoteAuthor.set(author)
 
     fun onMoeSidebarExpandedChange(expanded: Boolean) = moeSidebarExpanded.set(expanded)
 
@@ -334,9 +335,7 @@ class AppSettingsViewModel(
     fun onAutoUpdateCurrentProfileOnStartChange(enabled: Boolean) =
         autoUpdateCurrentProfileOnStart.set(enabled)
 
-    fun onHideAppIconChange(hide: Boolean) = hideAppIcon.set(hide)
 
-    fun onAppIconStyleChange(style: AppIconStyle) = appIconStyle.set(style)
 
     fun onExcludeFromRecentsChange(exclude: Boolean) = excludeFromRecents.set(exclude)
 

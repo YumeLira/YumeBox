@@ -52,9 +52,6 @@ object Intents {
     fun actionOverrideChanged(packageName: String): String =
         intentAction(packageName, "OVERRIDE_CHANGED")
 
-    fun actionAppIconStyleChanged(packageName: String): String =
-        intentAction(packageName, "APP_ICON_STYLE_CHANGED")
-
     fun actionRootRuntimeFailed(packageName: String): String =
         intentAction(packageName, "ROOT_RUNTIME_FAILED")
 
@@ -78,9 +75,6 @@ object Intents {
 
     val ACTION_OVERRIDE_CHANGED: String
         get() = actionOverrideChanged(packageName)
-
-    val ACTION_APP_ICON_STYLE_CHANGED: String
-        get() = actionAppIconStyleChanged(packageName)
 
     const val EXTRA_STOP_REASON = "stop_reason"
     const val EXTRA_RESTART = "restart"

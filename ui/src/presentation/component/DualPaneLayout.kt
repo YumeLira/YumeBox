@@ -61,7 +61,7 @@ fun DualPaneLayout(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val containerWidthPx = with(density) { maxWidth.toPx().coerceAtLeast(1f) }
-        val dividerPx = with(density) { if (showDivider) dividerHitWidth.toPx() else 0f }
+        val dividerPx = with(density) { dividerHitWidth.toPx().takeIf { showDivider } ?: 0f }
         val freeWidthPx = (containerWidthPx - dividerPx).coerceAtLeast(1f)
 
         val rawMinLeftPx = with(density) { minLeftWidth.toPx() }

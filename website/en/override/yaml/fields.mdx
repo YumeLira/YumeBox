@@ -1,0 +1,305 @@
+---
+title: Field behavior
+sidebarTitle: Field behavior
+icon: list-tree
+---
+
+YAML 覆写先按字段类型选择处理器，再执行键名修饰符.字段类型决定普通键、`merge` 和列表修饰符的行为.
+
+## 字段类型
+
+| 类型 | 普通键 | `-merge` | `-start` / `-end` |
+| --- | --- | --- | --- |
+| 标量 | 覆盖原值. | 忽略. | 忽略. |
+| 普通列表 | 替换整个列表. | 追加数组项. | 插入或追加数组项. |
+| 命名对象列表 | 替换后按 `name` 去重. | 追加后按 `name` 去重. | 追加后按 `name` 去重. |
+| `rules` 列表 | 替换后保持 `MATCH` 在最后. | 追加后保持 `MATCH` 在最后. | 追加后保持 `MATCH` 在最后. |
+| 对象 | 递归处理子键. | 按字面量键合并. | 忽略. |
+| 对象映射 | 替换整个映射. | 递归合并映射. | 忽略. |
+| 未知字段 | 对象递归，其他值覆盖. | 合并对象. | 对数组生效. |
+
+`key-force` 不经过上表的字段处理，直接替换整个字段.
+
+## 标量字段
+
+标量字段只接受普通键或 `key-force`.普通键会覆盖值，`key-start`、`key-end` 和 `key-merge` 不会把标量转换成列表或对象.
+
+```yaml 修改端口.yaml icon="file-code" lines
+mixed-port: 10801
+```
+
+```yaml 标量字段 diff.yaml icon="file-code" lines
+mixed-port: 10801 # [!code --]
+mixed-port: 7890 # [!code ++]
+```
+
+下面的写法不会报 YAML 错误，但不会修改 `mixed-port`：
+
+```yaml 无效的标量修饰符.yaml icon="file-code" lines
+mixed-port-start: 7890
+mixed-port-end: 7891
+mixed-port-merge:
+  value: 7892
+```
+
+## 普通列表
+
+普通列表不去重.`key` 替换原列表，`key-start` 插入开头，`key-end` 追加末尾，`key-merge` 在原列表后追加.
+
+```yaml 修改认证列表.yaml icon="file-code" lines
+authentication-start:
+  - "admin:password"
+
+authentication-end:
+  - "guest:password"
+```
+
+```yaml 普通列表 diff.yaml icon="file-code" lines
+authentication:
+  - "admin:password" # [!code ++]
+  - "old:password"
+  - "guest:password" # [!code ++]
+```
+
+如果误用 `authentication-force`，它仍然是合法语法，但会删除原列表，只保留覆写中的项目：
+
+```yaml 直接替换认证列表.yaml icon="file-code" lines
+authentication-force:
+  - "admin:password"
+```
+
+## 命名对象列表
+
+`proxies` 和 `proxy-groups` 是命名对象列表.项目有非空 `name` 时，同名项目只保留最后出现的项目，并保留最后项目的位置；没有有效 `name` 的项目始终保留.
+
+```yaml 覆盖策略组.yaml icon="file-code" lines
+proxy-groups-end:
+  - name: PROXY
+    type: select
+    proxies:
+      - DIRECT
+```
+
+假设原配置已经有 `name: PROXY`，结果是原策略组被新项目替换，而不是出现两个 `PROXY`：
+
+```yaml 命名对象列表 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY # [!code --]
+    type: url-test # [!code --]
+    proxies: # [!code --]
+      - AUTO # [!code --]
+  - name: PROXY # [!code ++]
+    type: select # [!code ++]
+    proxies: # [!code ++]
+      - DIRECT # [!code ++]
+```
+
+`name` 为空、缺失或只包含空格时不会去重：
+
+```yaml 不参与去重的项目.yaml icon="file-code" lines
+proxy-groups-end:
+  - type: select
+    proxies:
+      - DIRECT
+  - name: "  "
+    type: select
+    proxies:
+      - DIRECT
+```
+
+## `rules` 的特殊行为
+
+`rules` 使用列表语法.应用覆写时，原配置中从第一个终端 `MATCH,...` 开始的规则段会移动到最终位置；覆写文件新增的规则不会再次扫描或移动.
+
+```yaml 规则列表.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,lan,DIRECT
+
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+
+rules-end:
+  - DOMAIN-SUFFIX,example.com,PROXY
+```
+
+```yaml 规则列表 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+即使覆写中写成下面这样，`MATCH` 仍会被移到最后：
+
+```yaml MATCH 不会留在中间.yaml icon="file-code" lines
+rules-end:
+  - MATCH,PROXY
+  - DOMAIN-SUFFIX,example.com,DIRECT
+```
+
+```yaml 新增 MATCH 的实际结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY # [!code ++]
+  - DOMAIN-SUFFIX,example.com,DIRECT # [!code ++]
+  - MATCH,OLD # [!code ++]
+```
+
+这里最后的 `MATCH,OLD` 来自原配置；新增的 `MATCH,PROXY` 仍按 `rules-end` 的位置保留.
+
+## 对象字段
+
+对象字段使用普通键时会递归处理子键.以 `dns` 为例：
+
+```yaml 修改 DNS 子字段.yaml icon="file-code" lines
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+```
+
+只会修改 `dns.enable` 和 `dns.enhanced-mode`，原有的 `nameserver` 等子字段会保留.
+
+```yaml DNS 子字段 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver:
+    - 223.5.5.5
+```
+
+对对象使用 `dns-start` 或 `dns-end` 不会生效，因为对象不是列表：
+
+```yaml 对象上的列表修饰符.yaml icon="file-code" lines
+dns-start:
+  enable: true
+```
+
+## `merge`
+
+`key-merge` 的行为取决于字段类型：
+
+- 对普通列表、命名对象列表和 `rules`：追加数组项.
+- 对对象映射：递归合并映射.
+- 对普通对象：按字面量键合并，嵌套键不会再次解析修饰符.
+- 对标量：忽略.
+
+### 映射合并
+
+```yaml Provider 合并.yaml icon="file-code" lines
+proxy-providers:
+  base:
+    type: http
+    url: https://example.com/base.yaml
+
+proxy-providers-merge:
+  base:
+    interval: 3600
+  extra:
+    type: file
+    path: extra.yaml
+```
+
+原来的 Provider 映射会先被 `proxy-providers` 替换，再由 `proxy-providers-merge` 添加 `interval` 和 `extra`.
+
+### 普通对象合并
+
+```yaml DNS 合并.yaml icon="file-code" lines
+dns-merge:
+  enable: true
+  nameserver:
+    - 223.5.5.5
+```
+
+`dns-merge` 中的 `nameserver` 会按字面量字段写入；它不会变成 `nameserver-start`，也不会把数组自动追加到原列表.
+
+## `force`
+
+`key-force` 是最高优先级.只要同一字段存在 `force` 值，其他 `start`、`replace`、`merge` 和 `end` 操作都不会继续执行.
+
+```yaml 强制替换 DNS.yaml icon="file-code" lines
+dns-force:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+```
+
+```yaml 强制替换列表 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT # [!code --]
+  - MATCH,OLD # [!code --]
+  - DOMAIN-SUFFIX,new.example,DIRECT # [!code ++]
+  - MATCH,NEW # [!code ++]
+```
+
+`force` 没有字段类型限制；它的**错误示范**不是语法错误，而是误用后会丢弃整个字段：
+
+```yaml 误用 force.yaml icon="file-code" lines
+dns-force:
+  enable: true
+```
+
+结果只保留 `dns.enable`，原有的 `nameserver`、`fallback` 等字段都会被删除.
+
+## 顶层字段表
+
+下表是 YumeBox 当前识别的顶层字段.字段不在表中时，继续使用**未知字段**的通用规则.
+
+| 类型 | 字段 |
+| --- | --- |
+| 标量 | `port`、`socks-port`、`mixed-port`、`redir-port`、`allow-lan`、`bind-address`、`mode`、`log-level`、`ipv6`、`external-controller`、`external-controller-tls`、`external-doh-server`、`secret`、`unified-delay`、`geodata-mode`、`tcp-concurrent`、`find-process-mode`、`keep-alive-interval`、`keep-alive-idle`、`interface-name`、`routing-mark`、`geosite-matcher`、`global-client-fingerprint`、`geo-auto-update`、`geo-update-interval` |
+| 普通列表 | `authentication`、`skip-auth-prefixes`、`lan-allowed-ips`、`lan-disallowed-ips` |
+| 对象映射 | `hosts`、`rule-providers`、`proxy-providers`、`sub-rules` |
+| 命名对象列表 | `proxies`、`proxy-groups` |
+| 规则列表 | `rules` |
+| 嵌套对象 | `dns`、`external-controller-cors`、`profile`、`tun`、`sniffer`、`geox-url`、`clash-for-android` |
+
+`geosite-matcher` 通过最终校验时只接受 `mph` 和 `succinct`；其他值会在覆写执行后被拒绝.
+
+## 嵌套字段表
+
+### `dns`
+
+| 类型 | 字段 |
+| --- | --- |
+| 标量 | `enable`、`cache-algorithm`、`prefer-h3`、`listen`、`ipv6`、`use-hosts`、`use-system-hosts`、`respect-rules`、`enhanced-mode`、`fake-ip-range`、`fake-ip-range6`、`fake-ip-filter-mode`、`fake-ip-ttl`、`ipv6-timeout`、`cache-max-size`、`direct-nameserver-follow-policy` |
+| 普通列表 | `nameserver`、`fallback`、`default-nameserver`、`proxy-server-nameserver`、`direct-nameserver`、`fake-ip-filter` |
+| 对象映射 | `nameserver-policy`、`proxy-server-nameserver-policy` |
+| 嵌套对象 | `fallback-filter` |
+
+### 其他对象
+
+| 对象 | 标量 | 普通列表 | 嵌套对象 |
+| --- | --- | --- | --- |
+| `dns.fallback-filter` | `geoip`、`geoip-code` | `domain`、`ipcidr`、`geosite` | — |
+| `sniffer` | `enable`、`force-dns-mapping`、`parse-pure-ip`、`override-destination` | `force-domain`、`skip-domain`、`skip-src-address`、`skip-dst-address` | `sniff` |
+| `sniffer.sniff.HTTP/TLS/QUIC` | `override-destination` | `ports` | — |
+| `tun` | `enable`、`stack`、`auto-route`、`auto-detect-interface`、`auto-redirect`、`mtu`、`gso`、`gso-max-size`、`strict-route`、`disable-icmp-forwarding`、`endpoint-independent-nat` | `dns-hijack`、`route-address`、`route-exclude-address`、`include-package`、`exclude-package` | — |
+| `external-controller-cors` | `allow-private-network` | `allow-origins` | — |
+| `profile` | `store-selected`、`store-fake-ip` | — | — |
+| `geox-url` | `geoip`、`mmdb`、`geosite` | — | — |
+| `clash-for-android` | `append-system-dns` | — | — |
+
+## 未知字段
+
+未知字段不会被拒绝：对象递归、标量覆盖、数组使用 `key-start` 和 `key-end`.
+
+```yaml 未知对象字段.yaml icon="file-code" lines
+experimental:
+  custom-switch: true
+  values:
+    - one
+```
+
+需要保留修饰符字符时使用尖括号：
+
+```yaml 字面量键.yaml icon="file-code" lines
+<rules+>:
+  enabled: true
+```
+
+这会写入真实键名 `rules+`，不会向 `rules` 列表追加内容.
+

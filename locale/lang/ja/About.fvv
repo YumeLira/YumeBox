@@ -8,9 +8,14 @@ About = {
         VersionFailed = "読み込みに失敗しました"
     }
 
+    Debug = {
+        Title = "Debug"
+        TestInitialization = "初期化をテスト"
+        InitializationReset = "初期化状態をリセットしました"
+    }
+
     Section = {
         ProjectLinks = "プロジェクトリンク"
-        More = "その他"
         Support = "サポート"
         License = "ライセンス"
     }
@@ -22,16 +27,11 @@ About = {
         ExportFailed = "ログの書き出しに失敗しました"
     }
 
-    Link = {
-        TelegramGroup = "Telegram グループ"
-        TelegramChannel = "Telegram チャンネル"
-    }
-
     License = {
         Libraries = "ライブラリ"
         LibrariesSummary = "このアプリで使用しているサードパーティライブラリを表示"
         AgplName = "GNU Affero General Public License v3.0"
-        AgplDescription = "本プログラムはフリーソフトウェアです。GNU Affero 一般公衆ライセンスの条項に従って再配布および/または改変できます。"
+        AgplDescription = "本プログラムはフリーソフトウェアです.GNU Affero 一般公衆ライセンスの条項に従って再配布および/または改変できます."
     }
 
     Copyright = "© 2025 – Present YumeYucca"

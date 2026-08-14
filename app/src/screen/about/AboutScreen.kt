@@ -27,8 +27,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.github.yumeyucca.yumebox.BuildConfig
 import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
+import com.github.yumeyucca.yumebox.data.store.AppSettingsStore
 import com.github.yumeyucca.yumebox.presentation.component.*
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.theme.UiDp
@@ -59,6 +66,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.IOException
+import org.koin.compose.koinInject
 
 private val AppNameGradient =
     listOf(
@@ -70,7 +78,10 @@ private val AppNameGradient =
 @Composable
 fun AboutScreen(navigator: Navigator) {
     val context = LocalContext.current
+    val appSettingsStore = koinInject<AppSettingsStore>()
     val scope = rememberCoroutineScope()
+    var myBooksTapCount by rememberSaveable { mutableIntStateOf(0) }
+    var showDebugPanel by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = MiuixScrollBehavior()
     val exportLogsLauncher =
         rememberLauncherForActivityResult(
@@ -167,7 +178,31 @@ fun AboutScreen(navigator: Navigator) {
                     BasicComponent(
                         title = "YumeBox",
                         summary = "An open-source Android client based Mihomo",
+                        onClick = {
+                            myBooksTapCount = (myBooksTapCount + 1).coerceAtMost(5)
+                            if (myBooksTapCount == 5) showDebugPanel = true
+                        },
                     )
+                }
+
+                AnimatedVisibility(
+                    visible = showDebugPanel,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                ) {
+                    Column {
+                        Title(YumeTxt.About.Debug.Title)
+                        AppCard {
+                            PreferenceArrowItem(
+                                title = YumeTxt.About.Debug.TestInitialization,
+                                onClick = {
+                                    appSettingsStore.homePreviewGuideShown.set(false)
+                                    appSettingsStore.systemWallpaperPermissionRequested.set(false)
+                                    context.toast(YumeTxt.About.Debug.InitializationReset)
+                                },
+                            )
+                        }
+                    }
                 }
 
                 Title(YumeTxt.About.Section.ProjectLinks)
@@ -183,22 +218,6 @@ fun AboutScreen(navigator: Navigator) {
                         url = "https://github.com/MetaCubeX/mihomo",
                         onOpenUrl = { url -> openUrl(context, url) },
                         showArrow = false,
-                    )
-                }
-
-                Title(YumeTxt.About.Section.More)
-                AppCard {
-                    AboutLinkItem(
-                        title = YumeTxt.About.Link.TelegramGroup,
-                        url = "https://t.me/OOM_Group",
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = true,
-                    )
-                    AboutLinkItem(
-                        title = YumeTxt.About.Link.TelegramChannel,
-                        url = "https://t.me/YumeYucca",
-                        onOpenUrl = { url -> openUrl(context, url) },
-                        showArrow = true,
                     )
                 }
 

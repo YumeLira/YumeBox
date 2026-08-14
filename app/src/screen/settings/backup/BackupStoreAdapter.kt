@@ -48,20 +48,18 @@ internal class BackupStoreAdapter(
                     automaticRestart = appSettings.automaticRestart.value,
                     autoUpdateCurrentProfileOnStart =
                         appSettings.autoUpdateCurrentProfileOnStart.value,
-                    hideAppIcon = appSettings.hideAppIcon.value,
-                    appIconStyle = appSettings.appIconStyle.value,
                     excludeFromRecents = appSettings.excludeFromRecents.value,
                     showTrafficNotification = appSettings.showTrafficNotification.value,
                     bottomBarAutoHide = appSettings.bottomBarAutoHide.value,
                     topBarBlurEnabled = appSettings.topBarBlurEnabled.value,
                     classicHomeEnabled = appSettings.classicHomeEnabled.value,
+                    useSystemWallpaper = appSettings.useSystemWallpaper.value,
                     moeWallpaperUri = appSettings.moeWallpaperUri.value,
                     moeWallpaperSourceUri = appSettings.moeWallpaperSourceUri.value,
                     moeWallpaperZoom = appSettings.moeWallpaperZoom.value,
                     moeWallpaperBiasX = appSettings.moeWallpaperBiasX.value,
                     moeWallpaperBiasY = appSettings.moeWallpaperBiasY.value,
                     moeHomeQuote = appSettings.moeHomeQuote.value,
-                    moeHomeQuoteAuthor = appSettings.moeHomeQuoteAuthor.value,
                     moeSidebarExpanded = appSettings.moeSidebarExpanded.value,
                     pageScale = appSettings.pageScale.value,
                     singleNodeTest = appSettings.singleNodeTest.value,
@@ -168,20 +166,18 @@ internal class BackupStoreAdapter(
             appSettings.homePreviewGuideShown,
             appSettings.automaticRestart,
             appSettings.autoUpdateCurrentProfileOnStart,
-            appSettings.hideAppIcon,
-            appSettings.appIconStyle,
             appSettings.excludeFromRecents,
             appSettings.showTrafficNotification,
             appSettings.bottomBarAutoHide,
             appSettings.topBarBlurEnabled,
             appSettings.classicHomeEnabled,
+            appSettings.useSystemWallpaper,
             appSettings.moeWallpaperUri,
             appSettings.moeWallpaperSourceUri,
             appSettings.moeWallpaperZoom,
             appSettings.moeWallpaperBiasX,
             appSettings.moeWallpaperBiasY,
             appSettings.moeHomeQuote,
-            appSettings.moeHomeQuoteAuthor,
             appSettings.moeSidebarExpanded,
             appSettings.pageScale,
             appSettings.singleNodeTest,
@@ -247,20 +243,18 @@ internal class BackupStoreAdapter(
         appSettings.homePreviewGuideShown.set(value.homePreviewGuideShown)
         appSettings.automaticRestart.set(value.automaticRestart)
         appSettings.autoUpdateCurrentProfileOnStart.set(value.autoUpdateCurrentProfileOnStart)
-        appSettings.hideAppIcon.set(value.hideAppIcon)
-        appSettings.appIconStyle.set(value.appIconStyle)
         appSettings.excludeFromRecents.set(value.excludeFromRecents)
         appSettings.showTrafficNotification.set(value.showTrafficNotification)
         appSettings.bottomBarAutoHide.set(value.bottomBarAutoHide)
         appSettings.topBarBlurEnabled.set(value.topBarBlurEnabled)
         appSettings.classicHomeEnabled.set(value.classicHomeEnabled)
+        appSettings.useSystemWallpaper.set(value.useSystemWallpaper)
         appSettings.moeWallpaperUri.set(value.moeWallpaperUri)
         appSettings.moeWallpaperSourceUri.set(value.moeWallpaperSourceUri)
         appSettings.moeWallpaperZoom.set(value.moeWallpaperZoom)
         appSettings.moeWallpaperBiasX.set(value.moeWallpaperBiasX)
         appSettings.moeWallpaperBiasY.set(value.moeWallpaperBiasY)
         appSettings.moeHomeQuote.set(value.moeHomeQuote)
-        appSettings.moeHomeQuoteAuthor.set(value.moeHomeQuoteAuthor)
         appSettings.moeSidebarExpanded.set(value.moeSidebarExpanded)
         appSettings.pageScale.set(value.pageScale)
         appSettings.singleNodeTest.set(value.singleNodeTest)

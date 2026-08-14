@@ -1,0 +1,323 @@
+---
+title: Workflow
+sidebarTitle: Workflow
+icon: route
+---
+YumeBox is responsible for managing configuration, overwriting and running sessions; mihomo is responsible for parsing nodes, establishing connections and providing running data.
+
+## Overall architecture
+
+This diagram shows the complete architecture of YumeBox from configuration entry to running data: how configuration, override, session, core, system access and observation data are connected to each other.
+
+<Frame><img src="/images/diagrams/yumebox-architecture.svg" alt="Architecture diagram of all functions of YumeBox" noZoom={true} /></Frame>
+
+## Configuration enablement and node resolution
+
+The configuration update is only responsible for obtaining and submitting the new configuration; when it is actually started, the running session will compile the current configuration and overwrite chain again, and then wait for the mihomo controller to provide the policy group.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant P as 配置管理
+    participant C as 编译管线
+    participant O as 覆写引擎
+    participant R as 运行会话
+    participant M as mihomo
+
+    U->>P: 添加或更新订阅
+    P->>P: 写入原始配置与 Provider
+    U->>R: 启动当前配置
+    R->>C: 读取 profile 与绑定覆写
+    C->>O: 按顺序应用 YAML / JavaScript
+    O-->>C: 返回覆写后的配置
+    C->>C: 应用 DNS、Tun、监听器等运行补丁
+    C->>C: 校验并生成最终 YAML
+    C-->>R: 返回编译结果
+    R->>M: 传入配置并启动核心
+    M-->>R: 控制器就绪
+    R->>M: 查询策略组与节点状态
+    M-->>U: 显示节点与代理组
+```
+
+```yaml 运行模式对配置的影响 diff.yaml icon="file-code" lines
+tun:
+  enable: true # [!code --]
+  enable: false # [!code ++]
+  auto-route: true # [!code --]
+  auto-route: false # [!code ++]
+  auto-detect-interface: true # [!code --]
+  auto-detect-interface: false # [!code ++]
+```
+
+In **Vpn Service** and **eBPF** modes, the runtime patch will close the above Tun entry; **Tun** mode will retain the Tun configuration.
+
+## Custom overwriting and hot reloading
+
+After the custom override is saved, YumeBox will re-apply the override chain currently being used by the configuration. The running configuration will not modify the original subscription text; when reloading fails, the running session will try to restore the last valid configuration.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant S as 覆写配置
+    participant R as 运行会话
+    participant C as 编译管线
+    participant M as mihomo
+
+    U->>S: 保存 YAML / JavaScript
+    S->>R: 通知当前配置使用了该覆写
+    R->>C: 重新编译完整覆写链
+    C-->>R: 新配置或编译错误
+    alt 编译成功
+        R->>M: 停止旧传输并加载新配置
+        M-->>R: 策略组就绪
+        R-->>U: 热重载完成
+    else 编译或启动失败
+        R->>M: 停止失败的新会话
+        R->>M: 恢复上一份有效配置
+        M-->>R: 旧配置恢复
+        R-->>U: 显示错误并保留旧会话
+    end
+```
+
+```yaml 旧配置.yaml icon="file-code" lines
+mixed-port: 7890
+```
+
+```yaml 新覆写.yaml icon="file-code" lines
+mixed-port: 10801
+```
+
+```yaml 热重载结果 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 10801 # [!code ++]
+```
+
+Tun configurations containing a list of application package names will not re-establish the VPN device when reloaded on the fly; such changes will be logged to take effect the next time Tun is established.
+
+## Startup mode and service process
+
+The three modes share the configuration compilation process, but the hosts that take over the traffic are different: **Vpn Service** uses the Android VPN service, **Tun** uses the Root mihomo process, and **eBPF** starts the eBPF bridge outside the Root mihomo process.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart LR
+    A[启动请求] --> B{运行模式}
+    B -->|Vpn Service| C[Android TunService]
+    B -->|Tun| D[Root mihomo]
+    B -->|eBPF| E[Root mihomo]
+    C --> F[VPN 虚拟网卡]
+    D --> G[Root Tun 接口]
+    E --> H[eBPF bridge]
+    H --> I[Socket 地址重定向]
+    F --> J[mihomo 控制器与代理链]
+    G --> J
+    I --> J
+    J --> K[连接与流量数据]
+
+    classDef request fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef mode fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    classDef host fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef data fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
+    class A request;
+    class B mode;
+    class C,D,E,F,G,H,I,J host;
+    class K data;
+```
+
+The startup request will first check the remote controller, running status, repeated startup and built-in Geo data before entering the corresponding host. Running sessions continuously refresh status, policy groups, logs, and traffic data.
+
+## Wi‑Fi Automation
+
+Wi‑Fi Automation only runs in **Vpn Service** mode. It monitors the SSID by an independent front-end service; rules are applied only after the network status is stable to avoid repeated starts and stops caused by instantaneous changes.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart TB
+    A[启动 Wi‑Fi 自动化服务] --> B{启用且模式为 Vpn Service？}
+    B -->|否| C[停止服务]
+    B -->|是| D[监听 SSID]
+    D --> E[等待 1.5 秒稳定窗口]
+    E --> F{SSID 状态}
+    F -->|匹配规则| G{动作}
+    F -->|其他 Wi‑Fi| H[执行其他 Wi‑Fi 动作]
+    F -->|无 Wi‑Fi| I[执行无 Wi‑Fi 动作]
+    F -->|不可用| J[忽略本次变化]
+    G -->|启动| K[检查 VPN 权限并启动]
+    G -->|停止| L[停止 VpnService]
+    H --> M{Keep / Start / Stop}
+    I --> M
+    M -->|Keep| N[保持当前状态]
+    M -->|Start| K
+    M -->|Stop| L
+    K --> O[运行状态更新]
+    L --> O
+
+    classDef input fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef decision fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    classDef action fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef result fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
+    class A input;
+    class B,F,G,M decision;
+    class C,D,E,H,I,J,K,L,N action;
+    class O result;
+```
+
+## Connection, log and traffic statistics
+
+After running the session to establish the controller, enable log subscription and connection tracking at the same time. The connections, policy groups, real-time speeds, and historical statistics queried by the interface all come from running data, not overwritten files.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant M as mihomo
+    participant S as SessionRuntime
+    participant L as 日志订阅
+    participant H as 连接跟踪
+    participant T as 流量统计
+    participant U as 用户界面
+
+    S->>M: 控制器就绪
+    S->>L: subscribeLogs
+    S->>H: 周期查询 connections
+    L-->>U: 推送日志
+    H->>M: queryConnections
+    M-->>H: 连接快照
+    H->>U: 更新连接历史
+    loop 周期采样
+        T->>M: queryTrafficTotal
+        T->>M: queryConnections
+        M-->>T: 总流量与连接计数
+        T->>T: 与上次基线计算增量
+        T->>T: 按应用和路由归档
+        T-->>U: 更新统计图表
+    end
+    S->>M: 停止运行
+    S->>L: 关闭日志订阅
+    S->>H: 停止连接跟踪
+    T->>T: flushNow
+```
+
+Traffic statistics will be archived by connection increment, application identity and last-hop route; the unattributed portion will be recorded in the unattributed bucket. When the current configuration is switched, the total traffic is rolled back, or the connection count is reset, the counter will re-establish the baseline to avoid miscalculating old sessions into new sessions.
+
+## Running status loop
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Starting: 启动请求
+    Starting --> Running: 核心与策略组就绪
+    Starting --> Failed: 编译、传输或核心失败
+    Running --> Reloading: 配置或覆写变化
+    Reloading --> Running: 新配置加载成功
+    Reloading --> Running: 失败后恢复旧配置
+    Reloading --> Failed: 恢复旧配置也失败
+    Running --> Stopping: 停止请求
+    Starting --> Stopping: 中断启动
+    Failed --> Starting: 再次启动
+    Stopping --> Idle: 资源清理完成
+    Failed --> Idle: 会话退出
+```
+
+This status loop explains why hot reload failure does not necessarily equal agent stop: if restoration of the old configuration succeeds, the session still returns to Running, with the reason for restoration being logged.

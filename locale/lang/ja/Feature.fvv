@@ -72,12 +72,12 @@ Feature = {
 
         RestoreDialog = {
             Title = "バックアップを復元しますか？"
-            Message = "復元するとプロキシと Sub-Store が停止し、現在の設定、プロファイル、上書き、Sub-Store データが置き換えられます。"
+            Message = "復元するとプロキシと Sub-Store が停止し、現在の設定、プロファイル、上書き、Sub-Store データが置き換えられます."
         }
 
         Message = {
-            ExportSuccess = "バックアップをエクスポートしました。"
-            RestoreSuccess = "復元が完了しました。すべての画面を更新するにはアプリを再起動してください。"
+            ExportSuccess = "バックアップをエクスポートしました."
+            RestoreSuccess = "復元が完了しました.すべての画面を更新するにはアプリを再起動してください."
         }
 
         Error = {

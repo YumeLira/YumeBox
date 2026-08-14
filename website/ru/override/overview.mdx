@@ -1,0 +1,112 @@
+---
+title: перезаписать
+sidebarTitle: Обзор
+icon: file-pen
+---
+Переопределение <Info> влияет только на конфигурацию приложения и не меняет исходную конфигурацию. Эффект действует только при использовании. </Info>
+
+Функцию перезаписи можно резюмировать следующим образом: чтение исходной конфигурации, последовательное применение связанных переопределений и создание конфигурации, используемой для этого запуска.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart LR
+    A["配置来源<br/>订阅 / 本地文件"] --> B["配置管理<br/>保存并选择当前配置"]
+    B --> C["覆写编译<br/>YAML / JavaScript"]
+    C --> D["运行阶段<br/>补丁、校验、启动 mihomo"]
+
+    classDef source fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef manage fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef compile fill:#f0fdf4,stroke:#22c55e,color:#14532d,stroke-width:1.5px;
+    classDef runtime fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    class A source;
+    class B manage;
+    class C compile;
+    class D runtime;
+```
+
+## Встроенное переопределение
+
+| Имя | Функция |
+| --- | --- |
+| Предотвращение утечек DNS | Добавьте правила защиты от утечек и включите `fake-ip`. |
+| Добавить правила прямого подключения | Вставьте правила Baidu и Tencent в начало списка правил. |
+| Преобразование подписки на пудинг-собаку | Добавляйте наборы правил, группы прокси и правила переадресации. |
+| ACL4SSR Онлайн Полная версия | Добавляет полный набор правил ACL4SSR и группу разгрузки. |
+
+<Info>Встроенное переопределение нельзя изменить или удалить. Пожалуйста, сначала скопируйте его, если вам нужно его изменить. </Info>
+
+## Применить переопределение
+
+Эффект от двух входов одинаков, и выбранное переопределение будет применено к подписке.
+
+<Steps>
+  <Step title="Из приложения карты подписки">
+    Откройте карточку подписки и выберите **Редактировать подписку → Тип настройки → Переопределить конфигурацию**.
+
+    <Frame><img src="/images/guide/override-profile-settings.jpg" alt="Выберите «Переопределить конфигурацию» в настройках подписки." noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="Настройка приложения из переопределения">
+    Выберите перезапись, нажмите **Применить**, проверьте целевую подписку и подтвердите сохранение.
+
+    <Frame><img src="/images/guide/override-apply-to-profile.jpg" alt="Применить переопределение к подписке" noZoom={true} /></Frame>
+  </Step>
+</Steps>
+
+
+### Порядок выполнения
+
+Когда к одной и той же подписке применяется несколько переопределений, YumeBox выполняет их в порядке списка; более поздние переопределения могут изменить предыдущие результаты.
+
+```yaml 原始配置.yaml icon="file-code" lines
+mixed-port: 7890
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml 第一份覆写.yaml icon="file-code" lines
+mixed-port: 10801
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二份覆写.yaml icon="file-code" lines
+mixed-port: 10802
+rules-end:
+  - DOMAIN-SUFFIX,last.example,PROXY
+```
+
+```yaml 最终结果 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 10802 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+Последующие перезаписи не будут перечитывать исходный текст подписки, но будут получены результаты предыдущей перезаписи.
+
+## Пользовательское переопределение
+
+| Тип | Цель | Документация |
+| --- | --- | --- |
+| ЯМЛ | Исправлены модификации полей, правил и списков. | [Синтаксис YAML](./yaml) |
+| JavaScript | Условное суждение, динамическая обработка и удаленное чтение. | [Синтаксис JavaScript](./js-override) |

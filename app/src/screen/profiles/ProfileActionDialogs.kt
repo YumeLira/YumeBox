@@ -31,6 +31,7 @@ import androidx.core.content.FileProvider
 import com.github.yumeyucca.yumebox.App
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.feature.editor.language.LanguageScope
+import com.github.yumeyucca.yumebox.presentation.component.BottomBarDestination
 import com.github.yumeyucca.yumebox.presentation.component.LocalNavigator
 import com.github.yumeyucca.yumebox.presentation.navigation.Route
 import com.github.yumeyucca.yumebox.presentation.util.OverrideEditorStore
@@ -113,7 +114,12 @@ internal fun ProfileEditOptionsDialogHost(
             onDismissFinished()
             if (openPreviewOnDismiss) {
                 openPreviewOnDismiss = false
-                navigator.push(Route.OverrideConfigPreview)
+                navigator.replaceAll(
+                    listOf(
+                        Route.Main(initialPage = BottomBarDestination.Config.ordinal),
+                        Route.OverrideConfigPreview,
+                    )
+                )
             }
         },
     )

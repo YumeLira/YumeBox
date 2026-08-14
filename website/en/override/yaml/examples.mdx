@@ -1,0 +1,272 @@
+---
+title: Examples and troubleshooting
+sidebarTitle: Examples and troubleshooting
+icon: bug
+---
+This page shows a complete override that can be saved directly, as well as practical expectations for common errors.
+
+## Modify port and mode
+
+```yaml 基础字段.yaml icon="file-code" lines
+mixed-port: 7890
+mode: rule
+```
+
+```yaml 基础字段 diff.yaml icon="file-code" lines
+mixed-port: 10801 # [!code --]
+mixed-port: 7890 # [!code ++]
+mode: global # [!code --]
+mode: rule # [!code ++]
+```
+
+`mixed-port` and `mode` are both scalars, and ordinary keys will directly overwrite the original values.
+
+## Modify DNS
+
+### Recursive modification
+
+```yaml DNS 子字段.yaml icon="file-code" lines
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+```
+
+```yaml DNS 子字段 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver:
+    - 223.5.5.5
+```
+
+### Complete replacement
+
+```yaml DNS 完整替换.yaml icon="file-code" lines
+dns-force:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+```
+
+`dns-force` will delete other fields in the original `dns` object, leaving only the above content.
+
+## Add direct connection rules
+
+```yaml 添加直连规则.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,tencent.com,DIRECT
+```
+
+```yaml 添加直连规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,tencent.com,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,PROXY
+  - MATCH,PROXY
+```
+
+## Add Provider
+
+```yaml 添加规则 Provider.yaml icon="file-code" lines
+rule-providers-merge:
+  local:
+    type: http
+    behavior: domain
+    format: yaml
+    interval: 86400
+    url: https://example.com/local.yaml
+    path: ./ruleset/local.yaml
+
+rules-end:
+  - RULE-SET,local,PROXY
+```
+
+The runtime patch will normalize the Provider path to the current configuration directory to prevent relative paths from leaving the configuration scope.
+
+## Modify policy group
+
+```yaml 修改策略组.yaml icon="file-code" lines
+proxy-groups-end:
+  - name: PROXY
+    type: select
+    proxies:
+      - DIRECT
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY # [!code --]
+    type: url-test # [!code --]
+    proxies: # [!code --]
+      - AUTO # [!code --]
+  - name: PROXY # [!code ++]
+    type: select # [!code ++]
+    proxies: # [!code ++]
+      - DIRECT # [!code ++]
+```
+
+## YAML anchors and `<<`
+
+The overwritten file will first expand anchors, aliases, and `<<` merge keys by the YAML parser.
+
+```yaml 使用锚点.yaml icon="file-code" lines
+provider-default: &provider-default
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+
+rule-providers-merge:
+  example:
+    <<: *provider-default
+    url: https://example.com/rules.yaml
+    path: ./ruleset/example.yaml
+```
+
+Explicit fields take precedence over anchor content:
+
+```yaml 锚点覆盖结果 diff.yaml icon="file-code" lines
+example:
+  type: http
+  interval: 86400
+  behavior: domain
+  format: yaml
+  url: https://example.com/rules.yaml
+  path: ./ruleset/example.yaml
+```
+
+## `reality-opts.short-id`
+
+YumeBox protects the string value of `reality-opts.short-id` in the top-level `proxies` list. This way `0123` and `1e5` will not be parsed as numbers by YAML.
+
+```yaml Reality short-id.yaml icon="file-code" lines
+proxies-end:
+  - name: 示例节点
+    type: vless
+    server: example.com
+    port: 443
+    reality-opts:
+      short-id: 0123
+```
+
+```yaml Reality short-id 预期.yaml icon="file-code" lines
+reality-opts:
+  short-id: "0123"
+```
+
+`short-id` nested within other custom objects will not trigger this private protection.
+
+## Literal keys
+
+Angle brackets turn off modifier parsing and remove the angle brackets at compile time:
+
+```yaml 字面量键.yaml icon="file-code" lines
+<rules+>:
+  enabled: true
+```
+
+```yaml 字面量键结果 diff.yaml icon="file-code" lines
+rules+:
+  enabled: true # [!code ++]
+```
+
+When not wrapped, `rules+` will be parsed into appending to `rules`; only after wrapping will the field named `rules+` be written.
+
+## Multiple overwrite files
+
+The overwritten files are executed in the binding order in the subscription, and the latter file can modify the results of the previous file.
+
+```yaml 第一个覆写.yaml icon="file-code" lines
+mixed-port: 7890
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml 第二个覆写.yaml icon="file-code" lines
+mixed-port: 7891
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 覆写链最终 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 7891 # [!code ++]
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,original.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+## Empty file
+
+Empty files or files containing only whitespace characters will be skipped and the configuration will not be modified:
+
+```yaml 空覆写.yaml icon="file-code" lines
+
+```
+
+The compilation result will be successful, but `skip empty override file` will appear in warnings.
+
+## YAML parsing error
+
+Indentation errors, illegal mappings, or unclosed strings will stop the current overwriting chain:
+
+```yaml 错误的缩进.yaml icon="file-code" lines
+proxy-groups:
+  -
+  name: PROXY
+```
+
+Expected results:
+
+```text
+parse yaml override <覆写文件路径>: <YAML 解析错误>
+```
+
+The error message will include the path to the overwritten file, and subsequent overwriting will not continue.
+
+## Wrong root type
+
+When the YAML top level is not an object, the override engine replaces the root configuration with that value; the compiler then rejects it:
+
+```yaml 错误的根类型.yaml icon="file-code" lines
+- this-is-a-list
+```
+
+Expected results:
+
+```text
+compiled root config must be an object
+```
+
+## `geosite-matcher` Verification error
+
+The override itself can write strings, but the final check only accepts `mph` and `succinct`:
+
+```yaml 错误的 Matcher.yaml icon="file-code" lines
+geosite-matcher: unknown
+```
+
+Expected results:
+
+```text
+geosite-matcher must be one of: mph, succinct
+```
+
+## Runtime boundaries
+
+After the user overwrite is completed, YumeBox will still perform runtime patches:
+
+| Scenario | Final Action |
+| --- | --- |
+| DNS is not enabled | Supplementary default DNS, `fake-ip` and filters. |
+| `Vpn Service` or `eBPF` | Turn off `tun.enable`, `auto-route`, and `auto-detect-interface`. |
+| `Tun` | Preserves the Tun settings in the configuration. |
+| `listeners` | Remove `redir` and `tun` type listeners. |
+| Configuration preview | Clear ports, listeners and Tun entries. |
+
+Therefore, successful overwriting does not mean that all fields will become the final running values; the running mode related settings may be adjusted by applying a patch at the end.

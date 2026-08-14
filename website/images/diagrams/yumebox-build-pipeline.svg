@@ -1,0 +1,301 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 937.3503333333335 895.2" width="937.3503333333335" height="895.2" style="--bg:#FFFFFF;--fg:#27272A;--line:#A1A1AA;--accent:#3F3F46;--muted:#71717A;--surface:#F4F4F5;--border:#D4D4D8;--_line:#A1A1AA;--_arrow:#A1A1AA;--_text:#27272A;--_text-sec:#71717A;--_text-muted:#71717A;--_node-fill:#FFFFFF;--_node-stroke:#71717A;--_group-fill:#3F3F4618;--_group-hdr:#3F3F46;--_inner-stroke:#71717A" id="bm-diagram-1">
+<style>
+#bm-diagram-1 {
+  /* 覆盖 CSS 变量 */
+  --_text:       #27272A       !important;
+  --_text-sec:   #71717A !important;
+  --_line:       #A1A1AA      !important;
+  --_arrow:      #A1A1AA      !important;
+  --_node-fill:  #FFFFFF       !important;
+  --_node-stroke:#71717A    !important;
+  --_group-fill: #3F3F4618 !important;
+  --_group-hdr:  #3F3F46 !important;
+}
+#bm-diagram-1 text {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace !important;
+  font-size:   13px !important;
+  dominant-baseline: central;
+  dy: 0.35em;
+}
+/* ── 类图/ER图标题文字：覆盖内联 dy，实现真正的垂直居中 ── */
+/* 类图类名、ER图实体名使用 renderMultilineText 渲染，内联 dy 与 font-size 相关，
+   但某些字体下 central 基线对中文不准确，改用 middle + 动态 dy 计算 */
+#bm-diagram-1 .class-node text,
+#bm-diagram-1 .entity text {
+  dy: 0.35em !important;
+}
+/* 类图/ER图标题使用 middle 基线，对中文字体更友好 */
+#bm-diagram-1 .class-node > text:first-of-type,
+#bm-diagram-1 .class-node text[text-anchor="middle"],
+#bm-diagram-1 .entity > text:first-of-type,
+#bm-diagram-1 .entity text[text-anchor="middle"] {
+  dominant-baseline: middle !important;
+}
+/* ── 节点形状：类选择器 + 通用元素选择器双保险，确保无论 cleanHardcodedColors 是否删除 fill 属性都能生效 ── */
+/* 排除 .block 内的矩形（时序图 loop/alt/opt/rect 块），避免覆盖其专属样式 */
+#bm-diagram-1 .node rect,
+#bm-diagram-1 .node circle,
+#bm-diagram-1 .node ellipse,
+#bm-diagram-1 .node polygon,
+#bm-diagram-1 .node path,
+#bm-diagram-1 rect,
+#bm-diagram-1 circle,
+#bm-diagram-1 ellipse {
+  fill:         #FFFFFF        !important;
+  stroke:       #71717A     !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0px 0px transparent) !important;
+}
+/* ── 时序图 block（loop/alt/opt）矩形：覆盖通用 rect 规则 ── */
+/* 外边框矩形（block 内第一个 rect）：fill none，只有描边 */
+#bm-diagram-1 .block > rect:first-of-type {
+  fill:         none !important;
+  stroke:       #71717A !important;
+  stroke-width: 1px !important;
+  filter:       none !important;
+}
+/* header tab 矩形（block 内第二个 rect，即 rect + rect）：accent 半透明填充 */
+#bm-diagram-1 .block > rect:nth-of-type(2) {
+  fill:         #3F3F4630 !important;
+  stroke:       #71717A !important;
+  stroke-width: 1px !important;
+  filter:       none !important;
+}
+/* 时序图 block（loop/alt/opt）文字：10px */
+#bm-diagram-1 .block text {
+  font-size: 10px !important;
+}
+/* seq-rect-bg：rect rgb(...) 纯背景色块，不加描边，不加阴影 */
+#bm-diagram-1 .seq-rect-bg {
+  stroke:       none !important;
+  stroke-width: 0 !important;
+  filter:       none !important;
+}
+#bm-diagram-1 .node rect {
+  rx: 4px !important;
+  ry: 4px !important;
+}
+/* 菱形/多边形节点 */
+#bm-diagram-1 .node polygon {
+  fill:   #FFFFFF     !important;
+  stroke: #71717A  !important;
+  stroke-width: 2px !important;
+}
+/* 节点文字 */
+#bm-diagram-1 g.node text,
+#bm-diagram-1 .label text,
+#bm-diagram-1 .nodeLabel {
+  fill: #27272A !important;
+}
+/* 子图/cluster 标题 */
+#bm-diagram-1 .cluster-label text {
+  fill:        #3F3F46 !important;
+  font-size:   12px !important;
+  font-weight: 600 !important;
+}
+/* cluster 容器 */
+#bm-diagram-1 .cluster rect {
+  fill:   #3F3F4618 !important;
+  stroke: #71717A !important;
+  stroke-width: 1px !important;
+  filter: none !important;
+}
+/* 边/连线：只选连线相关路径，不影响节点内部形状 */
+#bm-diagram-1 .edge path,
+#bm-diagram-1 .edgePath path,
+#bm-diagram-1 .edgePath .path {
+  fill:         none          !important;
+  stroke:       #A1A1AA  !important;
+  stroke-width: 2px !important;
+}
+/* 连线（line 元素） */
+#bm-diagram-1 .edge line,
+#bm-diagram-1 .flowchart-link {
+  stroke:       #A1A1AA  !important;
+  stroke-width: 2px !important;
+}
+/* 箭头：marker 内的多边形/路径专属 */
+#bm-diagram-1 marker polygon,
+#bm-diagram-1 marker path,
+#bm-diagram-1 .arrowhead polygon,
+#bm-diagram-1 .arrowhead path {
+  stroke: #A1A1AA !important;
+  fill:   #A1A1AA !important;
+  filter: none !important;
+}
+/* 边标签 */
+#bm-diagram-1 .edgeLabel text,
+#bm-diagram-1 .edgeLabel {
+  fill:      #71717A !important;
+  font-size: 11px  !important;
+}
+/* ── Semantic Role Colors ── */
+#bm-diagram-1 .bm-critical.node rect,
+#bm-diagram-1 .bm-critical.node circle,
+#bm-diagram-1 .bm-critical.node ellipse,
+#bm-diagram-1 .bm-critical.node polygon {
+  fill:   #FFF7ED   !important;
+  stroke: #F97316 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-critical.node text {
+  fill: #9A3412 !important;
+}
+#bm-diagram-1 .bm-success.node rect,
+#bm-diagram-1 .bm-success.node circle,
+#bm-diagram-1 .bm-success.node ellipse,
+#bm-diagram-1 .bm-success.node polygon {
+  fill:   #F0FDF4   !important;
+  stroke: #22C55E !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-success.node text {
+  fill: #166534 !important;
+}
+#bm-diagram-1 .bm-danger.node rect,
+#bm-diagram-1 .bm-danger.node circle,
+#bm-diagram-1 .bm-danger.node ellipse,
+#bm-diagram-1 .bm-danger.node polygon {
+  fill:   #FEF2F2   !important;
+  stroke: #EF4444 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-danger.node text {
+  fill: #991B1B !important;
+}
+#bm-diagram-1 .bm-info.node rect,
+#bm-diagram-1 .bm-info.node circle,
+#bm-diagram-1 .bm-info.node ellipse,
+#bm-diagram-1 .bm-info.node polygon {
+  fill:   #EFF6FF   !important;
+  stroke: #3B82F6 !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-info.node text {
+  fill: #1D4ED8 !important;
+}
+#bm-diagram-1 .bm-muted.node rect,
+#bm-diagram-1 .bm-muted.node circle,
+#bm-diagram-1 .bm-muted.node ellipse,
+#bm-diagram-1 .bm-muted.node polygon {
+  fill:   #F4F4F5   !important;
+  stroke: #A1A1AA !important;
+  stroke-width: 2px   !important;
+}
+#bm-diagram-1 .bm-muted.node text {
+  fill: #52525B !important;
+}</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<g class="subgraph" data-id="PREP">
+  <rect x="40" y="40" width="486.8399999999999" height="113.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="40" y="40" width="486.8399999999999" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="52" y="54" font-size="12" font-weight="600" fill="var(--_text-sec)">准备</text>
+</g>
+<g class="subgraph" data-id="NATIVE">
+  <rect x="193.83400000000006" y="221.80000000000004" width="638.898" height="96.9" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="193.83400000000006" y="221.80000000000004" width="638.898" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="205.83400000000006" y="235.80000000000004" font-size="12" font-weight="600" fill="var(--_text-sec)">原生构建</text>
+</g>
+<g class="subgraph" data-id="APK">
+  <rect x="727.8113333333336" y="386.70000000000005" width="169.539" height="266.70000000000005" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="727.8113333333336" y="386.70000000000005" width="169.539" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="739.8113333333336" y="400.70000000000005" font-size="12" font-weight="600" fill="var(--_text-sec)">Gradle 打包</text>
+</g>
+<g class="subgraph" data-id="OUTPUT">
+  <rect x="729.6638333333335" y="673.4000000000001" width="165.834" height="181.8" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="729.6638333333335" y="673.4000000000001" width="165.834" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="741.6638333333335" y="687.4000000000001" font-size="12" font-weight="600" fill="var(--_text-sec)">产物</text>
+</g>
+<polyline class="edge" data-from="A" data-to="D" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="114.3955,137.8 114.3955,153.8 114.39549999999997,211.80000000000004 269.91066666666677,211.80000000000004 269.91066666666677,221.80000000000004 269.91066666666677,265.80000000000007" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="B" data-to="D" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="239.87233333333333,120.9 239.87233333333333,153.8 239.87233333333336,199.80000000000004 239.87233333333336,199.80000000000004 239.87233333333342,221.80000000000004 239.87233333333342,265.80000000000007" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="B" data-to="E" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="286.95366666666666,120.9 286.95366666666666,153.8 286.95366666666666,187.80000000000004 377.60350000000005,187.80000000000004 377.60350000000005,221.80000000000004 377.60350000000005,265.80000000000007" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="C" data-to="F" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="406.3033333333333,120.9 406.3033333333333,153.8 406.3033333333333,175.80000000000004 505.87300000000005,175.80000000000004 505.8730000000001,221.80000000000004 505.8730000000001,265.80000000000007" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="C" data-to="G" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="458.5716666666666,120.9 458.5716666666666,153.8 458.5716666666666,163.80000000000004 637.8475000000001,163.80000000000004 637.8475000000001,221.80000000000004 637.8475000000001,265.80000000000007" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="D" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="299.94900000000007,284.25000000000006 722.4354166666668,284.25000000000006 722.4354166666668,449.15000000000003 745.6638333333335,449.15000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="E" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="435.2580000000001,284.25000000000006 722.4354166666668,284.25000000000006 722.4354166666668,449.15000000000003 745.6638333333335,449.15000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="F" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="556.488,284.25000000000006 722.4354166666668,284.25000000000006 722.4354166666668,449.15000000000003 745.6638333333335,449.15000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="G" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="699.2070000000001,284.25000000000006 722.4354166666668,284.25000000000006 722.4354166666668,449.15000000000003 745.6638333333335,449.15000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="H" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="780.2716666666668,302.70000000000005 780.2716666666668,318.70000000000005 767.9695000000002,328.70000000000005 767.9695000000002,328.70000000000005 767.9695000000002,386.70000000000005 767.9695000000002,430.70000000000005" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="K" data-to="L" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="818.5088333333335,637.4000000000001 818.5088333333335,653.4000000000001 812.5808333333334,663.4000000000001 812.5808333333334,663.4000000000001 812.5808333333335,673.4000000000001 812.5808333333335,717.4000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="I" data-to="J" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="800.2786666666668,467.6 800.2786666666668,515.6" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="J" data-to="K" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="806.2066666666668,552.5 806.2066666666668,600.5" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="L" data-to="M" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="806.6528333333335,754.3000000000001 806.6528333333335,802.3000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="node bm-critical"  data-shape="rectangle" data-id="A">
+  <rect x="56" y="84" width="116.79099999999998" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="114.3955" y="110.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="114.3955" dy="-3.9000000000000012">同步 mihomo</tspan><tspan x="114.3955" dy="16.900000000000002">Alpha / Meta</tspan></text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="B">
+  <rect x="192.791" y="84" width="141.244" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="263.413" y="102.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Go + Rust + patch</text>
+</g>
+<g class="node bm-critical"  data-shape="rectangle" data-id="C">
+  <rect x="354.03499999999997" y="84" width="156.80499999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="432.43749999999994" y="102.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Android SDK + NDK</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="D">
+  <rect x="209.83400000000006" y="265.80000000000007" width="90.11500000000001" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="254.89150000000006" y="284.25000000000006" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Go 核心</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="E">
+  <rect x="319.94900000000007" y="265.80000000000007" width="115.30900000000001" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="377.60350000000005" y="284.25000000000006" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Rust 编译器</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="F">
+  <rect x="455.2580000000001" y="265.80000000000007" width="101.22999999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="505.8730000000001" y="284.25000000000006" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">C / CMake</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="G">
+  <rect x="576.488" y="265.80000000000007" width="122.71900000000001" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="637.8475000000001" y="284.25000000000006" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">eBPF / loader</text>
+</g>
+<g class="node bm-info"  data-shape="rectangle" data-id="H">
+  <rect x="731.5091666666668" y="265.80000000000007" width="97.525" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="780.2716666666669" y="284.25000000000006" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Geo 数据</text>
+</g>
+<g class="node" data-id="I" data-shape="rectangle">
+  <rect x="745.6638333333335" y="430.70000000000005" width="133.834" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="812.5808333333335" y="449.15000000000003" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">jniLibs + assets</text>
+</g>
+<g class="node" data-id="J" data-shape="rectangle">
+  <rect x="731.5091666666668" y="515.6" width="137.539" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="800.2786666666668" y="534.0500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">Debug / Release</text>
+</g>
+<g class="node bm-muted"  data-shape="rectangle" data-id="K">
+  <rect x="751.9623333333335" y="600.5" width="133.09300000000002" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="818.5088333333335" y="618.95" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">builtin / external</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="L">
+  <rect x="745.6638333333335" y="717.4000000000001" width="133.834" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="812.5808333333335" y="735.8500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">arm64-v8a APK</text>
+</g>
+<g class="node bm-success"  data-shape="rectangle" data-id="M">
+  <rect x="751.9623333333335" y="802.3000000000001" width="109.381" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="806.6528333333335" y="820.7500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)">安装 / 发布</text>
+</g>
+</svg>

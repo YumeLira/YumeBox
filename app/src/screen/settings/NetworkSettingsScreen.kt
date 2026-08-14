@@ -142,7 +142,9 @@ fun NetworkSettingsScreen(navigator: Navigator) {
                     WindowDropdownPreference(
                         title = YumeTxt.NetworkSettings.Kernel.ActiveTitle,
                         summary = null,
-                        items = kernelIds.map { kernelLabel(it) },
+                        items = kernelIds.map { id ->
+                            kernelLabel(id, screen.installedKernelCommits[id])
+                        },
                         selectedIndex = kernelIds.indexOf(screen.activeKernelId).coerceAtLeast(0),
                         enabled = !screen.kernelBusy,
                         onSelectedIndexChange = { viewModel.selectKernel(kernelIds[it]) },
@@ -192,14 +194,20 @@ fun NetworkSettingsScreen(navigator: Navigator) {
 }
 
 @Composable
-private fun kernelLabel(id: String): String =
-    when (id) {
+private fun kernelLabel(id: String, commit: String? = null): String {
+    val name = when (id) {
         "bundled-alpha" -> YumeTxt.NetworkSettings.Kernel.BundledAlpha
         "alpha" -> "Alpha"
         "meta" -> "Meta"
         "smart" -> "Smart"
         else -> YumeTxt.NetworkSettings.Kernel.BundledAlpha
     }
+    return if (id == KernelManager.BUNDLED_ALPHA_ID || commit == null) {
+        name
+    } else {
+        "$name-${commit.take(6)}"
+    }
+}
 
 @Composable
 private fun KernelSelectionDialog(
@@ -255,7 +263,7 @@ private fun KernelSelectionDialog(
                     )
                 else ->
                     Column(verticalArrangement = Arrangement.spacedBy(spacing.space4)) {
-                        screen.kernels.map { it.id to kernelLabel(it.id) }
+                        screen.kernels.map { it.id to kernelLabel(it.id, it.commit) }
                             .forEach { (id, label) ->
                                 BasicComponent(
                                     title = label,
@@ -356,4 +364,3 @@ private fun ModeCard(
         }
     }
 }
-

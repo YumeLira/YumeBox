@@ -1,0 +1,55 @@
+# @title YumeBox 系统架构
+# @roles critical:A,B,C,D,SESSION info:E,F,G,H,I,J,K success:L,M,N,O,P
+flowchart LR
+    subgraph INPUT["YumeBox 用户入口"]
+        direction TB
+        A["配置管理<br/>订阅 · YAML · 二维码"]
+        B["覆写管理<br/>内置 · YAML · JavaScript"]
+        C["服务配置<br/>Vpn · Tun · eBPF"]
+        D["Wi-Fi 自动化"]
+    end
+
+    SESSION["YumeBox 运行会话<br/>编译 · 校验 · 启动 · 热重载"]
+
+    subgraph MIHOMO["mihomo 核心"]
+        direction TB
+        E["配置解析<br/>节点 · Provider · Geo"]
+        F["路由决策<br/>DNS · 规则 · 代理组"]
+        G["代理连接"]
+        E --> F --> G
+    end
+
+    subgraph SYSTEM["Android 系统接入"]
+        direction TB
+        H["服务进程"]
+        I["VpnService"]
+        J["Root Tun"]
+        K["eBPF Bridge"]
+        H --> I
+        H --> J
+        H --> K
+    end
+
+    subgraph OBSERVE["运行观测"]
+        direction TB
+        L["控制器"]
+        M["日志订阅"]
+        N["连接跟踪"]
+        O["流量统计"]
+        P["运行状态"]
+        L --> M
+        L --> N
+        L --> O
+        L --> P
+    end
+
+    A --> SESSION
+    B --> SESSION
+    C --> SESSION
+    D --> SESSION
+    SESSION --> E
+    SESSION --> H
+    I --> G
+    J --> G
+    K --> G
+    G --> L

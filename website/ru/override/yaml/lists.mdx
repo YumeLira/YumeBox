@@ -1,0 +1,243 @@
+---
+title: Списки и правила
+sidebarTitle: Списки и правила
+icon: list-plus
+---
+Эта страница посвящена модификаторам списков. Во всех примерах предполагается, что соответствующие поля уже существуют в исходной конфигурации.
+
+## __ДЕРЖАТЬ_0__
+
+Вставьте элемент массива в начало исходного списка.
+
+```yaml 插入列表开头.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml key-start 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+Неправильное или недопустимое использование:
+
+```yaml key-start 无效类型.yaml icon="file-code" lines
+mixed-port-start: 7890
+dns-start:
+  enable: true
+```
+
+Эти два элемента не сообщают об ошибке, но `mixed-port` является скаляром, а `dns` — объектом, поэтому вставка списка не произойдет.
+
+## __ДЕРЖАТЬ_18__
+
+Добавляет элементы массива в конец исходного списка. Для `rules` раздел терминала `MATCH` в исходной конфигурации останется после нового содержимого; внутренний порядок нового контента остается неизменным.
+
+```yaml 追加列表末尾.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml key-end 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+Неправильное или недопустимое использование:
+
+```yaml key-end 无效类型.yaml icon="file-code" lines
+mode-end: global
+```
+
+`mode` является скаляром, `mode-end` не преобразует его в список и не переопределяет `mode`.
+
+## __ДЕРЖАТЬ_37__
+
+`key-merge` дает разные результаты для разных типов полей:
+
+| Тип поля | Результат |
+| --- | --- |
+| Обычный список | Добавить элементы массива. |
+| Список именованных объектов | Нажмите `name` после добавления, чтобы удалить дубликаты. |
+| `rules` | После добавления поместите `MATCH` обратно в конец. |
+| Сопоставление объектов | Рекурсивное сопоставление слияний. |
+| Обычные предметы | Вложенные модификаторы, объединенные литеральными ключами, больше не анализируются. |
+| Скаляр | Игнорируется. |
+
+### Добавление списка
+
+```yaml key-merge 列表.yaml icon="file-code" lines
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+```
+
+```yaml key-merge 列表结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+### Объединение карт
+
+```yaml key-merge 映射.yaml icon="file-code" lines
+proxy-providers-merge:
+  extra:
+    type: file
+    path: extra.yaml
+```
+
+```yaml key-merge 映射结果 diff.yaml icon="file-code" lines
+proxy-providers:
+  base:
+    type: http
+  extra: # [!code ++]
+    type: file # [!code ++]
+    path: extra.yaml # [!code ++]
+```
+
+Неправильное или недопустимое использование:
+
+```yaml key-merge 标量.yaml icon="file-code" lines
+mixed-port-merge:
+  value: 7890
+```
+
+`mixed-port` — скаляр, `key-merge` будет игнорироваться, а порт не будет преобразован в объект.
+
+## `key-force`
+
+`key-force` напрямую заменяет все поле и пропускает обработку типа поля. Он подходит для очистки исходного списка, замены всего объекта или перезаписи неизвестных структур.
+
+```yaml key-force 列表.yaml icon="file-code" lines
+rules-force:
+  - DOMAIN-SUFFIX,new.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml key-force 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT # [!code --]
+  - MATCH,OLD # [!code --]
+  - DOMAIN-SUFFIX,new.example,DIRECT # [!code ++]
+  - MATCH,PROXY # [!code ++]
+```
+
+Когда с одним и тем же базовым ключом одновременно выполняется несколько операций, приоритет имеет `force`:
+
+```yaml force 优先.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,ignored.example,DIRECT
+
+rules-force:
+  - MATCH,PROXY
+```
+
+В конце концов останется только `MATCH,PROXY`, и `rules-start` не будет продолжать выполняться.
+
+## Аббревиатура
+
+Эти два метода записи являются сокращением операций со списками:
+
+| Аббревиатура | Эквивалентное написание | Результат |
+| --- | --- | --- |
+| `+key` | `key-start` | Вставьте начало. |
+| `key+` | `key-end` | Дописать в конец. |
+
+```yaml 列表简写.yaml icon="file-code" lines
++rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 列表简写结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+Неправильное или недопустимое использование:
+
+```yaml 简写用于标量.yaml icon="file-code" lines
++mode: rule
+mode+:
+  - global
+```
+
+`+mode` и `mode+` будут распознаваться только как операции со списком, скаляр `mode` не будет изменен.
+
+## `null` элемент списка
+
+Значением модификатора списка может быть одно значение, массив или `null`:
+
+| ценность | результат |
+| --- | --- |
+| Массив | Развернуть список на несколько элементов. |
+| Один скаляр или объект | как элемент списка. |
+| `null` | Не генерирует элементы списка. |
+
+```yaml null 列表项.yaml icon="file-code" lines
+rules-end: null
+
+rules-start:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+```
+
+В конечном итоге будет вставлено только `DOMAIN-SUFFIX,example.com,DIRECT`.
+
+## Последовательность нескольких операций
+
+В одном файле YAML можно одновременно использовать несколько операций. Порядок полей списка следующий:
+
+```yaml 多个列表操作.yaml icon="file-code" lines
+rules:
+  - MATCH,REPLACED
+
++rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT
+
+rules-start:
+  - DOMAIN-SUFFIX,start.example,DIRECT
+
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT
+
+rules-end:
+  - DOMAIN-SUFFIX,end.example,DIRECT
+```
+
+```yaml 多个列表操作结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,end.example,DIRECT # [!code ++]
+  - MATCH,REPLACED
+```
+
+Если для того же базового ключа существует `key-force`, все вышеперечисленные операции будут пропущены.
+
+## `MATCH` Правила
+
+В качестве правил терминала будут распознаваться только строки в исходном списке, первый сегмент которых разделен запятыми — `MATCH` (без учета регистра). Объекты, числа и другие правила не вызывают движения; правила, добавленные путем перезаписи файлов, не будут сканироваться повторно.
+
+```yaml 终端规则判断.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+  - MATCH,PROXY
+  - match,FINAL
+```
+
+YumeBox начнет с первой распознанной позиции в исходном списке и сохранит последующий контент как сегмент правила терминала в конце.

@@ -1,0 +1,243 @@
+---
+title: Lists and Rules
+sidebarTitle: Lists and Rules
+icon: list-plus
+---
+This page is dedicated to list modifiers. All examples assume that the corresponding fields already exist in the original configuration.
+
+## `key-start`
+
+Insert an array item at the beginning of the original list.
+
+```yaml 插入列表开头.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+```
+
+```yaml key-start 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - MATCH,PROXY
+```
+
+Incorrect or invalid usage:
+
+```yaml key-start 无效类型.yaml icon="file-code" lines
+mixed-port-start: 7890
+dns-start:
+  enable: true
+```
+
+These two items will not report an error, but `mixed-port` is a scalar and `dns` is an object, so list insertion will not occur.
+
+## `key-end`
+
+Appends array items to the end of the original list. For `rules`, the terminal `MATCH` section in the original configuration will remain after the new content; the internal order of the new content remains unchanged.
+
+```yaml 追加列表末尾.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml key-end 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+Incorrect or invalid usage:
+
+```yaml key-end 无效类型.yaml icon="file-code" lines
+mode-end: global
+```
+
+`mode` is a scalar, `mode-end` does not turn it into a list, nor does it override `mode`.
+
+## `key-merge`
+
+`key-merge` has different results for different field types:
+
+| Field type | Result |
+| --- | --- |
+| Ordinary list | Append array items. |
+| Named object list | Press `name` after appending to remove duplicates. |
+| `rules` | Put `MATCH` back at the end after appending. |
+| Object Mapping | Recursive merge mapping. |
+| Ordinary objects | Merged by literal keys, nested modifiers are no longer parsed. |
+| Scalar | Ignored. |
+
+### List append
+
+```yaml key-merge 列表.yaml icon="file-code" lines
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+```
+
+```yaml key-merge 列表结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+### Map merge
+
+```yaml key-merge 映射.yaml icon="file-code" lines
+proxy-providers-merge:
+  extra:
+    type: file
+    path: extra.yaml
+```
+
+```yaml key-merge 映射结果 diff.yaml icon="file-code" lines
+proxy-providers:
+  base:
+    type: http
+  extra: # [!code ++]
+    type: file # [!code ++]
+    path: extra.yaml # [!code ++]
+```
+
+Incorrect or invalid usage:
+
+```yaml key-merge 标量.yaml icon="file-code" lines
+mixed-port-merge:
+  value: 7890
+```
+
+`mixed-port` is a scalar, `key-merge` will be ignored and the port will not be turned into an object.
+
+## `key-force`
+
+`key-force` directly replaces the entire field and skips field type processing. It is suitable for clearing the original list, replacing the entire object, or overwriting unknown structures.
+
+```yaml key-force 列表.yaml icon="file-code" lines
+rules-force:
+  - DOMAIN-SUFFIX,new.example,DIRECT
+  - MATCH,PROXY
+```
+
+```yaml key-force 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,old.example,DIRECT # [!code --]
+  - MATCH,OLD # [!code --]
+  - DOMAIN-SUFFIX,new.example,DIRECT # [!code ++]
+  - MATCH,PROXY # [!code ++]
+```
+
+When there are multiple operations on the same basic key at the same time, `force` takes precedence:
+
+```yaml force 优先.yaml icon="file-code" lines
+rules-start:
+  - DOMAIN-SUFFIX,ignored.example,DIRECT
+
+rules-force:
+  - MATCH,PROXY
+```
+
+In the end, only `MATCH,PROXY` is left, and `rules-start` will not continue to execute.
+
+## Abbreviation
+
+These two writing methods are shorthand for list operations:
+
+| Abbreviation | Equivalent writing | Result |
+| --- | --- | --- |
+| `+key` | `key-start` | Insert the beginning. |
+| `key+` | `key-end` | Append to the end. |
+
+```yaml 列表简写.yaml icon="file-code" lines
++rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,last.example,DIRECT
+```
+
+```yaml 列表简写结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,first.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,last.example,DIRECT # [!code ++]
+  - MATCH,PROXY
+```
+
+Incorrect or invalid usage:
+
+```yaml 简写用于标量.yaml icon="file-code" lines
++mode: rule
+mode+:
+  - global
+```
+
+`+mode` and `mode+` will only be recognized as list operations, the scalar `mode` will not be modified.
+
+## `null` list item
+
+The value of the list modifier can be a single value, an array, or `null`:
+
+| value | result |
+| --- | --- |
+| Array | Expand into multiple list items. |
+| A single scalar or object | as a list item. |
+| `null` | Does not generate list items. |
+
+```yaml null 列表项.yaml icon="file-code" lines
+rules-end: null
+
+rules-start:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+```
+
+Only `DOMAIN-SUFFIX,example.com,DIRECT` will eventually be inserted.
+
+## Sequence of multiple operations
+
+Multiple operations can be used simultaneously on the same YAML file. The order of the list fields is:
+
+```yaml 多个列表操作.yaml icon="file-code" lines
+rules:
+  - MATCH,REPLACED
+
++rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT
+
+rules-start:
+  - DOMAIN-SUFFIX,start.example,DIRECT
+
+rules-merge:
+  - DOMAIN-SUFFIX,merge.example,DIRECT
+
+rules+:
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT
+
+rules-end:
+  - DOMAIN-SUFFIX,end.example,DIRECT
+```
+
+```yaml 多个列表操作结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,plus-start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,start.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,merge.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,plus-end.example,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,end.example,DIRECT # [!code ++]
+  - MATCH,REPLACED
+```
+
+If `key-force` also exists for the same base key, all the above operations will be skipped.
+
+## `MATCH` Rules
+
+Only strings in the original list whose first comma-separated segment is `MATCH` (case-insensitive) will be recognized as terminal rules. Objects, numbers, and other rules will not trigger movement; rules added by overwriting files will not be scanned again.
+
+```yaml 终端规则判断.yaml icon="file-code" lines
+rules-end:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+  - MATCH,PROXY
+  - match,FINAL
+```
+
+YumeBox will start from the first recognized position in the original list and keep the subsequent content as a terminal rule segment at the end.

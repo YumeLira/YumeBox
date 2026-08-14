@@ -1,0 +1,323 @@
+---
+title: Рабочий процесс
+sidebarTitle: Рабочий процесс
+icon: route
+---
+YumeBox отвечает за управление конфигурацией, перезаписью и запуском сеансов; mihomo отвечает за анализ узлов, установление соединений и предоставление текущих данных.
+
+## Общая архитектура
+
+На этой диаграмме показана полная архитектура YumeBox, от ввода конфигурации до рабочих данных: как данные конфигурации, переопределения, сеанса, ядра, доступа к системе и наблюдения связаны друг с другом.
+
+<Frame><img src="/images/diagrams/yumebox-architecture.svg" alt="Схема архитектуры всех функций YumeBox" noZoom={true} /></Frame>
+
+## Включение конфигурации и разрешение узлов
+
+Обновление конфигурации отвечает только за получение и отправку новой конфигурации; когда он действительно запускается, работающий сеанс снова скомпилирует текущую конфигурацию и перезапишет цепочку, а затем дождется, пока контроллер mihomo предоставит группу политик.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant P as 配置管理
+    participant C as 编译管线
+    participant O as 覆写引擎
+    participant R as 运行会话
+    participant M as mihomo
+
+    U->>P: 添加或更新订阅
+    P->>P: 写入原始配置与 Provider
+    U->>R: 启动当前配置
+    R->>C: 读取 profile 与绑定覆写
+    C->>O: 按顺序应用 YAML / JavaScript
+    O-->>C: 返回覆写后的配置
+    C->>C: 应用 DNS、Tun、监听器等运行补丁
+    C->>C: 校验并生成最终 YAML
+    C-->>R: 返回编译结果
+    R->>M: 传入配置并启动核心
+    M-->>R: 控制器就绪
+    R->>M: 查询策略组与节点状态
+    M-->>U: 显示节点与代理组
+```
+
+```yaml 运行模式对配置的影响 diff.yaml icon="file-code" lines
+tun:
+  enable: true # [!code --]
+  enable: false # [!code ++]
+  auto-route: true # [!code --]
+  auto-route: false # [!code ++]
+  auto-detect-interface: true # [!code --]
+  auto-detect-interface: false # [!code ++]
+```
+
+В режимах **Vpn Service** и **eBPF** исправление среды выполнения закроет указанную выше запись Tun; В режиме **Tun** сохранится конфигурация Tun.
+
+## Пользовательская перезапись и горячая перезагрузка
+
+После сохранения пользовательского переопределения YumeBox повторно применит цепочку переопределений, которая в данный момент используется в конфигурации. Текущая конфигурация не изменит исходный текст подписки; если перезагрузка не удалась, работающий сеанс попытается восстановить последнюю действительную конфигурацию.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant S as 覆写配置
+    participant R as 运行会话
+    participant C as 编译管线
+    participant M as mihomo
+
+    U->>S: 保存 YAML / JavaScript
+    S->>R: 通知当前配置使用了该覆写
+    R->>C: 重新编译完整覆写链
+    C-->>R: 新配置或编译错误
+    alt 编译成功
+        R->>M: 停止旧传输并加载新配置
+        M-->>R: 策略组就绪
+        R-->>U: 热重载完成
+    else 编译或启动失败
+        R->>M: 停止失败的新会话
+        R->>M: 恢复上一份有效配置
+        M-->>R: 旧配置恢复
+        R-->>U: 显示错误并保留旧会话
+    end
+```
+
+```yaml 旧配置.yaml icon="file-code" lines
+mixed-port: 7890
+```
+
+```yaml 新覆写.yaml icon="file-code" lines
+mixed-port: 10801
+```
+
+```yaml 热重载结果 diff.yaml icon="file-code" lines
+mixed-port: 7890 # [!code --]
+mixed-port: 10801 # [!code ++]
+```
+
+Конфигурации Tun, содержащие список имен пакетов приложений, не будут повторно устанавливать VPN-устройство при перезагрузке на лету; такие изменения будут зарегистрированы и вступят в силу при следующей установке Tun.
+
+## Режим запуска и процесс обслуживания
+
+В трех режимах используется общий процесс компиляции конфигурации, но хосты, которые принимают на себя трафик, различны: **Vpn Service** использует службу Android VPN, **Tun** использует процесс Root mihomo, а **eBPF** запускает мост eBPF вне процесса Root mihomo.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart LR
+    A[启动请求] --> B{运行模式}
+    B -->|Vpn Service| C[Android TunService]
+    B -->|Tun| D[Root mihomo]
+    B -->|eBPF| E[Root mihomo]
+    C --> F[VPN 虚拟网卡]
+    D --> G[Root Tun 接口]
+    E --> H[eBPF bridge]
+    H --> I[Socket 地址重定向]
+    F --> J[mihomo 控制器与代理链]
+    G --> J
+    I --> J
+    J --> K[连接与流量数据]
+
+    classDef request fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef mode fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    classDef host fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef data fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
+    class A request;
+    class B mode;
+    class C,D,E,F,G,H,I,J host;
+    class K data;
+```
+
+Запрос на запуск сначала проверит пульт дистанционного управления, состояние работы, повторный запуск и встроенные географические данные, прежде чем войти на соответствующий хост. Запуск сеансов постоянно обновляет статус, группы политик, журналы и данные о трафике.
+
+## Автоматизация Wi‑Fi
+
+Автоматизация Wi‑Fi работает только в режиме **Vpn-сервис**. Он контролирует SSID с помощью независимой внешней службы; правила применяются только после того, как состояние сети стабилизируется, чтобы избежать повторных запусков и остановок, вызванных мгновенными изменениями.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+flowchart TB
+    A[启动 Wi‑Fi 自动化服务] --> B{启用且模式为 Vpn Service？}
+    B -->|否| C[停止服务]
+    B -->|是| D[监听 SSID]
+    D --> E[等待 1.5 秒稳定窗口]
+    E --> F{SSID 状态}
+    F -->|匹配规则| G{动作}
+    F -->|其他 Wi‑Fi| H[执行其他 Wi‑Fi 动作]
+    F -->|无 Wi‑Fi| I[执行无 Wi‑Fi 动作]
+    F -->|不可用| J[忽略本次变化]
+    G -->|启动| K[检查 VPN 权限并启动]
+    G -->|停止| L[停止 VpnService]
+    H --> M{Keep / Start / Stop}
+    I --> M
+    M -->|Keep| N[保持当前状态]
+    M -->|Start| K
+    M -->|Stop| L
+    K --> O[运行状态更新]
+    L --> O
+
+    classDef input fill:#fef3c7,stroke:#d97706,color:#78350f,stroke-width:1.5px;
+    classDef decision fill:#ecfeff,stroke:#0891b2,color:#164e63,stroke-width:1.5px;
+    classDef action fill:#eef2ff,stroke:#818cf8,color:#172554,stroke-width:1.5px;
+    classDef result fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.5px;
+    class A input;
+    class B,F,G,M decision;
+    class C,D,E,H,I,J,K,L,N action;
+    class O result;
+```
+
+## Соединение, журнал и статистика трафика
+
+После запуска сеанса для установления контроллера одновременно включите подписку на журналы и отслеживание подключений. Соединения, группы политик, скорости в реальном времени и историческая статистика, запрашиваемая интерфейсом, — все это основано на текущих данных, а не на перезаписанных файлах.
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    actorBkg: "#eef2ff"
+    actorBorder: "#818cf8"
+    actorTextColor: "#172554"
+    signalColor: "#64748b"
+    signalTextColor: "#172554"
+    activationBkgColor: "#dbeafe"
+    activationBorderColor: "#3b82f6"
+---
+sequenceDiagram
+    autonumber
+    participant M as mihomo
+    participant S as SessionRuntime
+    participant L as 日志订阅
+    participant H as 连接跟踪
+    participant T as 流量统计
+    participant U as 用户界面
+
+    S->>M: 控制器就绪
+    S->>L: subscribeLogs
+    S->>H: 周期查询 connections
+    L-->>U: 推送日志
+    H->>M: queryConnections
+    M-->>H: 连接快照
+    H->>U: 更新连接历史
+    loop 周期采样
+        T->>M: queryTrafficTotal
+        T->>M: queryConnections
+        M-->>T: 总流量与连接计数
+        T->>T: 与上次基线计算增量
+        T->>T: 按应用和路由归档
+        T-->>U: 更新统计图表
+    end
+    S->>M: 停止运行
+    S->>L: 关闭日志订阅
+    S->>H: 停止连接跟踪
+    T->>T: flushNow
+```
+
+Статистика трафика будет архивироваться по приращению соединения, идентификатору приложения и маршруту последнего перехода; неатрибуированная часть будет записана в сегменте без атрибуции. При переключении текущей конфигурации, откате общего трафика или сбросе счетчика подключений счетчик восстанавливает базовый уровень, чтобы избежать неправильного пересчета старых сеансов в новые сеансы.
+
+## Запуск цикла состояния
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "Ubuntu Sans, sans-serif"
+    fontSize: "14px"
+    primaryColor: "#eef2ff"
+    primaryTextColor: "#172554"
+    primaryBorderColor: "#818cf8"
+    lineColor: "#64748b"
+    secondaryColor: "#ecfeff"
+    tertiaryColor: "#f8fafc"
+    clusterBkg: "#f8fafc"
+    clusterBorder: "#cbd5e1"
+    edgeLabelBackground: "#ffffff"
+---
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Starting: 启动请求
+    Starting --> Running: 核心与策略组就绪
+    Starting --> Failed: 编译、传输或核心失败
+    Running --> Reloading: 配置或覆写变化
+    Reloading --> Running: 新配置加载成功
+    Reloading --> Running: 失败后恢复旧配置
+    Reloading --> Failed: 恢复旧配置也失败
+    Running --> Stopping: 停止请求
+    Starting --> Stopping: 中断启动
+    Failed --> Starting: 再次启动
+    Stopping --> Idle: 资源清理完成
+    Failed --> Idle: 会话退出
+```
+
+Этот цикл состояния объясняет, почему сбой горячей перезагрузки не обязательно означает остановку агента: если восстановление старой конфигурации прошло успешно, сеанс все равно возвращается в режим «Выполняется», а причина восстановления записывается в журнал.

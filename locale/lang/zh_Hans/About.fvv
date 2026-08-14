@@ -8,9 +8,14 @@ About = {
         VersionFailed = "加载失败"
     }
 
+    Debug = {
+        Title = "Debug"
+        TestInitialization = "测试初始化"
+        InitializationReset = "初始化状态已重置"
+    }
+
     Section = {
         ProjectLinks = "项目链接"
-        More = "更多"
         Support = "支持"
         License = "许可证"
     }
@@ -22,16 +27,11 @@ About = {
         ExportFailed = "日志导出失败"
     }
 
-    Link = {
-        TelegramGroup = "Telegram 群组"
-        TelegramChannel = "Telegram 频道"
-    }
-
     License = {
         Libraries = "引用库"
         LibrariesSummary = "查看本应用使用的所有第三方库"
         AgplName = "GNU Affero General Public License v3.0"
-        AgplDescription = "本程序是自由软件：你可以根据 GNU Affero 通用公共许可证的条款重新分发和修改。"
+        AgplDescription = "本程序是自由软件：你可以根据 GNU Affero 通用公共许可证的条款重新分发和修改."
     }
 
     Copyright = "© 2025 – 至今 YumeYucca"

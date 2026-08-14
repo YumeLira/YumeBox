@@ -1,0 +1,283 @@
+---
+title: Примеры и устранение неполадок
+sidebarTitle: Примеры и устранение неполадок
+icon: bug
+---
+На этой странице при необходимости отображаются переопределения JavaScript. Каждый пример содержит ожидаемые результаты или ошибочное поведение.
+
+## Изменить скалярные поля
+
+```js 修改端口.js icon="braces" lines
+function main(profile) {
+  profile["mixed-port"] = 7890;
+  return profile;
+}
+```
+
+```js 修改端口 diff.js icon="braces" lines
+function main(profile) {
+-  profile["mixed-port"] = 10801; // [!code --]
++  profile["mixed-port"] = 7890; // [!code ++]
+  return profile;
+}
+```
+
+## Изменить в соответствии с условиями
+
+```js 条件修改.js icon="braces" lines
+function main(profile) {
+  if (profile.mode === "rule") {
+    profile["log-level"] = "info";
+  }
+  return profile;
+}
+```
+
+Когда `mode` равен `rule`:
+
+```yaml
+log-level: info
+```
+
+Если условия не выполняются, сценарий возвращает исходный объект и различия не создаются.
+
+## Добавить поле объекта
+
+```js 添加 DNS 字段.js icon="braces" lines
+function main(profile) {
+  if (!profile.dns) profile.dns = {};
+  profile.dns.enable = true;
+  profile.dns["enhanced-mode"] = "fake-ip";
+  return profile;
+}
+```
+
+```yaml 添加 DNS 字段 diff.yaml icon="file-code" lines
+dns:
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+```
+
+## Используйте `deepMerge` для добавления правил
+
+```js 添加规则.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+  }, true);
+}
+```
+
+```yaml 添加规则 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+  - MATCH,PROXY
+```
+
+JavaScript не перемещает `MATCH` автоматически, как это делает YAML. Если в исходном списке не было `MATCH` в конце, скрипт не исправит это за вас.
+
+## Заменить объект или массив
+
+```js 替换 DNS.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+      nameserver: ["1.1.1.1"],
+    },
+  }, true);
+}
+```
+
+```yaml 替换 DNS diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  nameserver: # [!code --]
+    - 223.5.5.5 # [!code --]
+  enable: true # [!code ++]
+  enhanced-mode: fake-ip # [!code ++]
+  nameserver: # [!code ++]
+    - 1.1.1.1 # [!code ++]
+```
+
+## Фильтровать прокси
+
+```js 过滤代理.js icon="braces" lines
+function main(profile) {
+  const proxies = Array.isArray(profile.proxies) ? profile.proxies : [];
+  profile.proxies = proxies.filter((item) => {
+    const name = String((item && item.name) || "");
+    return !name.includes("过期");
+  });
+  return profile;
+}
+```
+
+```yaml 过滤代理 diff.yaml icon="file-code" lines
+proxies:
+  - name: 香港节点
+  - name: 过期节点 # [!code --]
+```
+
+Если `profile.proxies` не является массивом, сценарий использует пустой массив и в итоге получает `proxies: []`.
+
+## Изменить группу политики именования
+
+```js 修改策略组.js icon="braces" lines
+function main(profile) {
+  const groups = Array.isArray(profile["proxy-groups"])
+    ? profile["proxy-groups"]
+    : [];
+  const proxy = groups.find((group) => group && group.name === "PROXY");
+  if (proxy) proxy.proxies = ["DIRECT"];
+  return profile;
+}
+```
+
+```yaml 修改策略组 diff.yaml icon="file-code" lines
+proxy-groups:
+  - name: PROXY
+    proxies: # [!code --]
+      - AUTO # [!code --]
+      - DIRECT # [!code ++]
+```
+
+Если `PROXY` не найден, сценарий не создаст новую группу политик и не сообщит об ошибке.
+
+## Чтение удаленного YAML
+
+```js 远程 YAML.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+Дистанционный возврат:
+
+```yaml
+dns:
+  enable: true
+```
+
+Ожидаемая разница:
+
+```yaml 远程 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+Сбой сети, поддержка только HTTPS, поврежденный контент YAML или неполное обещание приведут к сбою сценария.
+
+## Чтение удаленного JSON
+
+```js 远程 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  if (typeof payload.port === "number") {
+    profile["mixed-port"] = payload.port;
+  }
+  return profile;
+}
+```
+
+Если `payload.port` не является числом, сценарий сохраняет исходный `mixed-port`.
+
+## Заголовок и тело запроса
+
+```js POST 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer token",
+    },
+    body: {
+      mode: profile.mode,
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+Тело запроса объекта перед отправкой преобразуется в строку JSON.
+
+## Журналы и исключения
+
+```js 记录并抛错.js icon="braces" lines
+function main(profile) {
+  console.info("开始处理", profile.mode);
+  if (!profile.mode) {
+    throw new Error("缺少 mode");
+  }
+  return profile;
+}
+```
+
+При неудаче:
+
+- Текущее переопределение записывает `[exception] 脚本执行失败`.
+- Последующие перезаписи не будут продолжены.
+- Обычная конфигурация вернет ошибки сценария и пути к файлам.
+- Зашифрованная конфигурация не раскрывает содержимое конфигурации и пути в ошибках или журналах.
+
+## Возвращаем значение ошибки
+
+```js 返回数组.js icon="braces" lines
+function main(profile) {
+  return profile.rules;
+}
+```
+
+Ожидаемые результаты:
+
+```text
+JS override result must be an object
+```
+
+```js 缺少 main.js icon="braces" lines
+const unused = 1;
+```
+
+Ожидаемые результаты:
+
+```text
+JS override must define main(profile)
+```
+
+## Несколько переопределений JavaScript
+
+Файлы выполняются в порядке привязки, при этом последующие сценарии получают возвращаемое значение предыдущего сценария:
+
+```js 第一个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = 2;
+  return profile;
+}
+```
+
+```js 第二个脚本.js icon="braces" lines
+function main(profile) {
+  profile.port = profile.port + 3;
+  return profile;
+}
+```
+
+```yaml JavaScript 覆写链结果 diff.yaml icon="file-code" lines
+mixed-port: 1 # [!code --]
+mixed-port: 5 # [!code ++]
+```
+
+Если во втором скрипте отсутствует `main`, функция первого скрипта не будет повторно использоваться, а произойдет непосредственный сбой.

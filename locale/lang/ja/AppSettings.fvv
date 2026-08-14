@@ -33,9 +33,6 @@ AppSettings = {
         LanguageRussian = "Русский"
 
         ColorThemeTitle = "テーマ配色"
-        AppIconTitle = "アプリアイコン"
-        AppIconDefault = "デフォルト"
-        AppIconClassic = "クラシック"
         ColorThemePickerTitle = "テーマカラーを選択"
         ColorThemeCodeLabel = "テーマカラーコード (#RRGGBB)"
         ColorThemeCustomSummary = "現在のテーマカラー: %s"
@@ -50,18 +47,15 @@ AppSettings = {
         PredictiveBackProgressTitle = "予測戻る振幅"
 
         ClassicHomeTitle = "クラシックホーム"
+        SystemWallpaperTitle = "システム壁紙に設定"
         HomeQuoteTitle = "ホームの一言"
         HomeQuoteDefault = "静かな回線のうえで、雲が回遊を終えるのを待つ"
-        HomeQuoteAuthorTitle = "一言の作者"
-        HomeQuoteAuthorDefault = "YumeBox"
         EditHomeQuoteTitle = "一言を編集"
-        EditHomeQuoteAuthorTitle = "一言の作者を編集"
         HomeWallpaperImportFailed = "壁紙をローカルへコピーできなかったため、元のソースを使用します"
     }
 
     Privacy = {
 
-        HideIconTitle = "アプリアイコンを隠す"
         HideFromRecentsTitle = "履歴カードを隠す"
     }
 
@@ -80,8 +74,6 @@ AppSettings = {
 
     WarningDialog = {
         Title = "警告"
-        HideIconMsg1 = "隠す前に、このアプリの設定画面へアクセスできることを確認してください！"
-        HideIconMsg2 = "HyperOS では、ダイヤルコードを受け取るために自動開始とバックグラウンドポップアップの権限を有効にしてください！"
     }
 
     EditDialog = {

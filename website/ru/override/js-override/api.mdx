@@ -1,0 +1,276 @@
+---
+title: Встроенный API
+sidebarTitle: Встроенный API
+icon: terminal
+---
+Переопределения JavaScript выполняются во встроенной среде JavaScript YumeBox. Следующие API представляют собой полные глобальные методы, предоставляемые средой выполнения.
+
+## __ДЕРЖАТЬ_0__
+
+`deepMerge` изменит `target` и вернет его.
+
+| значение патча | ключевые обозначения | поведение |
+| --- | --- | --- |
+| Объект | __ДЕРЖАТЬ_3__ | Рекурсивно объединять объекты. |
+| Объект | __ДЕРЖАТЬ_4__ | Непосредственно заменяет весь объект. |
+| Массив | `key` | Сменный массив. |
+| Массив | __ДЕРЖАТЬ_6__ | Вставьте в начало массива. |
+| Массив | `key+` | Добавить в конец массива. |
+| Объект или массив | `<key>` | Удалите угловые скобки и воспринимайте это как буквальное имя ключа. |
+| Скаляр | `key` | Записывайте ключи и значения напрямую. |
+
+`+key` и `key+` действуют как модификаторы массива, только если `isOverride` равен `true`. Скрипт рекомендует всегда передавать `true`.
+
+```js deepMerge 示例.js icon="braces" lines
+function main(profile) {
+  return deepMerge(profile, {
+    "+rules": ["DOMAIN-SUFFIX,lan,DIRECT"],
+    "rules+": ["DOMAIN-SUFFIX,example.com,PROXY"],
+    "dns!": {
+      enable: true,
+      "enhanced-mode": "fake-ip",
+    },
+  }, true);
+}
+```
+
+```yaml deepMerge 结果 diff.yaml icon="file-code" lines
+rules:
+  - DOMAIN-SUFFIX,lan,DIRECT # [!code ++]
+  - DOMAIN-SUFFIX,old.example,DIRECT
+  - DOMAIN-SUFFIX,example.com,PROXY # [!code ++]
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+  "enhanced-mode": fake-ip # [!code ++]
+```
+
+`deepMerge` JavaScript не перемещает правило `MATCH` автоматически в конец; когда вам нужно такое поведение, используйте `rules-end` YAML или обрабатывайте массив самостоятельно в своем скрипте.
+
+Неправильное или недопустимое использование:
+
+```js deepMerge 无效类型.js icon="braces" lines
+function main(profile) {
+  deepMerge(profile, {
+    "+mixed-port": [7890],
+  }, true);
+  return profile;
+}
+```
+
+`mixed-port` — скаляр, и модификатор массива попытается расширить исходное значение; если исходное значение является числом, обычно выдается ошибка неитерируемого типа. Он не преобразует порты в списки.
+
+## __ДЕРЖАТЬ_49__
+
+### `yaml.parse(text)`
+
+Преобразуйте текст YAML в значения JavaScript. Он использует тот же синтаксический анализатор, что и переопределение YAML, поддерживает привязки, псевдонимы, ключи слияния `<<` и защиту строк `reality-opts.short-id` в `proxies` верхнего уровня.
+
+```js 解析 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  enable: true\n");
+  return deepMerge(profile, patch, true);
+}
+```
+
+```yaml 解析 YAML 结果 diff.yaml icon="file-code" lines
+dns:
+  enable: false # [!code --]
+  enable: true # [!code ++]
+```
+
+Анализ недопустимого YAML напрямую вызовет ошибку:
+
+```js 解析错误 YAML.js icon="braces" lines
+function main(profile) {
+  const patch = yaml.parse("dns:\n  - enable: true\n    bad");
+  return deepMerge(profile, patch, true);
+}
+```
+
+### `yaml.stringify(value)`
+
+Преобразуйте значения JavaScript в строки YAML.
+
+```js 生成 YAML.js icon="braces" lines
+function main(profile) {
+  const text = yaml.stringify({
+    "log-level": "info",
+    rules: ["MATCH,PROXY"],
+  });
+  console.info(text);
+  return profile;
+}
+```
+
+Результатом `yaml.stringify` является строка, и ее нельзя напрямую использовать в качестве возвращаемого значения `main`; должен быть возвращен объект конфигурации.
+
+Вывод аналогичен:
+
+```yaml
+log-level: info
+rules:
+  - MATCH,PROXY
+```
+
+## __ДЕРЖАТЬ_89__
+
+Встроенный `fetch` поддерживает только `http://`, но не `https://`. Каждое соединение, чтение и запись имеют тайм-аут в 15 секунд.
+
+### Параметры запроса
+
+| Параметры | Тип | Поведение |
+| --- | --- | --- |
+| `input` | Строка или объект | Строка URL-адреса или объект, содержащий `url`. |
+| `init.method` | Строка | Метод HTTP, по умолчанию `GET`. |
+| `init.headers` | Объект | Заголовок запроса. |
+| `init.body` | Строка или объект | Строки отправляются напрямую; другие значения сначала `JSON.stringify`. |
+
+`url`, `method`, `headers` и `body` в `init` перезаписывают одноименные значения в объекте `input`.
+
+```js HTTP 请求.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml", {
+    method: "GET",
+    headers: {
+      "x-client": "YumeBox",
+    },
+  });
+
+  if (!response.ok) return profile;
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+### Объект ответа
+
+| Свойство или метод | Результат |
+| --- | --- |
+| `ok` | `true` для кодов состояния от `200` до `299`. |
+| `status` | Код статуса HTTP. |
+| `statusText` | Текст статуса HTTP. |
+| `url` | URL-адрес запроса. |
+| `headers.get(name)` | Получите заголовок ответа и верните `null`, если он не существует. |
+| `headers.has(name)` | Определите, существует ли заголовок ответа. |
+| `headers.toJSON()` | Возвращает объект заголовка ответа. |
+| `text()` | Читать текст асинхронно. |
+| `json()` | Анализирует JSON асинхронно. |
+| `yaml()` | Асинхронно анализирует YAML. |
+
+```js 读取 JSON.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/config.json");
+  if (!response.ok) return profile;
+
+  const payload = await response.json();
+  profile["mixed-port"] = payload.port;
+  return profile;
+}
+```
+
+Ожидаемая ошибка:
+
+```js 不支持 HTTPS.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("https://example.com/patch.yaml");
+  return profile;
+}
+```
+
+Сценарий завершится с ошибкой, содержащей `fetch only supports http:// urls`. Сценарий также останавливается, когда происходит сбой сетевого подключения, URL-адрес пуст или ответ не может быть проанализирован.
+
+Ответы, отличные от `2xx`, не будут автоматически выдавать ошибку, и их необходимо проверить на наличие `response.ok`:
+
+```js 检查 HTTP 状态.js icon="braces" lines
+async function main(profile) {
+  const response = await fetch("http://127.0.0.1:8080/patch.yaml");
+  if (!response.ok) {
+    console.warn("HTTP 状态", response.status);
+    return profile;
+  }
+  return deepMerge(profile, await response.yaml(), true);
+}
+```
+
+## __ДЕРЖАТЬ_162__
+
+Журнал записывается в файл `.log` в том же каталоге и с тем же именем основного файла, что и текущий перезаписанный файл; старый журнал будет сбрасываться каждый раз перед выполнением перезаписи.
+
+| Метод | Уровень журнала |
+| --- | --- |
+| `console.log(...)` | `log` |
+| `console.info(...)` | `info` |
+| `console.warn(...)` | `warn` |
+| `console.error(...)` | `error` |
+| `console.debug(...)` | `debug` |
+
+Несколько параметров объединяются пробелами; объекты сериализуются в JSON.
+
+```js 日志 API.js icon="braces" lines
+function main(profile) {
+  console.info("当前模式", profile.mode);
+  console.debug("代理数量", Array.isArray(profile.proxies) ? profile.proxies.length : 0);
+  return profile;
+}
+```
+
+Результаты журнала аналогичны:
+
+```text
+[info] "当前模式" "rule"
+[debug] "代理数量" 12
+```
+
+При выполнении сценария настройки шифрования значение конфигурации в журнале заменяется на `(redacted, encrypted profile)`.
+
+## База64
+
+### `b64e(value)` и `b64d(value)`
+
+`b64e` кодирует текст UTF-8 в Base64, а `b64d` декодирует текст Base64 в UTF-8.
+
+```js Base64 API.js icon="braces" lines
+function main(profile) {
+  const encoded = b64e("YumeBox");
+  const decoded = b64d(encoded);
+  profile["encoded-name"] = encoded;
+  profile["decoded-name"] = decoded;
+  return profile;
+}
+```
+
+Ожидаемые результаты:
+
+```yaml
+encoded-name: WXVtZUJveA==
+decoded-name: YumeBox
+```
+
+### `Buffer`
+
+| API | Поведение |
+| --- | --- |
+| `Buffer.from(value, "utf8")` | Преобразуйте текст UTF-8 в объект буфера. |
+| `Buffer.from(value, "base64")` | Преобразуйте текст Base64 в объект буфера. |
+| `Buffer.isBuffer(value)` | Определите, является ли это объектом буфера YumeBox. |
+| `buffer.toString("utf8")` | Декодируется в текст UTF-8. |
+| `buffer.toString("base64")` | Возвращает текст Base64. |
+| `buffer.valueOf()` | Возвращает текст UTF-8. |
+
+```js Buffer API.js icon="braces" lines
+function main(profile) {
+  const buffer = Buffer.from("YumeBox", "utf8");
+  profile["client-name"] = buffer.toString("utf8");
+  profile["client-name-base64"] = buffer.toString("base64");
+  return profile;
+}
+```
+
+Ожидаемые результаты:
+
+```yaml
+client-name: YumeBox
+client-name-base64: WXVtZUJveA==
+```
+
+Поддерживаются только `utf8`, `utf-8` и `base64`. Другие кодировки выдают `Buffer.from() unsupported encoding` или `Buffer.toString() unsupported encoding`.

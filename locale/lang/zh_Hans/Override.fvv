@@ -81,8 +81,8 @@ Override = {
         }
         Delete = {
             Title = "删除配置"
-            InUseMessage = "配置 %s 正在被订阅使用，删除后将解除绑定关系。确定要删除吗？此操作不可恢复。"
-            Message = "确定要删除配置 %s 吗？此操作不可恢复。"
+            InUseMessage = "配置 %s 正在被订阅使用，删除后将解除绑定关系.确定要删除吗？此操作不可恢复."
+            Message = "确定要删除配置 %s 吗？此操作不可恢复."
         }
         Button = {
             Cancel = "取消"

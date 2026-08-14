@@ -1,0 +1,52 @@
+---
+title: クイックスタート
+sidebarTitle: クイックスタート
+icon: rocket
+---
+<Info>YumeBox はノードやサブスクリプションを提供しません.最初に設定ファイルまたはサブスクリプション アドレスを準備してください. </Info>
+
+## 初めて使用する
+
+<Steps>
+  <Step title="APKをインストールする">
+    [GitHub Releases](https://github.com/YumeYucca/YumeBox/releases) から APK をダウンロードしてインストールします.
+
+    |バージョン |地理データ |適切なシナリオ |
+    | ---- | -------- | -------- |
+    | `builtin` |内蔵 |初めてのインストール |
+    | `external` |内蔵されていません |バージョンアップ |
+  </Step>
+
+  <Step title="設定のインポート">
+    構成ページで [**構成の追加**] をクリックします.構成名を入力したら、サブスクリプション リンク、ローカル ファイル、または QR コードを介してインポートできます.
+
+    <Frame><img src="/images/guide/quickstart-import-config.png" alt="設定ファイルインターフェースを追加" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="構成の選択">
+    構成カードをクリックして、それを現在の構成にします.
+
+    <Info> 初回起動時はオーバーライドを追加せず、正常に動作することを確認してから変更することをお勧めします. </Info>
+
+    <Frame><img src="/images/guide/quickstart-profile-card.jpg" alt="カードインターフェースの設定" noZoom={true} /></Frame>
+  </Step>
+
+  <Step title="サービス構成">
+    **ネットワーク設定** を開き、動作モードを選択します.
+
+    |モード |権限 |特長 |
+    | ---- | ---- | ---- |
+    | `Vpn Service` | VPN |ルート不要、優れた互換性 |
+    | `Tun` |ルート | Tun 仮想ネットワーク カードを作成する |
+    | `eBPF` |ルート、eBPF | eBPF を使用してトラフィックをブリッジする |
+
+    <Info>`eBPF` にはカーネル サポートが必要です.現在 `alpha` 段階にあり、</Info> は将来削除される可能性があります.
+
+  </Step>
+
+  <Step title="エージェントを開始する">
+    ホームページに戻り、「開始」をクリックしてシステム認証を完了します.
+
+    <Check>エージェント グループとノードがロードされたら、使用を開始できます. </Check>
+  </Step>
+</Steps>
