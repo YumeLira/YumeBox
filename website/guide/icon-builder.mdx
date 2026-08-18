@@ -1,20 +1,16 @@
 ---
 title: 自定义应用图标
-sidebarTitle: 自定义图标
+sidebarTitle: 图标
 icon: image
+mode: "center"
 ---
 
 import { IconKitBuilder } from "/snippets/IconKitBuilder.jsx";
+import { IconKitSelect, IconKitStepper } from "/snippets/IconKitControls.jsx";
 
-使用下面的工具制作 YumeBox 的应用图标。图片只会发送到图标构建 Worker，用于生成图标包并触发 GitHub Actions；不会修改 YumeBox 源码或签名配置。
+使用下面的工具制作 YumeBox 的应用图标。通过 GitHub Action 构建，即可解决通知栏图标和启动遮罩无法替换图标的问题，并实现完整的自定义图标
 
-<IconKitBuilder />
+## 使用
 
 
-
-## 使用流程
-
-1. 上传图片并在预览中拖动位置。
-2. 选择背景色、图标形状和裁剪方式。
-3. 下载图标 ZIP，或提交构建 APK。
-4. 提交后点击组件中的 Actions 链接查看对应运行和工件。
+<IconKitBuilder Select={IconKitSelect} Stepper={IconKitStepper} />

@@ -27,7 +27,7 @@
 							},
 							{
 								"group": "指南",
-								"pages": ["/guide/quickstart", "/guide/runtime", "/guide/icon-builder"]
+								"pages": ["/guide/quickstart", "/guide/runtime"]
 							},
 							{
 								"group": "覆写",
@@ -51,7 +51,7 @@
 							},
 							{
 								"group": "更多",
-                                "pages": ["/guide/build", "/guide/faq", "/guide/workflow"]
+                                "pages": ["/guide/icon-builder", "/guide/build", "/guide/faq", "/guide/workflow"]
 							}
 						]
 					},

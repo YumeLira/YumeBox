@@ -1,28 +1,29 @@
-const WORKER_URL = "https://fe53f4d4-yumebox-iconkit.yumeyuka.workers.dev";
-const densities = [
-  { name: "mdpi", size: 48, foreground: 108 },
-  { name: "hdpi", size: 72, foreground: 162 },
-  { name: "xhdpi", size: 96, foreground: 216 },
-  { name: "xxhdpi", size: 144, foreground: 324 },
-  { name: "xxxhdpi", size: 192, foreground: 432 },
-];
+export const IconKitBuilder = ({ Select, Stepper }) => {
+  const WORKER_URL = "https://yumebox-iconkit.yumeyuka.moe";
+  // Mintlify snippets support one directly imported component per file.
+  const densities = [
+    { name: "mdpi", size: 48, foreground: 108 },
+    { name: "hdpi", size: 72, foreground: 162 },
+    { name: "xhdpi", size: 96, foreground: 216 },
+    { name: "xxhdpi", size: 144, foreground: 324 },
+    { name: "xxxhdpi", size: 192, foreground: 432 },
+  ];
 
-function clip(context, size, shape) {
-  context.beginPath();
-  if (shape === "circle")
-    context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-  else if (shape === "rounded")
-    context.roundRect(0, 0, size, size, size * 0.22);
-  else context.rect(0, 0, size, size);
-  context.clip();
-}
-
-export const IconKitBuilder = () => {
+  function clip(context, size, shape) {
+    context.beginPath();
+    if (shape === "circle")
+      context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    else if (shape === "rounded")
+      context.roundRect(0, 0, size, size, size * 0.22);
+    else context.rect(0, 0, size, size);
+    context.clip();
+  }
   const [image, setImage] = useState();
   const [zipReady, setZipReady] = useState(
     typeof window !== "undefined" && Boolean(window.JSZip),
   );
   const [color, setColor] = useState("#ffffff");
+  const [colorInput, setColorInput] = useState("#ffffff");
   const [shape, setShape] = useState("rounded");
   const [crop, setCrop] = useState(false);
   const [padding, setPadding] = useState(0);
@@ -34,6 +35,7 @@ export const IconKitBuilder = () => {
   const [error, setError] = useState();
   const canvasRef = useRef(null);
   const drag = useRef();
+  const swatches = ["#ffffff", "#f4f1ee", "#d8d1c8", "#242322"];
 
   useEffect(() => {
     const ready = () => setZipReady(true);
@@ -151,6 +153,10 @@ export const IconKitBuilder = () => {
       "res/mipmap-anydpi-v26/ic_launcher.xml",
       '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@mipmap/ic_launcher_adaptive_back"/>\n  <foreground android:drawable="@mipmap/ic_launcher_adaptive_fore"/>\n</adaptive-icon>',
     );
+    zip.file(
+      "manifest.json",
+      JSON.stringify({ format: "android-asset-studio-launcher-icon-v1" }),
+    );
     zip.file("play_store_512.png", await blob(draw(image, 512)));
     zip.file("1024.png", await blob(draw(image, 1024)));
     return zip.generateAsync({
@@ -225,6 +231,23 @@ export const IconKitBuilder = () => {
     });
   }
 
+  function changeZoom(value) {
+    const next = Number(value);
+    if (Number.isFinite(next)) setZoom(Math.max(0.5, Math.min(3, next / 100)));
+  }
+
+  function changePadding(value) {
+    const next = Number(value);
+    if (Number.isFinite(next)) setPadding(Math.max(0, Math.min(35, next)) / 100);
+  }
+
+  function updateColor(value) {
+    const next = value.startsWith("#") ? value : `#${value}`;
+    if (!/^#[0-9a-f]{0,6}$/i.test(next)) return;
+    setColorInput(next);
+    if (/^#[0-9a-f]{6}$/i.test(next)) setColor(next.toLowerCase());
+  }
+
   const statusText =
     status === "succeeded"
       ? "构建完成"
@@ -234,23 +257,11 @@ export const IconKitBuilder = () => {
           ? "构建中"
           : "已提交";
   return (
-    <div className="icon-kit-builder">
-      <style>{styles}</style>
-      <div className="icon-kit-intro">
-        <div>
-          <span className="icon-kit-eyebrow">YUMEBOX · ICON KIT</span>
-          <h2>制作你的应用图标</h2>
-          <p>
-            上传一张图片，调整裁剪与形状，生成可直接用于 YumeBox 的 Android
-            图标包。
-          </p>
-        </div>
-        <span className="icon-kit-badge">无需登录</span>
-      </div>
-      <div className="icon-kit-grid">
-        <div className="icon-kit-preview">
+    <div className="not-prose my-6 w-full text-zinc-950 dark:text-white">
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
+        <div className="min-w-0">
           <div
-            className={`icon-kit-stage ${image ? "has-image" : ""}`}
+            className={`relative aspect-square w-full max-w-sm touch-none overflow-hidden rounded-xl border border-dashed border-zinc-950/25 bg-zinc-50 dark:border-white/25 dark:bg-white/5 ${image ? "cursor-grab active:cursor-grabbing" : ""}`}
             onPointerDown={pointerDown}
             onPointerMove={pointerMove}
             onPointerUp={() => {
@@ -258,141 +269,45 @@ export const IconKitBuilder = () => {
             }}
           >
             {image ? (
-              <canvas ref={canvasRef} width={512} height={512} />
+              <canvas ref={canvasRef} width={512} height={512} className="block h-full w-full" />
             ) : (
-              <label className="icon-kit-upload">
-                <span className="icon-kit-upload-icon">↑</span>
-                <strong>上传图标</strong>
-                <small>PNG、JPG 或 WebP</small>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => chooseFile(event.target.files?.[0])}
-                />
+              <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" x2="12" y1="3" y2="15" />
+                </svg>
+                <strong className="font-medium text-zinc-700 dark:text-zinc-200">上传图标</strong>
+                <span className="text-xs">PNG、JPG 或 WebP</span>
+                <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseFile(event.target.files?.[0])} />
               </label>
             )}
           </div>
-          <div className="icon-kit-zoom">
-            <span>缩放</span>
-            <input
-              type="range"
-              min="0.5"
-              max="3"
-              step="0.01"
-              value={zoom}
-              onChange={(event) => setZoom(Number(event.target.value))}
-            />
-            <output>{Math.round(zoom * 100)}%</output>
-          </div>
         </div>
-        <div className="icon-kit-controls">
-          <div className="icon-kit-control">
-            <label>背景色</label>
-            <div className="icon-kit-color">
-              <input
-                type="color"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-              />
-              <input
-                value={color}
-                maxLength={7}
-                onChange={(event) => setColor(event.target.value)}
-              />
+        <div className="min-w-0 space-y-5">
+          <div className="space-y-2">
+            <p className="m-0 text-sm font-medium">背景色</p>
+            <div className="flex items-center gap-2">
+              {swatches.map((swatch) => <button type="button" key={swatch} aria-label={`背景色 ${swatch}`} onClick={() => { setColor(swatch); setColorInput(swatch); }} style={{ backgroundColor: swatch }} className={`h-7 w-7 shrink-0 rounded-md border border-zinc-950/20 ${color === swatch ? "ring-2 ring-zinc-950 ring-offset-2 dark:ring-white dark:ring-offset-zinc-950" : ""}`} />)}
+              <input value={colorInput} maxLength={7} onChange={(event) => updateColor(event.target.value)} onBlur={() => { if (!/^#[0-9a-f]{6}$/i.test(colorInput)) setColorInput(color); }} className="h-9 min-w-0 flex-1 rounded-lg border border-zinc-950/20 bg-transparent px-3 font-mono text-sm outline-none dark:border-white/20" />
             </div>
           </div>
-          <div className="icon-kit-control">
-            <label>图标形状</label>
-            <div className="icon-kit-segment">
-              {["square", "rounded", "circle"].map((value) => (
-                <button
-                  key={value}
-                  className={shape === value ? "active" : ""}
-                  onClick={() => setShape(value)}
-                >
-                  {value === "square"
-                    ? "方形"
-                    : value === "rounded"
-                      ? "圆角"
-                      : "圆形"}
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-1 gap-4 border-t border-zinc-950/10 pt-5 dark:border-white/15 sm:grid-cols-2">
+            <Select label="形状" value={shape} onChange={setShape} options={[{ value: "square", label: "方形" }, { value: "rounded", label: "圆角" }, { value: "circle", label: "圆形" }]} />
+            <Select label="裁剪方式" value={crop ? "cover" : "contain"} onChange={(value) => setCrop(value === "cover")} options={[{ value: "contain", label: "完整显示" }, { value: "cover", label: "填充裁剪" }]} />
           </div>
-          <div className="icon-kit-control">
-            <div className="icon-kit-label-row">
-              <label>裁剪方式</label>
-              <label className="icon-kit-replace">
-                更换图片
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => chooseFile(event.target.files?.[0])}
-                />
-              </label>
-            </div>
-            <div className="icon-kit-segment">
-              <button
-                className={!crop ? "active" : ""}
-                onClick={() => setCrop(false)}
-              >
-                完整显示
-              </button>
-              <button
-                className={crop ? "active" : ""}
-                onClick={() => setCrop(true)}
-              >
-                填充裁剪
-              </button>
-            </div>
-            <div className="icon-kit-range">
-              <span>留白</span>
-              <output>{Math.round(padding * 100)}%</output>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="0.35"
-              step="0.01"
-              value={padding}
-              onChange={(event) => setPadding(Number(event.target.value))}
-            />
+          <div className="grid grid-cols-2 gap-4 border-t border-zinc-950/10 pt-5 dark:border-white/15">
+            <Stepper label="缩放" value={Math.round(zoom * 100)} step={10} min={50} max={300} onChange={changeZoom} />
+            <Stepper label="留白" value={Math.round(padding * 100)} step={5} min={0} max={35} onChange={changePadding} />
           </div>
-          {error && <div className="icon-kit-error">{error}</div>}
-          {actionsUrl && (
-            <a
-              className="icon-kit-success"
-              href={actionsUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>{statusText}</span>
-              <span>查看 Actions ↗</span>
-            </a>
-          )}
-          <div className="icon-kit-actions">
-            <button
-              className="icon-kit-secondary"
-              disabled={!image || busy || !zipReady}
-              onClick={download}
-            >
-              下载 ZIP
-            </button>
-            <button
-              className="icon-kit-primary"
-              disabled={!image || busy || !zipReady}
-              onClick={submit}
-            >
-              {busy ? "提交中…" : "构建 APK"}
-            </button>
+          <div className="grid grid-cols-2 gap-3 border-t border-zinc-950/10 pt-5 dark:border-white/15">
+            <button type="button" disabled={!actionsUrl} onClick={() => window.open(actionsUrl, "_blank", "noopener,noreferrer")} className="h-10 rounded-lg border border-zinc-950/20 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20">打开构建 CI</button>
+            <button type="button" disabled={!image || busy || !zipReady} onClick={submit} className="h-10 rounded-lg bg-zinc-950 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-950">{busy ? "提交中..." : "构建 APK"}</button>
           </div>
-          <small className="icon-kit-note">
-            生成 Asset Studio 格式图标包 · 保留原签名
-          </small>
+          {(error || status === "failed") && <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-400">{error || "构建失败，请查看构建 CI 日志。"}</div>}
+          {status === "succeeded" && <div role="status" className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400">构建完成，可以打开构建 CI。</div>}
         </div>
       </div>
     </div>
   );
 };
-
-const styles = `.icon-kit-builder{--ink:#242322;--muted:#756f68;--line:#e6e0d8;--soft:#faf8f5;margin:28px 0 44px;color:var(--ink);font-family:inherit}.icon-kit-intro{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding:24px 26px;border:1px solid var(--line);border-radius:18px;background:#faf8f5}.icon-kit-eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;color:#a07852}.icon-kit-intro h2{margin:7px 0 6px;font-size:25px;letter-spacing:-.02em}.icon-kit-intro p{margin:0;max-width:480px;color:var(--muted);font-size:13px;line-height:1.6}.icon-kit-badge{white-space:nowrap;border:1px solid #ddd2c4;border-radius:999px;padding:6px 10px;color:#856e58;font-size:11px}.icon-kit-grid{display:grid;grid-template-columns:minmax(220px,.86fr) minmax(280px,1fr);gap:28px;margin-top:18px;padding:20px;border:1px solid var(--line);border-radius:18px;background:#fff}.icon-kit-stage{aspect-ratio:1;display:grid;place-items:center;overflow:hidden;border:1px dashed #b9afa4;border-radius:16px;background:#faf8f5;touch-action:none}.icon-kit-stage.has-image{cursor:grab}.icon-kit-stage canvas{display:block;width:100%;height:100%;filter:drop-shadow(0 12px 14px #30251d1a)}.icon-kit-upload{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted);cursor:pointer}.icon-kit-upload input,.icon-kit-replace input{display:none}.icon-kit-upload-icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:4px;border:1px solid #d7cec4;border-radius:12px;font-size:26px;line-height:1;color:#9c8064}.icon-kit-upload strong{font-size:13px}.icon-kit-upload small{font-size:11px;color:#aaa198}.icon-kit-zoom{display:grid;grid-template-columns:34px 1fr 38px;gap:8px;align-items:center;margin-top:13px;color:var(--muted);font-size:11px}.icon-kit-zoom input,.icon-kit-control>input{width:100%;accent-color:#896c51}.icon-kit-zoom output,.icon-kit-range output{font-variant-numeric:tabular-nums;text-align:right;color:#6d6258}.icon-kit-controls{display:grid;align-content:start;gap:16px}.icon-kit-control{display:grid;gap:7px}.icon-kit-control>label,.icon-kit-label-row>label:first-child{font-size:12px;font-weight:750}.icon-kit-color{display:grid;grid-template-columns:42px 1fr;gap:8px}.icon-kit-color input[type=color]{width:42px;height:38px;padding:3px;border:1px solid var(--line);border-radius:9px;background:#fff}.icon-kit-color input:not([type=color]){min-width:0;border:1px solid var(--line);border-radius:9px;padding:0 10px;color:var(--ink);outline:0}.icon-kit-segment{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.icon-kit-segment button{min-height:35px;border:1px solid var(--line);border-radius:8px;color:#6e655d;background:#fff;font-size:11px;cursor:pointer}.icon-kit-segment button.active{border-color:var(--ink);color:#fff;background:var(--ink)}.icon-kit-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.icon-kit-replace{color:#9a8068;font-size:11px;cursor:pointer}.icon-kit-segment:has(button:nth-child(2):last-child){grid-template-columns:1fr 1fr}.icon-kit-range{display:flex;justify-content:space-between;margin-top:4px;color:var(--muted);font-size:11px}.icon-kit-error{padding:9px 10px;border-radius:8px;color:#a23b33;background:#fff1ef;font-size:11px}.icon-kit-success{display:flex;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid #c9dfcb;border-radius:9px;color:#407548;background:#f2faf1;font-size:11px;font-weight:700;text-decoration:none}.icon-kit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.icon-kit-actions button{min-height:40px;border-radius:9px;font-size:12px;font-weight:750;cursor:pointer}.icon-kit-primary{border:1px solid var(--ink);color:#fff;background:var(--ink)}.icon-kit-secondary{border:1px solid var(--line);color:#5f554c;background:#fff}.icon-kit-actions button:disabled{opacity:.45;cursor:not-allowed}.icon-kit-note{display:block;text-align:center;color:#aaa198;font-size:10px}@media(max-width:700px){.icon-kit-intro{padding:20px}.icon-kit-badge{display:none}.icon-kit-grid{grid-template-columns:1fr;padding:14px;gap:20px}.icon-kit-stage{max-width:330px;margin:auto}.icon-kit-actions{grid-template-columns:1fr 1fr}}`;
