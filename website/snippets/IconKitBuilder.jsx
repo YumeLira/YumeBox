@@ -32,8 +32,7 @@ export const IconKitBuilder = () => {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState();
-  const [actionsUrl, setActionsUrl] = useState();
+  const [issueUrl, setIssueUrl] = useState();
   const [error, setError] = useState();
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -187,8 +186,7 @@ export const IconKitBuilder = () => {
     try {
       setBusy(true);
       setError(undefined);
-      setActionsUrl(undefined);
-      setStatus(undefined);
+      setIssueUrl(undefined);
       const form = new FormData();
       form.append("bundle", await bundle(), "YumeBox-IconKit-icons.zip");
       const response = await fetch(`${WORKER_URL}/v1/jobs`, {
@@ -197,18 +195,8 @@ export const IconKitBuilder = () => {
       });
       if (!response.ok) throw new Error(await response.text());
       const job = await response.json();
-      setStatus("queued");
-      for (;;) {
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
-        const result = await fetch(`${WORKER_URL}${job.statusUrl}`, {
-          cache: "no-store",
-        });
-        if (!result.ok) continue;
-        const next = await result.json();
-        setStatus(next.status);
-        if (next.actionsUrl) setActionsUrl(next.actionsUrl);
-        if (next.status === "succeeded" || next.status === "failed") break;
-      }
+      if (!job.issueUrl) throw new Error("创建构建 Issue 失败，请重试。");
+      setIssueUrl(job.issueUrl);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "提交失败，请重试。");
     } finally {
@@ -263,27 +251,16 @@ export const IconKitBuilder = () => {
     if (/^#[0-9a-f]{6}$/i.test(next)) setColor(next.toLowerCase());
   }
 
-  const pending = busy || status === "queued" || status === "running";
   const buildLabel = busy
-    ? "提交中..."
-    : status === "queued"
-      ? "等待构建..."
-      : status === "running"
-        ? "正在构建..."
-        : status === "succeeded"
-          ? "重新构建 APK"
-          : status === "failed"
-            ? "重新构建 APK"
-            : "构建 APK";
+    ? "创建中..."
+    : issueUrl
+      ? "重新创建构建 Issue"
+      : "创建构建 Issue";
   const positiveStatus = busy
-    ? "正在提交构建请求。"
-    : status === "queued"
-      ? "已提交，正在等待构建。"
-      : status === "running"
-        ? "正在构建 APK。"
-        : status === "succeeded"
-          ? "构建完成，可以打开构建 CI。"
-          : undefined;
+    ? "正在保存图标包。"
+    : issueUrl
+      ? "图标包已保存。打开并提交构建 Issue 后，构建状态和下载链接会显示在 Issue 评论中。"
+      : undefined;
   return (
     <div className="not-prose my-6 w-full text-zinc-950 dark:text-white">
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
@@ -356,11 +333,11 @@ export const IconKitBuilder = () => {
             <div className="min-w-0 space-y-2"><p className="m-0 text-sm font-medium">留白</p><div className="flex h-10 w-full overflow-hidden rounded-lg border border-zinc-950/15 bg-white shadow-sm dark:border-white/20 dark:bg-zinc-900"><button type="button" aria-label="减少留白" onClick={() => changePadding(Math.round(padding * 100) - 5)} className="flex h-full w-10 shrink-0 items-center justify-center border-r border-zinc-950/15 text-zinc-600 transition hover:bg-zinc-100 dark:border-white/20 dark:text-zinc-300 dark:hover:bg-white/10"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-minus"><path d="M5 12h14" /></svg></button><input value={`${Math.round(padding * 100)}%`} inputMode="numeric" aria-label="留白百分比" onChange={(event) => changePadding(event.target.value.replace("%", ""))} className="h-full min-w-0 flex-1 border-0 bg-transparent px-1 text-center text-sm font-medium outline-none" /><button type="button" aria-label="增加留白" onClick={() => changePadding(Math.round(padding * 100) + 5)} className="flex h-full w-10 shrink-0 items-center justify-center border-l border-zinc-950/15 text-zinc-600 transition hover:bg-zinc-100 dark:border-white/20 dark:text-zinc-300 dark:hover:bg-white/10"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14" /><path d="M12 5v14" /></svg></button></div></div>
           </div>
           <div className="grid grid-cols-2 gap-3 border-t border-zinc-950/10 pt-5 dark:border-white/15">
-            <button type="button" disabled={!actionsUrl} onClick={() => window.open(actionsUrl, "_blank", "noopener,noreferrer")} className="h-10 rounded-lg border border-zinc-950/20 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20">打开构建 CI</button>
-            <button type="button" disabled={!image || pending || !zipReady} onClick={submit} className="h-10 rounded-lg bg-zinc-950 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-950">{buildLabel}</button>
+            <button type="button" disabled={!issueUrl} onClick={() => window.open(issueUrl, "_blank", "noopener,noreferrer")} className="h-10 rounded-lg border border-zinc-950/20 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20">打开构建 Issue</button>
+            <button type="button" disabled={!image || busy || !zipReady} onClick={submit} className="h-10 rounded-lg bg-zinc-950 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-zinc-950">{buildLabel}</button>
           </div>
-          {positiveStatus && <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${status === "succeeded" ? "" : "animate-spin"}`}><path d={status === "succeeded" ? "M20 6 9 17l-5-5" : "M21 12a9 9 0 1 1-6.219-8.56"} /></svg><span>{positiveStatus}</span></div>}
-          {(error || status === "failed") && <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-400">{error || "构建失败，请查看构建 CI 日志。"}</div>}
+          {positiveStatus && <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${busy ? "animate-spin" : ""}`}><path d={busy ? "M21 12a9 9 0 1 1-6.219-8.56" : "M20 6 9 17l-5-5"} /></svg><span>{positiveStatus}</span></div>}
+          {error && <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-400">{error}</div>}
         </div>
       </div>
     </div>
