@@ -36,9 +36,12 @@ pluginManagement {
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
         maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
         maven("https://jitpack.io")
-        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
-
-        maven("https://maven.oom-wg.dev")
+        maven("https://maven.oom-wg.dev") {
+            content { includeGroupByRegex("ren\\.shiror\\.(fyl\\.fytxt|fvv)(\\..+)?") }
+        }
+        maven("https://maven.aliyun.com/nexus/content/repositories/releases/") {
+            content { excludeGroupByRegex("ren\\.shiror\\.(fyl\\.fytxt|fvv)(\\..+)?") }
+        }
     }
 }
 
@@ -63,10 +66,13 @@ dependencyResolutionManagement {
         gradlePluginPortal()
 
         maven("https://jitpack.io")
-        maven("https://maven.aliyun.com/nexus/content/repositories/releases/")
         maven("https://raw.githubusercontent.com/MetaCubeX/maven-backup/main/releases")
-
-        maven("https://maven.oom-wg.dev")
+        maven("https://maven.oom-wg.dev") {
+            content { includeGroupByRegex("ren\\.shiror\\.(fyl\\.fytxt|fvv)(\\..+)?") }
+        }
+        maven("https://maven.aliyun.com/nexus/content/repositories/releases/") {
+            content { excludeGroupByRegex("ren\\.shiror\\.(fyl\\.fytxt|fvv)(\\..+)?") }
+        }
     }
 }
 
