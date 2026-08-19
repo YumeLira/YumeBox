@@ -122,7 +122,7 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           PUBLISH_DIR: publish
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          LOGO_PATH: website/images/og.webp
+          LOGO_PATH: website/images/brand/logo.webp
           BOT_API_BASE_URL: http://127.0.0.1:8081
         run: python3 "$GITHUB_WORKSPACE/scripts/yumebot.py"
 

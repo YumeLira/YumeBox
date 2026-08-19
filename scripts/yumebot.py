@@ -25,8 +25,8 @@ VERSION_CODE = os.environ.get("VERSION_CODE", "")
 RELEASE_URL = os.environ.get("RELEASE_URL", "")
 META_URL = os.environ.get("META_URL", "")
 PUBLISH_DIR = os.environ.get("PUBLISH_DIR", "")
-LOGO_PATH = os.environ.get("LOGO_PATH", "website/images/og.webp")
-LOGO_URL = os.environ.get("LOGO_URL", "https://yumebox.gal.tf/images/og.webp")
+LOGO_PATH = os.environ.get("LOGO_PATH", "website/images/brand/logo.webp")
+LOGO_URL = os.environ.get("LOGO_URL", "https://yumebox.gal.tf/images/brand/logo.webp")
 COMMIT_MESSAGE = os.environ.get("COMMIT_MESSAGE", "")
 BOT_API_BASE_URL = os.environ.get("BOT_API_BASE_URL", "https://api.telegram.org").rstrip("/")
 
@@ -229,6 +229,7 @@ def send_files_via_bot_api():
     caption = get_caption()
     print("[+] Caption:", caption)
 
+    caption_sent = False
     try:
         photo_name, photo, photo_content_type = load_logo()
         photo_data = {
@@ -248,13 +249,34 @@ def send_files_via_bot_api():
 
         if photo_resp.status_code != 200:
             print(f"[-] Photo send failed: {photo_resp.text}")
+        else:
+            caption_sent = True
 
     except Exception as e:
         print(f"[-] Photo send failed: {e}")
 
+    if not caption_sent:
+        try:
+            text_resp = requests.post(
+                f"{bot_url}/sendMessage",
+                data={
+                    "chat_id": CHAT_ID,
+                    "text": caption,
+                    "parse_mode": "HTML",
+                },
+                timeout=60,
+            )
+            if text_resp.status_code == 200:
+                caption_sent = True
+                print("[+] Text caption sent without a logo")
+            else:
+                print(f"[-] Text caption send failed: {text_resp.text}")
+        except Exception as e:
+            print(f"[-] Text caption send failed: {e}")
+
 
     # Telegram renders a document media group as one album-style chat item.
-    all_uploaded = True
+    all_uploaded = caption_sent
     try:
         media = []
         upload_files = {}
