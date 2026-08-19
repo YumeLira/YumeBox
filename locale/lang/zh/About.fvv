@@ -16,8 +16,14 @@ About = {
 
     Section = {
         ProjectLinks = "專案連結"
+        More = "更多"
         Support = "支援"
         License = "授權"
+    }
+
+    Link = {
+        TelegramGroup = "Telegram 群組"
+        TelegramChannel = "Telegram 頻道"
     }
 
     Support = {

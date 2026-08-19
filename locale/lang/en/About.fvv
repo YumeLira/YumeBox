@@ -16,8 +16,14 @@ About = {
 
     Section = {
         ProjectLinks = "Project Links"
+        More = "More"
         Support = "Support"
         License = "License"
+    }
+
+    Link = {
+        TelegramGroup = "Telegram Group"
+        TelegramChannel = "Telegram Channel"
     }
 
     Support = {

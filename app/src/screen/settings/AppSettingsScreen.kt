@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.Lifecycle
 import androidx.core.net.toUri
 import com.github.yumeyucca.yumebox.common.util.LocaleUtil
+import com.github.yumeyucca.yumebox.common.util.openUrl
 import com.github.yumeyucca.yumebox.common.util.toast
 import com.github.yumeyucca.yumebox.data.model.AppLanguage
 import com.github.yumeyucca.yumebox.data.model.ThemeMode
@@ -195,6 +196,10 @@ private fun AppInterfaceSettingsSection(viewModel: AppSettingsViewModel) {
         SystemWallpaperPreferenceItem(
             checked = useSystemWallpaper,
             onCheckedChange = viewModel::onUseSystemWallpaperChange,
+        )
+        PreferenceArrowItem(
+            title = YumeTxt.AppSettings.Interface.CustomIconTitle,
+            onClick = { openUrl(context, "https://yumebox.gal.tf/guide/icon-builder") },
         )
     }
 }

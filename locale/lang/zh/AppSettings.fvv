@@ -48,6 +48,7 @@ AppSettings = {
 
         ClassicHomeTitle = "經典首頁"
         SystemWallpaperTitle = "設定為系統桌布"
+        CustomIconTitle = "自訂應用圖示"
         HomeQuoteTitle = "首頁一言"
         HomeQuoteDefault = "在安靜的線路上，等一朵雲完成漫遊"
         EditHomeQuoteTitle = "編輯一言"

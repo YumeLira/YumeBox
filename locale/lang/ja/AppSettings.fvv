@@ -48,6 +48,7 @@ AppSettings = {
 
         ClassicHomeTitle = "クラシックホーム"
         SystemWallpaperTitle = "システム壁紙に設定"
+        CustomIconTitle = "カスタムアプリアイコン"
         HomeQuoteTitle = "ホームの一言"
         HomeQuoteDefault = "静かな回線のうえで、雲が回遊を終えるのを待つ"
         EditHomeQuoteTitle = "一言を編集"

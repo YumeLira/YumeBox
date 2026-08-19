@@ -48,6 +48,7 @@ AppSettings = {
 
         ClassicHomeTitle = "Classic Home"
         SystemWallpaperTitle = "Set as System Wallpaper"
+        CustomIconTitle = "Custom App Icon"
         HomeQuoteTitle = "Home Quote"
         HomeQuoteDefault = "Wait for a cloud to finish roaming on a quiet route"
         EditHomeQuoteTitle = "Edit Home Quote"

@@ -48,6 +48,7 @@ AppSettings = {
 
         ClassicHomeTitle = "Классическая главная"
         SystemWallpaperTitle = "Установить системные обои"
+        CustomIconTitle = "Пользовательский значок приложения"
         HomeQuoteTitle = "Цитата на главной"
         HomeQuoteDefault = "На тихом маршруте ждать, пока облако закончит роуминг"
         EditHomeQuoteTitle = "Изменить цитату"

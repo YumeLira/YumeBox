@@ -16,8 +16,14 @@ About = {
 
     Section = {
         ProjectLinks = "Ссылки проекта"
+        More = "Ещё"
         Support = "Поддержка"
         License = "Лицензия"
+    }
+
+    Link = {
+        TelegramGroup = "Группа Telegram"
+        TelegramChannel = "Канал Telegram"
     }
 
     Support = {
