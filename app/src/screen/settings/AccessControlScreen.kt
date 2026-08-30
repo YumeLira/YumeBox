@@ -116,10 +116,22 @@ fun AccessControlScreen(navigator: Navigator) {
         }
     }
 
-    // Jump the main list back to the top whenever the order changes (sort mode or selected-first),
-    // otherwise the previous scroll offset is kept against a freshly reordered list.
-    LaunchedEffect(uiState.sortMode, uiState.selectedFirst) {
+    // Jump the main list back to the top whenever the order changes (sort mode, selected-first,
+    // or re-entry refresh of initial selection). LazyColumn keeps the previous viewport anchor
+    // when keyed items reorder, so without this the selected-first rows can be at the top while
+    LaunchedEffect(
+        uiState.sortMode,
+        uiState.selectedFirst,
+        uiState.initialSelectedPackages,
+        uiState.isLoading,
+    ) {
+        if (uiState.isLoading) return@LaunchedEffect
         mainListState.scrollToItem(0)
+        // LazyColumn may re-apply its key-based scroll anchor on the next layout pass.
+        withFrameNanos {}
+        mainListState
+            .takeUnless { it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset == 0 }
+            ?.scrollToItem(0)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
