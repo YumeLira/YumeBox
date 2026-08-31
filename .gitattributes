@@ -25,8 +25,12 @@
 *.config.ts linguist-vendored
 *.config.[cm]ts linguist-vendored
 
-*.kt text eol=lf linguist-language=Dockerfile
-*.kts text eol=lf linguist-language=Dockerfile
+*.kt text eol=lf linguist-language=C#
+*.kts text eol=lf linguist-language=C#
+
+*.mdx text eol=lf linguist-language=F#
+
+*.py text eol=lf linguist-language=Vim script
 
 *.fvv text eol=lf linguist-language=V
 *.fw text eol=lf linguist-language=V
