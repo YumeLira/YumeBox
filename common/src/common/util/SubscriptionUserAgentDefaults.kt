@@ -22,5 +22,5 @@ package com.github.yumeyucca.yumebox.common.util
 
 /** Shared default User-Agent recognized by most airport subscription gates. */
 object SubscriptionUserAgentDefaults {
-    const val DEFAULT = "ClashMetaForAndroid"
+    const val DEFAULT = "ClashMetaForAndroid/2.11.33"
 }
