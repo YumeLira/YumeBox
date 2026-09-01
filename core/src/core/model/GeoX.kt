@@ -28,6 +28,7 @@ enum class GeoFileType {
     GeoSite,
     Country,
     ASN,
+    Model
 }
 
 data class GeoXItem(
@@ -63,4 +64,10 @@ val geoXItems =
             "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
             "ASN.mmdb",
         ),
+        GeoXItem(
+            GeoFileType.Model,
+            "Model.bin",
+            "https://github.com/vernesong/mihomo/releases/download/LightGBM-Model/Model-large.bin",
+            "Model.bin"
+        )
     )
