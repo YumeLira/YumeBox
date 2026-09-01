@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "boa_ast"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "bitflags",
  "boa_interner",
@@ -205,7 +205,7 @@ dependencies = [
 [[package]]
 name = "boa_engine"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "aligned-vec",
  "arrayvec",
@@ -221,6 +221,8 @@ dependencies = [
  "cfg-if",
  "cow-utils",
  "dashmap",
+ "data-encoding",
+ "data-encoding-macro",
  "dynify",
  "fast-float2",
  "float16",
@@ -260,7 +262,7 @@ dependencies = [
 [[package]]
 name = "boa_gc"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "arrayvec",
  "boa_macros",
@@ -272,7 +274,7 @@ dependencies = [
 [[package]]
 name = "boa_interner"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "boa_gc",
  "boa_macros",
@@ -287,7 +289,7 @@ dependencies = [
 [[package]]
 name = "boa_macros"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "cfg-if",
  "cow-utils",
@@ -300,7 +302,7 @@ dependencies = [
 [[package]]
 name = "boa_parser"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "bitflags",
  "boa_ast",
@@ -317,7 +319,7 @@ dependencies = [
 [[package]]
 name = "boa_string"
 version = "0.22.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "fast-float2",
  "itoa",
@@ -573,6 +575,32 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+]
+
+[[package]]
+name = "data-encoding"
+version = "2.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4583a4551df46e2792f82ceeac45e850d2e2d5debba0b91f102385cda5b11f06"
+
+[[package]]
+name = "data-encoding-macro"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6a127ecbb3c4632e1525380e04c0c3fcf8dcb44d32a79ea290d8a36906edcd8"
+dependencies = [
+ "data-encoding",
+ "data-encoding-macro-internal",
+]
+
+[[package]]
+name = "data-encoding-macro-internal"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
+dependencies = [
+ "data-encoding",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -2151,7 +2179,7 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 [[package]]
 name = "small_btree"
 version = "0.1.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 dependencies = [
  "arrayvec",
 ]
@@ -2254,7 +2282,7 @@ dependencies = [
 [[package]]
 name = "tag_ptr"
 version = "0.1.0"
-source = "git+https://github.com/boa-dev/boa.git?branch=main#337a3668a0dc86dd401ea20906e782249a64a228"
+source = "git+https://github.com/boa-dev/boa.git?branch=main#8665669463872b475404f5316eb221767c7b10d1"
 
 [[package]]
 name = "tap"
